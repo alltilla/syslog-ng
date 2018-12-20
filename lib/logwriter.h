@@ -72,6 +72,7 @@ typedef struct _LogWriterOptions
   gint mark_freq;
   gint stats_level;
   gint stats_source;
+  gboolean close_on_input;
 } LogWriterOptions;
 
 typedef struct _LogWriter LogWriter;

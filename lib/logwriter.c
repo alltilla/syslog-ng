@@ -1643,6 +1643,7 @@ log_writer_options_defaults(LogWriterOptions *options)
   options->padding = 0;
   options->mark_mode = MM_GLOBAL;
   options->mark_freq = -1;
+  options->close_on_input = TRUE;
   host_resolve_options_defaults(&options->host_resolve_options);
 }
 

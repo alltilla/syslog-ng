@@ -202,6 +202,7 @@ extern struct _StatsOptions *last_stats_options;
 %token KW_MIN_IW_SIZE_PER_READER      10085
 %token KW_BATCH_LINES                 10087
 %token KW_BATCH_TIMEOUT               10088
+%token KW_CLOSE_ON_INPUT              10088
 
 %token KW_CHAIN_HOSTNAMES             10090
 %token KW_NORMALIZE_HOSTNAMES         10091
@@ -1295,6 +1296,7 @@ dest_writer_option
 	| KW_FLUSH_LINES '(' nonnegative_integer ')'		{ last_writer_options->flush_lines = $3; }
 	| KW_FLUSH_TIMEOUT '(' positive_integer ')'	{ }
         | KW_SUPPRESS '(' nonnegative_integer ')'            { last_writer_options->suppress = $3; }
+	| KW_CLOSE_ON_INPUT '(' yesno ')'	{ last_writer_options->close_on_input = $3; }
 	| KW_TEMPLATE '(' string ')'       	{
                                                   GError *error = NULL;
 
