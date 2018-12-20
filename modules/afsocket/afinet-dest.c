@@ -216,7 +216,7 @@ _disable_connection_closure_on_input(LogWriter *writer)
    * (and possibly for all eternity :)
    */
 
-  log_writer_set_flags(writer, log_writer_get_flags(writer) & ~LW_DETECT_EOF);
+  log_writer_set_flags(writer, log_writer_get_flags(writer) & ~LW_CLOSE_ON_INPUT);
 }
 
 static LogWriter *
