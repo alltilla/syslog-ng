@@ -455,7 +455,7 @@ log_writer_update_watches(LogWriter *self)
     {
       /* few elements are available, but less than flush_lines, we need to start a timer to initiate a write */
 
-      log_writer_update_fd_callbacks(self, 0);
+      log_writer_update_fd_callbacks(self, cond & ~G_IO_OUT);
       self->waiting_for_throttle = TRUE;
       log_writer_arm_suspend_timer(self, (void (*)(void *)) log_writer_update_watches, (glong)timeout_msec);
     }
@@ -465,7 +465,7 @@ log_writer_update_watches(LogWriter *self)
        * when the required number of items are added.  see the
        * log_queue_check_items and its parallel_push argument above
        */
-      log_writer_update_fd_callbacks(self, 0);
+      log_writer_update_fd_callbacks(self, cond & ~G_IO_OUT);
     }
 
   if (idle_timeout > 0)

@@ -202,7 +202,7 @@ extern struct _StatsOptions *last_stats_options;
 %token KW_MIN_IW_SIZE_PER_READER      10085
 %token KW_BATCH_LINES                 10087
 %token KW_BATCH_TIMEOUT               10088
-%token KW_CLOSE_ON_INPUT              10088
+%token KW_CLOSE_ON_INPUT              10089
 
 %token KW_CHAIN_HOSTNAMES             10090
 %token KW_NORMALIZE_HOSTNAMES         10091

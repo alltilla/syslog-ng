@@ -34,10 +34,33 @@ log_proto_text_client_prepare(LogProtoClient *s, gint *fd, GIOCondition *cond, g
   *fd = self->super.transport->fd;
   *cond = self->super.transport->cond;
 
-  /* if there's no pending I/O in the transport layer, then we want to do a write */
+  /* if there's no pending I/O in the transport layer, then we want to do a write or read */
   if (*cond == 0)
-    *cond = G_IO_OUT;
+    {
+      *cond = G_IO_OUT | G_IO_IN;
+    }
   return self->partial != NULL;
+}
+
+static LogProtoStatus
+log_proto_text_client_drop_input(LogProtoClient *s)
+{
+  LogProtoTextClient *self = (LogProtoTextClient *) s;
+  guchar buf[1024] = { 0 };
+  gint rc = -1;
+
+  do
+    {
+      rc = log_transport_read(self->super.transport, buf, sizeof(buf), NULL);
+    }
+  while (rc > 0);
+
+  if (errno != EAGAIN || rc == 0)
+    {
+      msg_error("Error reading data", evt_tag_int("fd", self->super.transport->fd), evt_tag_error("error"));
+      return LPS_ERROR;
+    }
+  return LPS_SUCCESS;
 }
 
 static LogProtoStatus
@@ -165,7 +188,7 @@ log_proto_text_client_init(LogProtoTextClient *self, LogTransport *transport, co
   log_proto_client_init(&self->super, transport, options);
   self->super.prepare = log_proto_text_client_prepare;
   self->super.process_out = log_proto_text_client_flush;
-  self->super.process_in = log_proto_text_client_flush;
+  self->super.process_in = log_proto_text_client_drop_input;
   self->super.post = log_proto_text_client_post;
   self->super.free_fn = log_proto_text_client_free;
   self->super.transport = transport;
