@@ -65,9 +65,9 @@ struct _LogProtoClient
   gboolean (*prepare)(LogProtoClient *s, gint *fd, GIOCondition *cond, gint *timeout);
   LogProtoStatus (*post)(LogProtoClient *s, LogMessage *logmsg, guchar *msg, gsize msg_len, gboolean *consumed);
   LogProtoStatus (*process_in)(LogProtoClient *s);
-  LogProtoStatus (*flush)(LogProtoClient *s);
+  LogProtoStatus (*process_out)(LogProtoClient *s);
   gboolean (*validate_options)(LogProtoClient *s);
-  gboolean (*handshake_in_progess)(LogProtoClient *s);
+  gboolean (*ready_to_post)(LogProtoClient *s);
   LogProtoStatus (*handshake)(LogProtoClient *s);
   gboolean (*restart_with_state)(LogProtoClient *s, PersistState *state, const gchar *persist_name);
   void (*free_fn)(LogProtoClient *s);
@@ -102,13 +102,13 @@ log_proto_client_validate_options(LogProtoClient *self)
 }
 
 static inline gboolean
-log_proto_client_handshake_in_progress(LogProtoClient *s)
+log_proto_client_ready_to_post(LogProtoClient *s)
 {
-  if (s->handshake_in_progess)
+  if (s->ready_to_post)
     {
-      return s->handshake_in_progess(s);
+      return s->ready_to_post(s);
     }
-  return FALSE;
+  return TRUE;
 }
 
 static inline LogProtoStatus
@@ -128,10 +128,10 @@ log_proto_client_prepare(LogProtoClient *s, gint *fd, GIOCondition *cond, gint *
 }
 
 static inline LogProtoStatus
-log_proto_client_flush(LogProtoClient *s)
+log_proto_client_process_out(LogProtoClient *s)
 {
-  if (s->flush)
-    return s->flush(s);
+  if (s->process_out)
+    return s->process_out(s);
   else
     return LPS_SUCCESS;
 }
@@ -141,12 +141,6 @@ log_proto_client_process_in(LogProtoClient *s)
 {
   if (s->process_in)
     return s->process_in(s);
-  else if (s->flush)
-    /*
-     * TODO: Currently flush is used for process_in functionality.
-     * Fix it in every ProtoClient and remove the flush call here.
-     */
-    return s->flush(s);
   else
     return LPS_SUCCESS;
 }

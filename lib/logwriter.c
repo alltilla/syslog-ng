@@ -49,13 +49,11 @@
 
 typedef enum
 {
-  /* flush modes */
-
-  /* business as usual, flush when the buffer is full */
-  LW_FLUSH_NORMAL,
-  /* flush the buffer immediately please */
-  LW_FLUSH_FORCE,
-} LogWriterFlushMode;
+  /* business as usual, write when the buffer is full */
+  LW_WRITE_NORMAL,
+  /* write immediately please */
+  LW_WRITE_FORCE,
+} LogWriterWriteMode;
 
 struct _LogWriter
 {
@@ -258,7 +256,7 @@ log_writer_io_handle_out(gpointer s)
     {
       /* Checking main_loop_io_worker_job_quit() helps to speed up the
        * reload process.  If reload/shutdown is requested we shouldn't do
-       * anything here, a final flush will be attempted in
+       * anything here, a final write will be attempted in
        * log_writer_deinit().
        *
        * Our current understanding is that it doesn't prevent race
@@ -424,7 +422,7 @@ log_writer_schedule_update_watches(LogWriter *self)
 static void
 log_writer_suspend(LogWriter *self)
 {
-  /* flush code indicates that we need to suspend our writing activities
+  /* write code indicates that we need to suspend our writing activities
    * until time_reopen elapses */
 
   log_writer_arm_suspend_timer(self, log_writer_error_suspend_elapsed, self->options->time_reopen * 1000L);
@@ -455,7 +453,7 @@ log_writer_update_watches(LogWriter *self)
     }
   else if (timeout_msec)
     {
-      /* few elements are available, but less than flush_lines, we need to start a timer to initiate a flush */
+      /* few elements are available, but less than flush_lines, we need to start a timer to initiate a write */
 
       log_writer_update_fd_callbacks(self, 0);
       self->waiting_for_throttle = TRUE;
@@ -1100,30 +1098,6 @@ log_writer_realloc_line_buffer(LogWriter *self)
   self->line_buffer->len = 0;
 }
 
-/*
- * Write messages to the underlying file descriptor using the installed
- * LogProtoClient instance.  This is called whenever the output is ready to accept
- * further messages, and once during config deinitialization, in order to
- * flush messages still in the queue, in the hope that most of them can be
- * written out.
- *
- * In threaded mode, this function is invoked as part of the "output" task
- * (in essence, this is the function that performs the output task).
- *
- */
-
-static gboolean
-log_writer_flush_finalize(LogWriter *self)
-{
-  LogProtoStatus status = log_proto_client_flush(self->proto);
-
-  if (status == LPS_SUCCESS || status == LPS_PARTIAL)
-    return TRUE;
-
-
-  return FALSE;
-}
-
 gboolean
 log_writer_write_message(LogWriter *self, LogMessage *msg, LogPathOptions *path_options, gboolean *write_error)
 {
@@ -1204,9 +1178,9 @@ log_writer_write_message(LogWriter *self, LogMessage *msg, LogPathOptions *path_
 }
 
 static inline LogMessage *
-log_writer_queue_pop_message(LogWriter *self, LogPathOptions *path_options, gboolean force_flush)
+log_writer_queue_pop_message(LogWriter *self, LogPathOptions *path_options, gboolean force_write)
 {
-  if (force_flush)
+  if (force_write)
     return log_queue_pop_head_ignore_throttle(self->queue, path_options);
   else
     return log_queue_pop_head(self->queue, path_options);
@@ -1223,37 +1197,28 @@ log_writer_process_handshake(LogWriter *self)
   return TRUE;
 }
 
-/*
- * @flush_mode specifies how hard LogWriter is trying to send messages to
- * the actual destination:
- *
- *
- * LW_FLUSH_NORMAL    - business as usual, flush when the buffer is full
- * LW_FLUSH_FORCE     - flush the buffer immediately please
- *
- */
 gboolean
-log_writer_flush(LogWriter *self, LogWriterFlushMode flush_mode)
+log_writer_write_messages(LogWriter *self, LogWriterWriteMode write_mode)
 {
   gboolean write_error = FALSE;
 
   if (!self->proto)
     return FALSE;
 
-  if (log_proto_client_handshake_in_progress(self->proto))
+  if (!log_proto_client_ready_to_post(self->proto))
     {
       return log_writer_process_handshake(self);
     }
 
-  /* NOTE: in case we're reloading or exiting we flush all queued items as
-   * long as the destination can consume it.  This is not going to be an
+  /* NOTE: in case we're reloading or exiting we write all queued items as
+   * long as the destination can consume it. This is not going to be an
    * infinite loop, since the reader will cease to produce new messages when
    * main_loop_io_worker_job_quit() is set. */
 
-  while ((!main_loop_worker_job_quit() || flush_mode == LW_FLUSH_FORCE) && !write_error)
+  while ((!main_loop_worker_job_quit() || write_mode == LW_WRITE_FORCE) && !write_error)
     {
       LogPathOptions path_options = LOG_PATH_OPTIONS_INIT;
-      LogMessage *msg = log_writer_queue_pop_message(self, &path_options, flush_mode == LW_FLUSH_FORCE);
+      LogMessage *msg = log_writer_queue_pop_message(self, &path_options, write_mode == LW_WRITE_FORCE);
 
       if (!msg)
         break;
@@ -1274,13 +1239,13 @@ log_writer_flush(LogWriter *self, LogWriterFlushMode flush_mode)
   if (write_error)
     return FALSE;
 
-  return log_writer_flush_finalize(self);
-}
+  /* TODO: I feel like, that another process_out should not be needed here. */
+  LogProtoStatus status = log_proto_client_process_out(self->proto);
 
-gboolean
-log_writer_forced_flush(LogWriter *self)
-{
-  return log_writer_flush(self, LW_FLUSH_FORCE);
+  if (status == LPS_SUCCESS || status == LPS_PARTIAL)
+    return TRUE;
+
+  return FALSE;
 }
 
 gboolean
@@ -1295,7 +1260,7 @@ log_writer_process_in(LogWriter *self)
 gboolean
 log_writer_process_out(LogWriter *self)
 {
-  return log_writer_flush(self, LW_FLUSH_NORMAL);
+  return log_writer_write_messages(self, LW_WRITE_NORMAL);
 }
 
 static void
@@ -1442,7 +1407,7 @@ log_writer_deinit(LogPipe *s)
   main_loop_assert_main_thread();
 
   log_queue_reset_parallel_push(self->queue);
-  log_writer_forced_flush(self);
+  log_writer_write_messages(self, LW_WRITE_FORCE);
   /* FIXME: by the time we arrive here, it must be guaranteed that no
    * _queue() call is running in a different thread, otherwise we'd need
    * some kind of locking. */

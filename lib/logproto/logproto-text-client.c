@@ -164,7 +164,8 @@ log_proto_text_client_init(LogProtoTextClient *self, LogTransport *transport, co
 {
   log_proto_client_init(&self->super, transport, options);
   self->super.prepare = log_proto_text_client_prepare;
-  self->super.flush = log_proto_text_client_flush;
+  self->super.process_out = log_proto_text_client_flush;
+  self->super.process_in = log_proto_text_client_flush;
   self->super.post = log_proto_text_client_post;
   self->super.free_fn = log_proto_text_client_free;
   self->super.transport = transport;

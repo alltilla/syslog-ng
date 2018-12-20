@@ -227,6 +227,6 @@ log_proto_file_writer_new(LogTransport *transport, const LogProtoClientOptions *
   self->fsync = fsync_;
   self->super.prepare = log_proto_file_writer_prepare;
   self->super.post = log_proto_file_writer_post;
-  self->super.flush = log_proto_file_writer_flush;
+  self->super.process_out = log_proto_file_writer_flush;
   return &self->super;
 }
