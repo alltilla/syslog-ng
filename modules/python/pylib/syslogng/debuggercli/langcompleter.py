@@ -25,7 +25,6 @@ from .completer import Completer
 
 
 class LangBasedCompleter(Completer):
-
     def __init__(self, parser, completers, prefix=None):
         self._parser = parser
         self._completers = completers
@@ -34,7 +33,8 @@ class LangBasedCompleter(Completer):
 
     def complete(self, entire_text, word_to_be_completed):
         if entire_text.startswith(self._prefix):
-            return self._handle_input_with_prefix(entire_text, word_to_be_completed)
+            return self._handle_input_with_prefix(entire_text,
+                                                  word_to_be_completed)
         return self._handle_input_without_prefix(entire_text)
 
     def _handle_input_without_prefix(self, entire_input):
@@ -43,13 +43,15 @@ class LangBasedCompleter(Completer):
         return []
 
     def _handle_input_with_prefix(self, entire_input, word_to_be_completed):
-        entire_input, word_to_be_completed = self._chop_prefixes(entire_input, word_to_be_completed)
+        entire_input, word_to_be_completed = self._chop_prefixes(
+            entire_input, word_to_be_completed)
 
         expected_tokens, last_token, completion_prefix, word_to_be_completed = (
             self._evaluate_language(entire_input, word_to_be_completed))
 
         completers = self._find_applicable_completers(expected_tokens)
-        completions = self._collect_completions(completers, last_token, completion_prefix, word_to_be_completed)
+        completions = self._collect_completions(
+            completers, last_token, completion_prefix, word_to_be_completed)
         return completions
 
     def _chop_prefixes(self, entire_input, word_to_be_completed):
@@ -63,7 +65,8 @@ class LangBasedCompleter(Completer):
 
     def _evaluate_language(self, entire_input, word_to_be_completed):
         expected_tokens, replaced_token, token_position = (
-            self._parser.get_expected_tokens(entire_input, drop_last_token=(word_to_be_completed != '')))
+            self._parser.get_expected_tokens(
+                entire_input, drop_last_token=(word_to_be_completed != '')))
 
         if token_position >= 0:
             word_position = len(entire_input) - len(word_to_be_completed)
@@ -91,14 +94,16 @@ class LangBasedCompleter(Completer):
                 pass
         return completers
 
-    def _collect_completions(self, completers, last_token, completion_prefix, word_to_be_completed):
+    def _collect_completions(self, completers, last_token, completion_prefix,
+                             word_to_be_completed):
         if self._completing_at_the_beginning_of_the_grammar:
             prefix = self._prefix + completion_prefix
         else:
             prefix = completion_prefix
         completions = []
         for completer in completers:
-            completions.extend(
-                (prefix + completion for completion in completer.complete(last_token, word_to_be_completed)))
+            completions.extend((prefix + completion
+                                for completion in completer.complete(
+                                    last_token, word_to_be_completed)))
         completions = sorted(completions)
         return completions

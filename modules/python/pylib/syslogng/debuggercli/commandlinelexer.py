@@ -31,6 +31,7 @@ CLL_QUOTED_CHAR = 2
 
 class CommandLineLexer(Lexer):
     """This an inperfect lexer for both the debug language and template functions"""
+
     def __init__(self):
         self._tokens = []
         self._input = ''
@@ -80,12 +81,17 @@ class CommandLineLexer(Lexer):
                 partial = True
             if self._paren_balance != 0:
                 partial = True
-            return LexerToken('ARG', value=self._current_token, partial=partial, lexpos=start_position)
+            return LexerToken(
+                'ARG',
+                value=self._current_token,
+                partial=partial,
+                lexpos=start_position)
 
         return None
 
     def _skip_whitespace(self):
-        while self._current_position < len(self._input) and self._input[self._current_position].isspace():
+        while self._current_position < len(
+                self._input) and self._input[self._current_position].isspace():
             self._current_position += 1
 
     def _process_normal_character(self, current_char):

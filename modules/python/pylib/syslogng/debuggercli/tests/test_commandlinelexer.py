@@ -26,7 +26,6 @@ from .. import commandlinelexer
 
 
 class TestCommandLineLexer(TestLexer):
-
     def _construct_lexer(self):
         return commandlinelexer.CommandLineLexer()
 
@@ -123,7 +122,8 @@ class TestCommandLineLexer(TestLexer):
         self._assert_current_token_value_equals('next-token')
         self._assert_current_token_is_not_partial()
 
-    def test_one_too_many_closing_parens_is_interpreted_as_a_separate_token(self):
+    def test_one_too_many_closing_parens_is_interpreted_as_a_separate_token(
+            self):
         self._lexer.input("(foo bar )) next-token")
 
         self._next_token()
@@ -138,7 +138,8 @@ class TestCommandLineLexer(TestLexer):
         self._assert_current_token_value_equals('next-token')
         self._assert_current_token_is_not_partial()
 
-    def test_quotes_within_parens_are_left_intact_so_a_recursive_parsing_will_find_them(self):
+    def test_quotes_within_parens_are_left_intact_so_a_recursive_parsing_will_find_them(
+            self):
         self._lexer.input("(foo 'bar baz') next-token")
         self._next_token()
         self._assert_current_token_value_equals("(foo 'bar baz')")

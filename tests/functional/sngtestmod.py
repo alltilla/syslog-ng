@@ -20,8 +20,8 @@
 #
 #############################################################################
 
-class DestTest(object):
 
+class DestTest(object):
     def init(self, options):
         return True
 

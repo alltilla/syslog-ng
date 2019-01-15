@@ -45,14 +45,13 @@ class SyslogNgConfig(object):
         }
 
     def write_config_content(self):
-        rendered_config = ConfigRenderer(self.__syslog_ng_config, self.__instance_paths).get_rendered_config()
-        self.__logger.info(
-            "Used config \
-        \n->Content:[{}]".format(
-                rendered_config
-            )
-        )
-        FileIO(self.__logger_factory, self.__config_path).rewrite(rendered_config)
+        rendered_config = ConfigRenderer(
+            self.__syslog_ng_config,
+            self.__instance_paths).get_rendered_config()
+        self.__logger.info("Used config \
+        \n->Content:[{}]".format(rendered_config))
+        FileIO(self.__logger_factory,
+               self.__config_path).rewrite(rendered_config)
 
     @staticmethod
     def __create_statement_group(group_type, statements):
@@ -73,10 +72,12 @@ class SyslogNgConfig(object):
         self.__syslog_ng_config["global_options"].update(kwargs)
 
     def create_file_source(self, **kwargs):
-        return FileSource(self.__logger_factory, self.__instance_paths, **kwargs)
+        return FileSource(self.__logger_factory, self.__instance_paths,
+                          **kwargs)
 
     def create_file_destination(self, **kwargs):
-        return FileDestination(self.__logger_factory, self.__instance_paths, **kwargs)
+        return FileDestination(self.__logger_factory, self.__instance_paths,
+                               **kwargs)
 
     def create_filter(self, **kwargs):
         return Filter(self.__logger_factory, **kwargs)
@@ -87,7 +88,8 @@ class SyslogNgConfig(object):
         return source_group
 
     def create_destination_group(self, drivers):
-        destination_group = self.__create_statement_group("destination", drivers)
+        destination_group = self.__create_statement_group(
+            "destination", drivers)
         self.__syslog_ng_config["statement_groups"].append(destination_group)
         return destination_group
 

@@ -52,8 +52,7 @@ class MessageReader(object):
         counter = self.__map_counter(counter)
         required_number_of_messages = self.__parser.msg_list[0:counter]
         self.__parser.msg_list = self.__parser.msg_list[
-            counter:
-        ]  # remove messages from the beginning of the msg_list, this is why we call it pop
+            counter:]  # remove messages from the beginning of the msg_list, this is why we call it pop
         return required_number_of_messages
 
     def peek_messages(self, counter):

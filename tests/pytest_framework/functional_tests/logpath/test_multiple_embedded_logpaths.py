@@ -23,7 +23,8 @@
 
 
 def write_message_with_fields(tc, file_source, hostname, program, message):
-    bsd_message = tc.new_log_message().hostname(hostname).program(program).message(message)
+    bsd_message = tc.new_log_message().hostname(hostname).program(
+        program).message(message)
     bsd_log = tc.format_as_bsd(bsd_message)
     file_source.write_log(bsd_log)
     return bsd_message
@@ -69,29 +70,45 @@ def test_multiple_embedded_logpaths(tc):
     file_destination4 = config.create_file_destination(file_name="output4.log")
     destination_group4 = config.create_destination_group(file_destination4)
 
-    second_level_logpath1 = config.create_inner_logpath(statements=[filter_group1, destination_group1])
+    second_level_logpath1 = config.create_inner_logpath(
+        statements=[filter_group1, destination_group1])
 
-    second_level_logpath2 = config.create_inner_logpath(statements=[filter_group2, destination_group2])
+    second_level_logpath2 = config.create_inner_logpath(
+        statements=[filter_group2, destination_group2])
 
-    second_level_logpath3 = config.create_inner_logpath(statements=[destination_group3])
+    second_level_logpath3 = config.create_inner_logpath(
+        statements=[destination_group3])
 
-    config.create_logpath(
-        statements=[source_group, second_level_logpath1, second_level_logpath2, second_level_logpath3]
-    )
+    config.create_logpath(statements=[
+        source_group, second_level_logpath1, second_level_logpath2,
+        second_level_logpath3
+    ])
     config.create_logpath(statements=[destination_group4])
 
     bsd_message1 = write_message_with_fields(
-        tc, file_source, hostname="host-A", program="app-A", message="message from host-A and app-A"
-    )
+        tc,
+        file_source,
+        hostname="host-A",
+        program="app-A",
+        message="message from host-A and app-A")
     bsd_message2 = write_message_with_fields(
-        tc, file_source, hostname="host-A", program="app-B", message="message from host-A and app-B"
-    )
+        tc,
+        file_source,
+        hostname="host-A",
+        program="app-B",
+        message="message from host-A and app-B")
     bsd_message3 = write_message_with_fields(
-        tc, file_source, hostname="host-B", program="app-A", message="message from host-B and app-A"
-    )
+        tc,
+        file_source,
+        hostname="host-B",
+        program="app-A",
+        message="message from host-B and app-A")
     bsd_message4 = write_message_with_fields(
-        tc, file_source, hostname="host-B", program="app-B", message="message from host-B and app-B"
-    )
+        tc,
+        file_source,
+        hostname="host-B",
+        program="app-B",
+        message="message from host-B and app-B")
 
     expected_bsd_message1 = bsd_message1.remove_priority()
     expected_bsd_message2 = bsd_message2.remove_priority()

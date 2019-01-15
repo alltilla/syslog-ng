@@ -70,6 +70,7 @@ log {
 def get_source_dir():
     return os.path.abspath(os.path.dirname(__file__))
 
+
 def check_env():
 
     if not has_module('mod-python'):
@@ -78,8 +79,10 @@ def check_env():
 
     src_dir = get_source_dir()
     print src_dir
-    if 'PYTHONPATH' not in os.environ or src_dir not in os.environ['PYTHONPATH']:
-        os.environ['PYTHONPATH'] = os.environ.get('PYTHONPATH', '') + ':' + src_dir
+    if 'PYTHONPATH' not in os.environ or src_dir not in os.environ[
+            'PYTHONPATH']:
+        os.environ['PYTHONPATH'] = os.environ.get('PYTHONPATH',
+                                                  '') + ':' + src_dir
 
     print 'Python module found, proceeding to Python tests'
     return True
@@ -87,10 +90,7 @@ def check_env():
 
 def test_python():
 
-    messages = (
-        'python1',
-        'python2'
-    )
+    messages = ('python1', 'python2')
     s = SocketSender(AF_INET, ('localhost', port_number), dgram=0)
 
     expected = []
@@ -98,16 +98,15 @@ def test_python():
         expected.extend(s.sendMessages(msg, pri=7))
     flush_files(2)
     stopped = stop_syslogng()
-    if not stopped or not check_file_expected('test-python', expected, settle_time=2):
+    if not stopped or not check_file_expected(
+            'test-python', expected, settle_time=2):
         return False
     return True
 
+
 def test_python_parser():
 
-    messages = (
-        'python_parser1',
-        'python_parser2'
-    )
+    messages = ('python_parser1', 'python_parser2')
     s = SocketSender(AF_INET, ('localhost', port_number), dgram=0)
 
     expected = []
@@ -115,6 +114,7 @@ def test_python_parser():
         expected.extend(s.sendMessages(msg, pri=7))
     flush_files(2)
     stopped = stop_syslogng()
-    if not stopped or not check_file_expected('test-python-parser', expected, settle_time=2):
+    if not stopped or not check_file_expected(
+            'test-python-parser', expected, settle_time=2):
         return False
     return True

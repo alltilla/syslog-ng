@@ -20,8 +20,8 @@
 #
 #############################################################################
 
-class LogDestination(object):
 
+class LogDestination(object):
     def open(self):
         """Open a connection to the target service"""
         return True

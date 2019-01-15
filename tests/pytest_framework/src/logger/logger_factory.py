@@ -26,14 +26,25 @@ from src.logger.logger import Logger
 
 
 class LoggerFactory(object):
-    def __init__(self, report_file, loglevel, use_console_handler=True, use_file_handler=True):
+    def __init__(self,
+                 report_file,
+                 loglevel,
+                 use_console_handler=True,
+                 use_file_handler=True):
         self.__report_file = report_file
         self.__use_console_handler = use_console_handler
         self.__use_file_handler = use_file_handler
-        self.__string_to_loglevel = {"info": logging.INFO, "debug": logging.DEBUG, "error": logging.ERROR}
+        self.__string_to_loglevel = {
+            "info": logging.INFO,
+            "debug": logging.DEBUG,
+            "error": logging.ERROR
+        }
         self.__log_level = self.__string_to_loglevel[loglevel]
 
-    def create_logger(self, logger_name, use_console_handler=None, use_file_handler=None):
+    def create_logger(self,
+                      logger_name,
+                      use_console_handler=None,
+                      use_file_handler=None):
         if not use_console_handler:
             use_console_handler = self.__use_console_handler
         if not use_file_handler:

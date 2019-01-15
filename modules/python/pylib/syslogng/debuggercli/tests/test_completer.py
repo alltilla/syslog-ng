@@ -44,13 +44,19 @@ class CompleterTestCase(unittest.TestCase):
         completions = self._get_completions(word, entire_input=entire_input)
         self.assertEqual(completions, [])
 
-    def _assert_completions_offered(self, word, expected_completions, entire_input=None):
+    def _assert_completions_offered(self,
+                                    word,
+                                    expected_completions,
+                                    entire_input=None):
         completions = self._get_completions(word, entire_input=entire_input)
         for completion in expected_completions:
             self.assertIn(completion, completions)
         self.assertEqual(completions, sorted(completions))
 
-    def _assert_completions_not_offered(self, word, unexpected_completions, entire_input=None):
+    def _assert_completions_not_offered(self,
+                                        word,
+                                        unexpected_completions,
+                                        entire_input=None):
         completions = self._get_completions(word, entire_input=entire_input)
         for completion in unexpected_completions:
             self.assertNotIn(completion, completions)
@@ -58,6 +64,8 @@ class CompleterTestCase(unittest.TestCase):
     def _assert_completions_start_with_word(self, word):
         completions = self._get_completions(word)
         for completion in completions:
-            self.assertTrue(completion.startswith(word),
-                            msg="Completion {} does not start with the word to be completed {}"
-                                .format(completion, word))
+            self.assertTrue(
+                completion.startswith(word),
+                msg=
+                "Completion {} does not start with the word to be completed {}"
+                .format(completion, word))

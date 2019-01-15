@@ -29,20 +29,22 @@ from ..commandlinelexer import CommandLineLexer
 class TestGetoptLexer(TestLexer):
     def setUp(self):
         self._known_commands = ['print', 'foo-bar']
-        self._aliases = {
-            'p': 'print',
-            'fb': 'foo-bar'
-        }
+        self._aliases = {'p': 'print', 'fb': 'foo-bar'}
         self._lexer = self._construct_lexer()
 
     # pylint: disable=arguments-differ
-    def _construct_lexer(self, known_commands=None, known_options=None, aliases=None):
-        return GetoptLexer(CommandLineLexer(),
-                           known_commands=known_commands or self._known_commands,
-                           known_options=known_options,
-                           aliases=aliases or self._aliases)
+    def _construct_lexer(self,
+                         known_commands=None,
+                         known_options=None,
+                         aliases=None):
+        return GetoptLexer(
+            CommandLineLexer(),
+            known_commands=known_commands or self._known_commands,
+            known_options=known_options,
+            aliases=aliases or self._aliases)
 
-    def test_lexer_returns_command_token_for_an_unknown_command_as_the_first_token(self):
+    def test_lexer_returns_command_token_for_an_unknown_command_as_the_first_token(
+            self):
         self._lexer.input("unknown-cmd")
         token = self._next_token()
         self.assertEqual(token.type, "COMMAND")
@@ -50,14 +52,17 @@ class TestGetoptLexer(TestLexer):
     def test_lexer_returns_specific_token_for_known_commands(self):
         for command in self._known_commands:
             self._lexer.input(command)
-            self._assert_next_token_type_equals('COMMAND_{}'.format(command.upper().replace('-', '_')))
+            self._assert_next_token_type_equals('COMMAND_{}'.format(
+                command.upper().replace('-', '_')))
 
     def test_lexer_translates_aliases(self):
         for (alias, command) in self._aliases.items():
             self._lexer.input(alias)
-            self._assert_next_token_type_equals('COMMAND_{}'.format(command.upper().replace('-', '_')))
+            self._assert_next_token_type_equals('COMMAND_{}'.format(
+                command.upper().replace('-', '_')))
 
-    def test_known_commands_are_not_returned_as_tokens_for_non_first_arguments(self):
+    def test_known_commands_are_not_returned_as_tokens_for_non_first_arguments(
+            self):
         self._lexer.input("print print")
         self.assertEqual(self._next_token().type, "COMMAND_PRINT")
         self.assertEqual(self._next_token().type, "ARG")
@@ -106,7 +111,8 @@ class TestGetoptLexer(TestLexer):
         self._assert_next_arg_equals("($MSG == foobar)")
 
     def test_lexer_translates_args_to_option_tokens_if_they_are_known(self):
-        self._lexer = self._construct_lexer(known_options=("--foo", "--bar", "-a", "-b", "abc"))
+        self._lexer = self._construct_lexer(
+            known_options=("--foo", "--bar", "-a", "-b", "abc"))
         self._lexer.input('''print --foo --bar -a -b abc''')
         self._assert_next_token_type_equals("COMMAND_PRINT")
         self._assert_next_token_type_equals("OPT__FOO")
@@ -116,7 +122,8 @@ class TestGetoptLexer(TestLexer):
         self._assert_next_token_type_equals("OPTABC")
 
     def test_lexer_doesnt_translate_command_token_as_an_option(self):
-        self._lexer = self._construct_lexer(known_options=("--foo", "--bar", "-a", "-b"))
+        self._lexer = self._construct_lexer(
+            known_options=("--foo", "--bar", "-a", "-b"))
         self._lexer.input('''--foo --bar -a -b''')
         self._assert_next_token_equals("COMMAND", value="--foo")
 

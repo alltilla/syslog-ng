@@ -29,25 +29,33 @@ from src.setup.unit_testcase import SetupUnitTestcase
 
 
 def pytest_addoption(parser):
-    parser.addoption("--runslow", action="store_true", default=False, help="run slow tests")
-    parser.addoption("--run-with-valgrind", action="store_true", default=False, help="Run tests behind valgrind")
+    parser.addoption(
+        "--runslow", action="store_true", default=False, help="run slow tests")
+    parser.addoption(
+        "--run-with-valgrind",
+        action="store_true",
+        default=False,
+        help="Run tests behind valgrind")
     parser.addoption(
         "--loglevel",
         action="store",
         default="info",
-        help="Set loglevel for test runs. Available loglevels: ['info', 'error', 'debug']. Default loglevel: info",
+        help=
+        "Set loglevel for test runs. Available loglevels: ['info', 'error', 'debug']. Default loglevel: info",
     )
 
     parser.addoption(
         "--installdir",
         action="store",
-        help="Set installdir for installed syslog-ng. Used when installmode is: custom. Example path: '/home/user/syslog-ng/installdir/'",
+        help=
+        "Set installdir for installed syslog-ng. Used when installmode is: custom. Example path: '/home/user/syslog-ng/installdir/'",
     )
     parser.addoption(
         "--reports",
         action="store",
         default=get_relative_report_dir(),
-        help="Path for report files folder. Default form: 'reports/<current_date>'",
+        help=
+        "Path for report files folder. Default form: 'reports/<current_date>'",
     )
 
 

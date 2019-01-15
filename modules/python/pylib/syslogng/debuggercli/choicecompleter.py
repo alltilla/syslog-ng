@@ -32,7 +32,8 @@ class ChoiceCompleter(Completer):
 
     def complete(self, entire_text, word_to_be_completed):
         if entire_text.startswith(self._prefix):
-            return self._handle_input_with_prefix(entire_text, word_to_be_completed)
+            return self._handle_input_with_prefix(entire_text,
+                                                  word_to_be_completed)
         return self._handle_input_without_prefix(entire_text)
 
     def _handle_input_without_prefix(self, entire_input):
@@ -41,11 +42,14 @@ class ChoiceCompleter(Completer):
         return []
 
     def _handle_input_with_prefix(self, entire_input, word_to_be_completed):
-        entire_input, word_to_be_completed = self._chop_prefixes(entire_input, word_to_be_completed)
+        entire_input, word_to_be_completed = self._chop_prefixes(
+            entire_input, word_to_be_completed)
 
-        return sorted([self._prefix + choice + self._suffix
-                       for choice in self._choices
-                       if len(word_to_be_completed) == 0 or choice.startswith(word_to_be_completed)])
+        return sorted([
+            self._prefix + choice + self._suffix for choice in self._choices
+            if len(word_to_be_completed) == 0
+            or choice.startswith(word_to_be_completed)
+        ])
 
     def _chop_prefixes(self, entire_input, word_to_be_completed):
         if word_to_be_completed == entire_input:

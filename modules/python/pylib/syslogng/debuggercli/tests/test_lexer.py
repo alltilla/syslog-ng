@@ -24,7 +24,6 @@ import unittest
 
 
 class TestLexer(unittest.TestCase):
-
     def setUp(self):
         self._lexer = self._construct_lexer()
         self._current_token = None
@@ -51,7 +50,11 @@ class TestLexer(unittest.TestCase):
     def _assert_current_token_is_not_partial(self):
         self.assertFalse(self._current_token.partial)
 
-    def _assert_current_token_equals(self, token_type=None, value=None, pos=None, partial=None):
+    def _assert_current_token_equals(self,
+                                     token_type=None,
+                                     value=None,
+                                     pos=None,
+                                     partial=None):
         if token_type is not None:
             self._assert_current_token_type_equals(token_type)
         if value is not None:

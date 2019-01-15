@@ -31,7 +31,6 @@ from globals import *
 import messagegen
 
 
-
 def init_env():
     for pipe in ('log-pipe', 'log-padded-pipe'):
         try:
@@ -52,7 +51,8 @@ def seed_rnd():
     try:
         import base64
         import socket
-        rnd = base64.decodestring("""k/zFvqjGWdhStmhfOeTNtTs89P8soknF1J9kSQrz8hKdrjIutqTXMfIqCNUb7DXrMykMW+wKd1Pg
+        rnd = base64.decodestring(
+            """k/zFvqjGWdhStmhfOeTNtTs89P8soknF1J9kSQrz8hKdrjIutqTXMfIqCNUb7DXrMykMW+wKd1Pg
 DwaUwxKmlaU1ItOek+jNUWVw9ZOSI1EmsXVgu+Hu7URgmeyY0A3WsDmMzR0Z2wTcRFSuINgBP8LC
 8SG27gJZVOoVv09pfY9WyjvUYwg1jBdTfEM+qcDQKOACx4DH+SzO0bOOJMfMbR2iFaq18b/TCeQN
 kRy9Lz2WvBsByQoXw/afxiu5xzn0MHoxTMCZCTjIyhGXzO/R2yj3eBVc5vxc5oxG3/EdjGnhmn/L
@@ -77,18 +77,20 @@ l625DLckaYmOPTh0ECFKzhaPF+/LNmzD36ToOAeuNjfbUjiUVGfntr2mc4E8mUFyo+TskrkSfw==
     except ImportError:
         return
 
+
 def run_testcase(test_name, config, verbose, test_case):
     print_start(test_name)
 
     if not start_syslogng(config, verbose):
-      sys.exit(1)
+        sys.exit(1)
 
     print_user("Starting test case...")
     success = test_case()
     if not stop_syslogng():
-      sys.exit(1)
+        sys.exit(1)
     print_end(test_name, success)
     return success
+
 
 # import test modules
 import test_file_source
@@ -99,11 +101,11 @@ import test_sql
 import test_python
 import test_map_value_pairs
 
-tests = (test_input_drivers, test_sql, test_file_source, test_filters, test_performance, test_python, test_map_value_pairs)
+tests = (test_input_drivers, test_sql, test_file_source, test_filters,
+         test_performance, test_python, test_map_value_pairs)
 
 init_env()
 seed_rnd()
-
 
 verbose = False
 success = True
@@ -115,7 +117,6 @@ try:
         if hasattr(test_module, "check_env") and not test_module.check_env():
             continue
 
-
         contents = dir(test_module)
         contents.sort()
         for obj in contents:
@@ -123,13 +124,16 @@ try:
                 continue
             test_case = getattr(test_module, obj)
             if type(test_module.config) is str:
-                success = run_testcase(test_module.__name__ + '.' + obj, test_module.config, verbose, test_case)
+                success = run_testcase(test_module.__name__ + '.' + obj,
+                                       test_module.config, verbose, test_case)
             elif type(test_module.config) is dict:
                 success = True
                 for config_name in test_module.config:
-                    testcase_name = "%s.%s[%s]" %(test_module.__name__, obj, config_name)
+                    testcase_name = "%s.%s[%s]" % (test_module.__name__, obj,
+                                                   config_name)
                     config = test_module.config[config_name]
-                    success = run_testcase(testcase_name, config, verbose, test_case) and success
+                    success = run_testcase(testcase_name, config, verbose,
+                                           test_case) and success
             if not success:
                 rc = 1
 finally:

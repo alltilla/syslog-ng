@@ -27,11 +27,11 @@ from ..macrocompleter import MacroCompleter
 class TestMacroCompleter(CompleterTestCase):
     # pylint: disable=arguments-differ
     def _construct_completer(self, macros=None):
-        return MacroCompleter(macros=macros or ['MSG', 'MSGHDR', 'HOST',
-                                                '.unix.uid', '.unix.gid',
-                                                'S_DATE', 'R_MONTH', 'C_WEEK', 'DATE',
-                                                'smallcaps',
-                                                '0', '1', '2', '10', '100'])
+        return MacroCompleter(macros=macros or [
+            'MSG', 'MSGHDR', 'HOST', '.unix.uid', '.unix.gid', 'S_DATE',
+            'R_MONTH', 'C_WEEK', 'DATE', 'smallcaps', '0', '1', '2', '10',
+            '100'
+        ])
 
     def test_only_a_dollar_is_offered_for_an_empty_string(self):
         self._assert_completions_offered('', ('$', '${'))
@@ -58,9 +58,11 @@ class TestMacroCompleter(CompleterTestCase):
         # ${1 ... lists all numbered macros
         self._assert_completions_offered('$1', ('$1', '$10', '$100'))
 
-    def test_all_macros_except_large_numbered_matches_are_offered_for_a_dollar_brace(self):
+    def test_all_macros_except_large_numbered_matches_are_offered_for_a_dollar_brace(
+            self):
         # ${ }
-        self._assert_completions_offered('${', ('${HOST}', '${MSG}', '${.unix.uid}', '${0}', '${1}'))
+        self._assert_completions_offered(
+            '${', ('${HOST}', '${MSG}', '${.unix.uid}', '${0}', '${1}'))
         self._assert_completions_not_offered('${', ('${10}', '${100}'))
 
     def test_all_numbered_matches_are_offered_for_dollar_brace_digit(self):
@@ -70,14 +72,16 @@ class TestMacroCompleter(CompleterTestCase):
         self._assert_completions_not_offered('$', ('$S_DATE', '$R_MONTH'))
 
     def test_date_shortcuts_are_offered_for_a_dollar(self):
-        self._assert_completions_offered('$', ['$R_* (received time)',
-                                               '$S_* (stamp in message)',
-                                               '$C_* (current time)'])
+        self._assert_completions_offered('$', [
+            '$R_* (received time)', '$S_* (stamp in message)',
+            '$C_* (current time)'
+        ])
 
     def test_date_shortcuts_are_offered_for_a_dollar_brace(self):
-        self._assert_completions_offered('${', ['${R_*} (received time)',
-                                                '${S_*} (stamp in message)',
-                                                '${C_*} (current time)'])
+        self._assert_completions_offered('${', [
+            '${R_*} (received time)', '${S_*} (stamp in message)',
+            '${C_*} (current time)'
+        ])
 
     def test_date_macros_are_offered_if_the_prefix_is_correct(self):
         self._assert_completions_offered('$R_', ['$R_MONTH'])
@@ -96,7 +100,8 @@ class TestMacroCompleter(CompleterTestCase):
         self._assert_completions_not_offered('$R_', '$R_* (received time)')
         self._assert_completions_not_offered('${R_', '${R_*} (received time)')
         self._assert_completions_not_offered('$S_', '$S_* (stamp in message)')
-        self._assert_completions_not_offered('${S_}', '${S_*} (stamp in message)')
+        self._assert_completions_not_offered('${S_}',
+                                             '${S_*} (stamp in message)')
         self._assert_completions_not_offered('$C_', '$C_* (current time)')
         self._assert_completions_not_offered('${C_', '${C_*} (current time)')
 
@@ -106,15 +111,17 @@ class TestMacroCompleter(CompleterTestCase):
         # $ + macro first character
         self._assert_completions_offered('$M', ('$MSGHDR', '$MSG'))
         # $ + macro first character (small caps)
-        self._assert_completions_offered('$s', ('$smallcaps',))
+        self._assert_completions_offered('$s', ('$smallcaps', ))
         # $ + brace + number
         self._assert_completions_offered('${10', ('${10}', '${100}'))
         # $ + brace + unqualified macro first character
         self._assert_completions_offered('${M', ('${MSGHDR}', '${MSG}'))
         # $ + brace + qualified macro first character
-        self._assert_completions_offered('${.', ('${.unix.uid}', '${.unix.gid}'))
+        self._assert_completions_offered('${.',
+                                         ('${.unix.uid}', '${.unix.gid}'))
 
-    def test_only_completions_that_start_with_word_are_listed_as_completions(self):
+    def test_only_completions_that_start_with_word_are_listed_as_completions(
+            self):
         for word in ('$', '$1', '$M'):
             self._assert_completions_start_with_word(word)
 

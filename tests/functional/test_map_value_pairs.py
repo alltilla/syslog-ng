@@ -50,18 +50,17 @@ log {
 def get_source_dir():
     return os.path.abspath(os.path.dirname(__file__))
 
+
 def test_map_value_pairs():
 
-    messages = (
-        'map_value_pairs1',
-        'map_value_pairs2'
-    )
+    messages = ('map_value_pairs1', 'map_value_pairs2')
     s = SocketSender(AF_INET, ('localhost', port_number), dgram=0)
 
     expected = []
     for msg in messages:
         expected.extend(s.sendMessages(msg, pri=7))
     stopped = stop_syslogng()
-    if not stopped or not check_file_expected('test-map-value-pairs', expected, settle_time=2):
+    if not stopped or not check_file_expected(
+            'test-map-value-pairs', expected, settle_time=2):
         return False
     return True

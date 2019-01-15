@@ -62,6 +62,7 @@ def setup_readline():
 
     debuggercli = DebuggerCLI()
     readline.parse_and_bind("tab: complete")
-    readline.set_completer(ReadlineCompleteHook(debuggercli.get_root_completer()).complete)
+    readline.set_completer(
+        ReadlineCompleteHook(debuggercli.get_root_completer()).complete)
     readline.set_completer_delims(' \t\n\"\'`@><=;|&')
     __setup_performed__ = True

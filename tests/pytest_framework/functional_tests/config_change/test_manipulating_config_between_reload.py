@@ -31,7 +31,8 @@ def test_manipulating_config_between_reload(tc):
     file_destination = config.create_file_destination(file_name="output.log")
     destination_group = config.create_destination_group(file_destination)
 
-    logpath = config.create_logpath(statements=[source_group, destination_group])
+    logpath = config.create_logpath(
+        statements=[source_group, destination_group])
 
     syslog_ng = tc.new_syslog_ng()
     syslog_ng.start(config)

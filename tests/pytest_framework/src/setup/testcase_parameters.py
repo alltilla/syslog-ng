@@ -28,7 +28,8 @@ def get_testcase_name(testcase_context):
     if testcase_context.node.name is not None:
         return testcase_context.node.name.replace("[", "_").replace("]", "_")
     elif testcase_context.node.originalname is not None:
-        return testcase_context.node.originalname.replace("[", "_").replace("]", "_")
+        return testcase_context.node.originalname.replace("[", "_").replace(
+            "]", "_")
     else:
         raise Exception("There is no valid testcasename")
 
@@ -41,18 +42,23 @@ class TestcaseParameters(object):
 
         self.testcase_parameters = {
             "dirs": {
-                "working_dir": Path(absolute_framework_dir, relative_report_dir, testcase_name),
-                "relative_working_dir": Path(relative_report_dir, testcase_name),
+                "working_dir":
+                Path(absolute_framework_dir, relative_report_dir,
+                     testcase_name),
+                "relative_working_dir":
+                Path(relative_report_dir, testcase_name),
             },
             "file_paths": {
-                "report_file": Path(
-                    absolute_framework_dir, relative_report_dir, testcase_name, "testcase_{}.log".format(testcase_name)
-                ),
-                "testcase_file": Path(testcase_context.node.fspath),
+                "report_file":
+                Path(absolute_framework_dir, relative_report_dir,
+                     testcase_name, "testcase_{}.log".format(testcase_name)),
+                "testcase_file":
+                Path(testcase_context.node.fspath),
             },
             "testcase_name": testcase_name,
             "loglevel": testcase_context.getfixturevalue("loglevel"),
-            "valgrind_usage": testcase_context.getfixturevalue("runwithvalgrind"),
+            "valgrind_usage":
+            testcase_context.getfixturevalue("runwithvalgrind"),
         }
 
     def get_working_dir(self):

@@ -33,6 +33,7 @@ session_counter = 0
 need_to_flush = False
 padding = 'x' * 250
 
+
 class MessageSender(object):
     def __init__(self, repeat=100, new_protocol=0, dgram=0):
         self.repeat = repeat
@@ -47,28 +48,41 @@ class MessageSender(object):
 
         need_to_flush = True
 
-
-        print_user("generating %d messages using transport %s" % (self.repeat, str(self)))
+        print_user("generating %d messages using transport %s" % (self.repeat,
+                                                                  str(self)))
 
         self.initSender()
         expected = []
 
         for counter in range(1, self.repeat):
             if self.new_protocol == 0:
-                line = '<%d>%s %s %03d/%05d %s %s' % (pri, syslog_prefix, msg, session_counter, counter, str(self), padding)
+                line = '<%d>%s %s %03d/%05d %s %s' % (pri, syslog_prefix, msg,
+                                                      session_counter, counter,
+                                                      str(self), padding)
             else:
-                line = '<%d>1 %s %s %03d/%05d %s %s' % (pri, syslog_new_prefix, msg, session_counter, counter, str(self), padding)
+                line = '<%d>1 %s %s %03d/%05d %s %s' % (
+                    pri, syslog_new_prefix, msg, session_counter, counter,
+                    str(self), padding)
 
             # add framing on tcp with new protocol
             if self.dgram == 0 and self.new_protocol == 1:
                 line = '%d %s' % (len(line), line)
-            self.sendMessage(line) # file or socket
+            self.sendMessage(line)  # file or socket
         expected.append((msg, session_counter, self.repeat))
         session_counter = session_counter + 1
         return expected
 
+
 class SocketSender(MessageSender):
-    def __init__(self, family, sock_name, dgram=0, send_by_bytes=0, terminate_seq='\n', repeat=100, ssl=0, new_protocol=0):
+    def __init__(self,
+                 family,
+                 sock_name,
+                 dgram=0,
+                 send_by_bytes=0,
+                 terminate_seq='\n',
+                 repeat=100,
+                 ssl=0,
+                 new_protocol=0):
         MessageSender.__init__(self, repeat, new_protocol, dgram)
         self.family = family
         self.sock_name = sock_name
@@ -78,6 +92,7 @@ class SocketSender(MessageSender):
         self.terminate_seq = terminate_seq
         self.ssl = ssl
         self.new_protocol = new_protocol
+
     def initSender(self):
         if self.dgram:
             self.sock = socket(self.family, SOCK_DGRAM)
@@ -86,12 +101,12 @@ class SocketSender(MessageSender):
 
         self.sock.connect(self.sock_name)
         if self.dgram:
-                self.sock.send('')
+            self.sock.send('')
         if sys.platform == 'linux2':
-                self.sock.setsockopt(SOL_SOCKET, SO_SNDTIMEO, struct.pack('ll', 3, 0))
+            self.sock.setsockopt(SOL_SOCKET, SO_SNDTIMEO,
+                                 struct.pack('ll', 3, 0))
         if not self.dgram and self.ssl:
-                self.sock = ssl(self.sock)
-
+            self.sock = ssl(self.sock)
 
     def sendMessage(self, msg):
         line = '%s%s' % (msg, self.terminate_seq)
@@ -108,7 +123,9 @@ class SocketSender(MessageSender):
                         time.sleep(0.5)
                         repeat = True
                     else:
-                        print_user("hmm... got an error to the 'send' call, maybe syslog-ng is not accepting messages?")
+                        print_user(
+                            "hmm... got an error to the 'send' call, maybe syslog-ng is not accepting messages?"
+                        )
                         raise
         else:
             repeat = True
@@ -130,7 +147,9 @@ class SocketSender(MessageSender):
                         time.sleep(0.5)
                         repeat = True
                     else:
-                        print_user("hmm... got an error to the 'send' call, maybe syslog-ng is not accepting messages?")
+                        print_user(
+                            "hmm... got an error to the 'send' call, maybe syslog-ng is not accepting messages?"
+                        )
                         raise
 
     def __str__(self):
@@ -141,15 +160,20 @@ class SocketSender(MessageSender):
                 return 'unix-stream(%s)' % (self.sock_name)
         else:
             if self.dgram:
-                return 'udp(%s)' % (self.sock_name,)
+                return 'udp(%s)' % (self.sock_name, )
             elif not self.ssl:
-                return 'tcp(%s)' % (self.sock_name,)
+                return 'tcp(%s)' % (self.sock_name, )
             else:
-                return 'tls(%s)' % (self.sock_name,)
+                return 'tls(%s)' % (self.sock_name, )
 
 
 class FileSender(MessageSender):
-    def __init__(self, file_name, padding=0, send_by_bytes=0, terminate_seq='\n', repeat=100):
+    def __init__(self,
+                 file_name,
+                 padding=0,
+                 send_by_bytes=0,
+                 terminate_seq='\n',
+                 repeat=100):
         MessageSender.__init__(self, repeat)
         self.file_name = file_name
         self.padding = padding
@@ -201,7 +225,6 @@ class FileSender(MessageSender):
             if self.padding:
                 return 'pipe(%s[%d])' % (self.file_name, self.padding)
             else:
-                return 'pipe(%s)' % (self.file_name,)
+                return 'pipe(%s)' % (self.file_name, )
         else:
-            return 'file(%s)' % (self.file_name,)
-
+            return 'file(%s)' % (self.file_name, )

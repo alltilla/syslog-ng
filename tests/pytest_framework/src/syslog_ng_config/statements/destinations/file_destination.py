@@ -57,7 +57,8 @@ class FileDestination(DestinationDriver):
 
     def __construct_file_path(self, instance_paths):
         if self.positional_option_name in self.options.keys():
-            given_positional_option_value = self.options[self.positional_option_name]
+            given_positional_option_value = self.options[
+                self.positional_option_name]
             self.options[self.positional_option_name] = Path(
-                instance_paths.get_working_dir(), given_positional_option_value
-            )
+                instance_paths.get_working_dir(),
+                given_positional_option_value)

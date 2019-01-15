@@ -28,15 +28,15 @@ from ..choicecompleter import ChoiceCompleter
 class TestChoiceCompleter(CompleterTestCase):
     # pylint: disable=arguments-differ
     def _construct_completer(self, choices=None, prefix=None, suffix=None):
-        return ChoiceCompleter(choices or ['foo', 'bar', 'baz'],
-                               prefix=prefix,
-                               suffix=suffix)
+        return ChoiceCompleter(
+            choices or ['foo', 'bar', 'baz'], prefix=prefix, suffix=suffix)
 
     def test_all_choices_are_offered_for_an_empty_string(self):
         self._completer = self._construct_completer(suffix='')
         self._assert_completions_offered('', ['foo', 'bar', 'baz'])
 
-    def test_only_completions_that_start_with_word_are_listed_as_completions(self):
+    def test_only_completions_that_start_with_word_are_listed_as_completions(
+            self):
         for word in ('f', 'b'):
             self._assert_completions_start_with_word(word)
 
@@ -58,6 +58,7 @@ class TestChoiceCompleter(CompleterTestCase):
         self._assert_completion_not_offered('$', '$@bar@')
         self._assert_completions_offered('$@', ['$@foo@', '$@bar@', '$@baz@'])
 
-    def test_not_even_the_prefix_is_offered_if_the_entire_input_diverged_already(self):
+    def test_not_even_the_prefix_is_offered_if_the_entire_input_diverged_already(
+            self):
         self._completer = self._construct_completer(prefix='$@', suffix='@')
         self._assert_completions_not_offered('q', ['$', '$@', '$@foo@'])

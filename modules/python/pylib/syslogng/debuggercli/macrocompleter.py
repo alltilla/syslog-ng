@@ -41,9 +41,11 @@ class MacroCompleter(Completer):
         if not self._looks_like_a_macro_prefix(entire_text):
             return []
         self._collect_completions(word_to_be_completed)
-        return sorted([completion
-                       for completion in self._completions
-                       if len(word_to_be_completed) == 0 or completion.startswith(word_to_be_completed)])
+        return sorted([
+            completion for completion in self._completions
+            if len(word_to_be_completed) == 0
+            or completion.startswith(word_to_be_completed)
+        ])
 
     def _looks_like_a_macro_prefix(self, entire_input):
         if entire_input == '':
@@ -80,7 +82,8 @@ class MacroCompleter(Completer):
             self._add_completion('${')
         elif word == '$':
             self._extend_completions(self._collect_unqualified_macros())
-            self._extend_completions(self._collect_qualified_macros_with_brace())
+            self._extend_completions(
+                self._collect_qualified_macros_with_brace())
             self._extend_completions(self._collect_small_numbered_matches())
             self._extend_completions(self._collect_date_wildcards())
             self._add_completion('${')
@@ -93,17 +96,21 @@ class MacroCompleter(Completer):
                 self._extend_completions(self._collect_unqualified_macros())
                 self._extend_completions(self._collect_date_wildcards())
         elif word == '${':
-            self._extend_completions(self._collect_small_numbered_matches_with_brace())
+            self._extend_completions(
+                self._collect_small_numbered_matches_with_brace())
             self._extend_completions(self._collect_all_macros_with_brace())
             self._extend_completions(self._collect_date_wildcard_with_brace())
         elif self._is_word_a_numbered_match_prefix_with_brace(word):
-            self._extend_completions(self._collect_all_numbered_matches_with_brace())
+            self._extend_completions(
+                self._collect_all_numbered_matches_with_brace())
         elif self._is_word_a_braced_prefix(word):
             if self._is_word_a_date_prefix_with_brace(word):
-                self._extend_completions(self._collect_date_macros_with_brace())
+                self._extend_completions(
+                    self._collect_date_macros_with_brace())
             else:
                 self._extend_completions(self._collect_all_macros_with_brace())
-                self._extend_completions(self._collect_date_wildcard_with_brace())
+                self._extend_completions(
+                    self._collect_date_wildcard_with_brace())
 
         return self._completions
 
@@ -135,9 +142,9 @@ class MacroCompleter(Completer):
 
     @classmethod
     def _is_macro_unqualified(cls, macro):
-        return (not cls._is_macro_qualified(macro) and
-                not cls._is_macro_a_numbered_match(macro) and
-                not cls._is_macro_a_date_macro(macro))
+        return (not cls._is_macro_qualified(macro)
+                and not cls._is_macro_a_numbered_match(macro)
+                and not cls._is_macro_a_date_macro(macro))
 
     @staticmethod
     def _is_macro_a_numbered_match(macro):
@@ -178,7 +185,8 @@ class MacroCompleter(Completer):
         return self._collect_macros(self._is_macro_a_small_numbered_match)
 
     def _collect_small_numbered_matches_with_brace(self):
-        return self._collect_macros_with_brace(self._is_macro_a_small_numbered_match)
+        return self._collect_macros_with_brace(
+            self._is_macro_a_small_numbered_match)
 
     def _collect_all_numbered_matches(self):
         return self._collect_macros(self._is_macro_a_numbered_match)
@@ -188,8 +196,8 @@ class MacroCompleter(Completer):
 
     def _collect_all_macros_with_brace(self):
         return self._collect_macros_with_brace(
-            lambda macro: (not self._is_macro_a_numbered_match(macro) and
-                           not self._is_macro_a_date_macro(macro)))
+            lambda macro: (not self._is_macro_a_numbered_match(macro) and not self._is_macro_a_date_macro(macro))
+        )
 
     def _collect_date_wildcards(self):
         for (wildcard, description) in self._date_wildcards.items():

@@ -25,7 +25,8 @@ from .lexer import Lexer
 
 
 class GetoptLexer(Lexer):
-    def __init__(self, lexer, known_commands, known_options=None, aliases=None):
+    def __init__(self, lexer, known_commands, known_options=None,
+                 aliases=None):
         self._lexer = lexer
         self._current_token = 0
         self._known_commands = known_commands
@@ -42,12 +43,14 @@ class GetoptLexer(Lexer):
             if self._current_token == 0:
                 translated_token = self._translate_alias(token.value)
                 if translated_token in self._known_commands:
-                    token.type = 'COMMAND_{}'.format(translated_token.upper().replace('-', '_'))
+                    token.type = 'COMMAND_{}'.format(
+                        translated_token.upper().replace('-', '_'))
                 else:
                     token.type = 'COMMAND'
             else:
                 if token.value in self._known_options:
-                    token.type = "OPT{}".format(token.value.upper().replace('-', '_'))
+                    token.type = "OPT{}".format(token.value.upper().replace(
+                        '-', '_'))
             self._current_token += 1
         return token
 

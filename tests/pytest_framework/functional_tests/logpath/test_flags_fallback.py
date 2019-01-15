@@ -56,14 +56,19 @@ def test_flags_fallback(tc):
     file_destination2 = config.create_file_destination(file_name="output2.log")
     destination_group2 = config.create_destination_group(file_destination2)
 
-    inner_logpath1 = config.create_inner_logpath(statements=[filter_group1, destination_group1])
+    inner_logpath1 = config.create_inner_logpath(
+        statements=[filter_group1, destination_group1])
 
-    inner_logpath2 = config.create_inner_logpath(statements=[destination_group2], flags="fallback")
+    inner_logpath2 = config.create_inner_logpath(
+        statements=[destination_group2], flags="fallback")
 
-    config.create_logpath(statements=[source_group, inner_logpath1, inner_logpath2])
+    config.create_logpath(
+        statements=[source_group, inner_logpath1, inner_logpath2])
 
-    bsd_message1 = write_message_with_fields(tc, file_source, hostname="host-A", message="message from host-A")
-    bsd_message2 = write_message_with_fields(tc, file_source, hostname="host-B", message="message from host-B")
+    bsd_message1 = write_message_with_fields(
+        tc, file_source, hostname="host-A", message="message from host-A")
+    bsd_message2 = write_message_with_fields(
+        tc, file_source, hostname="host-B", message="message from host-B")
 
     expected_bsd_message1 = bsd_message1.remove_priority()
     expected_bsd_message2 = bsd_message2.remove_priority()

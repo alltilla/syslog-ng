@@ -53,7 +53,8 @@ def test_flags_catch_all(tc):
     inner_logpath = config.create_inner_logpath(statements=[destination_group])
 
     config.create_logpath(statements=[source_group, inner_logpath])
-    config.create_logpath(statements=[catch_all_destination], flags="catch-all")
+    config.create_logpath(
+        statements=[catch_all_destination], flags="catch-all")
 
     bsd_message = write_dummy_message(tc, file_source)
 

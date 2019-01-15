@@ -35,24 +35,34 @@ blocking.MONITORING_TIME = 0.1
         (1, 1, True),
         (1, 2, False),
         (2, 1, True),
-        (5, 0, False),  ## because we are not in wait_until_true() loop, self.read_eof will not turn to True
+        (
+            5, 0, False
+        ),  ## because we are not in wait_until_true() loop, self.read_eof will not turn to True
     ],
 )
-def test_buffer_and_parse(tc_unittest, input_message_counter, requested_message_counter, expected_result):
+def test_buffer_and_parse(tc_unittest, input_message_counter,
+                          requested_message_counter, expected_result):
     input_content = tc_unittest.get_utf8_test_messages(input_message_counter)
-    __writeable_file, readable_file = tc_unittest.prepare_input_file(input_content)
-    single_line_parser = SingleLineParser(tc_unittest.get_fake_logger_factory())
-    message_reader = MessageReader(tc_unittest.get_fake_logger_factory(), readable_file.read, single_line_parser)
+    __writeable_file, readable_file = tc_unittest.prepare_input_file(
+        input_content)
+    single_line_parser = SingleLineParser(
+        tc_unittest.get_fake_logger_factory())
+    message_reader = MessageReader(tc_unittest.get_fake_logger_factory(),
+                                   readable_file.read, single_line_parser)
 
-    assert message_reader._MessageReader__buffer_and_parse(requested_message_counter) is expected_result
+    assert message_reader._MessageReader__buffer_and_parse(
+        requested_message_counter) is expected_result
     assert single_line_parser.msg_list == input_content.splitlines(True)
 
 
 def test_multiple_buffer_and_parse(tc_unittest):
     input_content = tc_unittest.get_utf8_test_messages(2)
-    writeable_file, readable_file = tc_unittest.prepare_input_file(input_content)
-    single_line_parser = SingleLineParser(tc_unittest.get_fake_logger_factory())
-    message_reader = MessageReader(tc_unittest.get_fake_logger_factory(), readable_file.read, single_line_parser)
+    writeable_file, readable_file = tc_unittest.prepare_input_file(
+        input_content)
+    single_line_parser = SingleLineParser(
+        tc_unittest.get_fake_logger_factory())
+    message_reader = MessageReader(tc_unittest.get_fake_logger_factory(),
+                                   readable_file.read, single_line_parser)
 
     assert message_reader._MessageReader__buffer_and_parse(0) is False
     writeable_file.write(input_content)
@@ -70,7 +80,8 @@ def test_multiple_buffer_and_parse(tc_unittest):
             ["test message 1\n", "test message 2\n"],
             [],
         ),
-        ("test message 1\ntest message 2", 2, ["test message 1\n"], []),  # one of the messages not parsable
+        ("test message 1\ntest message 2", 2, ["test message 1\n"],
+         []),  # one of the messages not parsable
         (  # pop less message than came in buffer
             "test message 1\ntest message 2\n",
             1,
@@ -97,26 +108,34 @@ def test_multiple_buffer_and_parse(tc_unittest):
         ),
     ],
 )
-def test_pop_messages(tc_unittest, input_message, requested_message_counter, popped_message, remaining_message):
-    __writeable_file, readable_file = tc_unittest.prepare_input_file(input_message)
-    single_line_parser = SingleLineParser(tc_unittest.get_fake_logger_factory())
+def test_pop_messages(tc_unittest, input_message, requested_message_counter,
+                      popped_message, remaining_message):
+    __writeable_file, readable_file = tc_unittest.prepare_input_file(
+        input_message)
+    single_line_parser = SingleLineParser(
+        tc_unittest.get_fake_logger_factory())
 
-    message_reader = MessageReader(tc_unittest.get_fake_logger_factory(), readable_file.read, single_line_parser)
+    message_reader = MessageReader(tc_unittest.get_fake_logger_factory(),
+                                   readable_file.read, single_line_parser)
 
     if requested_message_counter > input_message.count("\n"):
         with pytest.raises(AssertionError):
             message_reader.pop_messages(requested_message_counter)
     else:
-        assert message_reader.pop_messages(requested_message_counter) == popped_message
+        assert message_reader.pop_messages(
+            requested_message_counter) == popped_message
         assert message_reader._MessageReader__parser.msg_list == remaining_message
 
 
 def test_popping_in_sequence(tc_unittest):
     input_content = tc_unittest.get_utf8_test_messages(counter=10)
-    __writeable_file, readable_file = tc_unittest.prepare_input_file(input_content)
-    single_line_parser = SingleLineParser(tc_unittest.get_fake_logger_factory())
+    __writeable_file, readable_file = tc_unittest.prepare_input_file(
+        input_content)
+    single_line_parser = SingleLineParser(
+        tc_unittest.get_fake_logger_factory())
 
-    message_reader = MessageReader(tc_unittest.get_fake_logger_factory(), readable_file.read, single_line_parser)
+    message_reader = MessageReader(tc_unittest.get_fake_logger_factory(),
+                                   readable_file.read, single_line_parser)
 
     input_content_list = input_content.splitlines(True)
     assert message_reader.pop_messages(counter=2) == input_content_list[0:2]
@@ -128,17 +147,22 @@ def test_popping_in_sequence(tc_unittest):
 
 def test_writing_popping_in_sequence(tc_unittest):
     test_message = "test message 1\n"
-    writeable_file, readable_file = tc_unittest.prepare_input_file(test_message)
-    single_line_parser = SingleLineParser(tc_unittest.get_fake_logger_factory())
+    writeable_file, readable_file = tc_unittest.prepare_input_file(
+        test_message)
+    single_line_parser = SingleLineParser(
+        tc_unittest.get_fake_logger_factory())
 
-    message_reader = MessageReader(tc_unittest.get_fake_logger_factory(), readable_file.read, single_line_parser)
+    message_reader = MessageReader(tc_unittest.get_fake_logger_factory(),
+                                   readable_file.read, single_line_parser)
 
-    assert message_reader.pop_messages(counter=1) == test_message.splitlines(True)
+    assert message_reader.pop_messages(
+        counter=1) == test_message.splitlines(True)
 
     test_message = "test message 2\ntest message 3\n"
     writeable_file.write(test_message)
     writeable_file.flush()
-    assert message_reader.pop_messages(counter=2) == test_message.splitlines(True)
+    assert message_reader.pop_messages(
+        counter=2) == test_message.splitlines(True)
 
     test_message = "test message 4\ntest message 5\n"
     writeable_file.write(test_message)
@@ -149,19 +173,26 @@ def test_writing_popping_in_sequence(tc_unittest):
     test_message = "test message 6\ntest message 7\ntest message 8\ntest message 9\n"
     writeable_file.write(test_message)
     writeable_file.flush()
-    assert message_reader.pop_messages(counter=0) == test_message.splitlines(True)
+    assert message_reader.pop_messages(
+        counter=0) == test_message.splitlines(True)
 
     test_message = "test message 10\n"
     writeable_file.write(test_message)
     writeable_file.flush()
-    assert message_reader.pop_messages(counter=1) == test_message.splitlines(True)
+    assert message_reader.pop_messages(
+        counter=1) == test_message.splitlines(True)
 
 
 def test_peek_messages(tc_unittest):
     test_message = "test message 2\ntest message 3\n"
-    __writeable_file, readable_file = tc_unittest.prepare_input_file(test_message)
-    single_line_parser = SingleLineParser(tc_unittest.get_fake_logger_factory())
-    message_reader = MessageReader(tc_unittest.get_fake_logger_factory(), readable_file.read, single_line_parser)
+    __writeable_file, readable_file = tc_unittest.prepare_input_file(
+        test_message)
+    single_line_parser = SingleLineParser(
+        tc_unittest.get_fake_logger_factory())
+    message_reader = MessageReader(tc_unittest.get_fake_logger_factory(),
+                                   readable_file.read, single_line_parser)
 
-    assert message_reader.peek_messages(counter=2) == test_message.splitlines(True)
-    assert message_reader._MessageReader__parser.msg_list == test_message.splitlines(True)
+    assert message_reader.peek_messages(
+        counter=2) == test_message.splitlines(True)
+    assert message_reader._MessageReader__parser.msg_list == test_message.splitlines(
+        True)

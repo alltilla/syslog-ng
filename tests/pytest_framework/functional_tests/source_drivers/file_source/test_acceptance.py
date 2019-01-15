@@ -42,4 +42,5 @@ def test_acceptance(tc):
 
     output_logs = file_destination.read_logs(counter=3)
     expected_output_message = log_message.remove_priority()
-    assert output_logs == tc.format_as_bsd_logs(expected_output_message, counter=3)
+    assert output_logs == tc.format_as_bsd_logs(
+        expected_output_message, counter=3)

@@ -53,11 +53,16 @@ def start_syslogng(conf, keep_persist=False, verbose=False):
     if syslogng_pid == 0:
         os.putenv("RANDFILE", "rnd")
         module_path = get_module_path()
-        rc = os.execl(get_syslog_ng_binary(), get_syslog_ng_binary(), '-f', 'test.conf', '--fd-limit', '1024', '-F', verbose_opt, '-p', 'syslog-ng.pid', '-R', 'syslog-ng.persist', '--no-caps', '--enable-core', '--seed', '--module-path', module_path)
+        rc = os.execl(get_syslog_ng_binary(), get_syslog_ng_binary(), '-f',
+                      'test.conf', '--fd-limit', '1024', '-F', verbose_opt,
+                      '-p', 'syslog-ng.pid', '-R', 'syslog-ng.persist',
+                      '--no-caps', '--enable-core', '--seed', '--module-path',
+                      module_path)
         sys.exit(rc)
     time.sleep(5)
     print_user("Syslog-ng started")
     return True
+
 
 def stop_syslogng():
     global syslogng_pid
@@ -82,13 +87,15 @@ def stop_syslogng():
     print_user("syslog-ng exited with a non-zero value (%d)" % rc)
     return False
 
+
 def flush_files(settle_time=3):
     global syslogng_pid
 
     if syslogng_pid == 0 or not messagegen.need_to_flush:
         return True
 
-    print_user("waiting for syslog-ng to settle down before SIGHUP (%d secs)" % settle_time)
+    print_user("waiting for syslog-ng to settle down before SIGHUP (%d secs)" %
+               settle_time)
     # allow syslog-ng to settle
     time.sleep(settle_time)
 

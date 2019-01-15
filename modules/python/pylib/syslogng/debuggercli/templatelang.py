@@ -27,9 +27,7 @@ from .templatelexer import TemplateLexer
 
 class TemplateLang(CompleterLang):
 
-    tokens = [
-        "LITERAL", "MACRO", "TEMPLATE_FUNC"
-    ]
+    tokens = ["LITERAL", "MACRO", "TEMPLATE_FUNC"]
 
     @staticmethod
     def p_template_string(p):

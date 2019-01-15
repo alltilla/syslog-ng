@@ -36,11 +36,14 @@ class TestTFLang(CompleterLangTestCase):
 
     def test_format_json_arguments(self):
         self._assert_token_follows("format-json", ["COMMAND_FORMAT_JSON"])
-        self._assert_token_follows("format-json ", ["ARG", "OPT__KEY", "OPT__PAIR"])
+        self._assert_token_follows("format-json ",
+                                   ["ARG", "OPT__KEY", "OPT__PAIR"])
         self._assert_token_follows("format-json --key ", ["name_value_name"])
         self._assert_token_follows("format-json --pair ", ["name_value_pair"])
-        self._assert_token_follows("format-json --scope ", ["value_pairs_scope"])
-        self._assert_token_follows("format-json --key * --pair a=$b --scope ", ["value_pairs_scope"])
+        self._assert_token_follows("format-json --scope ",
+                                   ["value_pairs_scope"])
+        self._assert_token_follows("format-json --key * --pair a=$b --scope ",
+                                   ["value_pairs_scope"])
 
     def test_geoip_arguments(self):
         self._assert_token_follows("geoip ", ["ipaddress", "ARG"])

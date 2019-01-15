@@ -27,9 +27,11 @@ from src.executors.command_executor import CommandExecutor
 
 @pytest.mark.parametrize(
     "command, expected_stdout, expected_stderr, expected_exit_code",
-    [(["grep", "a", "a"], "", "grep: a: No such file or directory\n", 2), (["echo", "a"], "a\n", "", 0)],
+    [(["grep", "a", "a"], "", "grep: a: No such file or directory\n", 2),
+     (["echo", "a"], "a\n", "", 0)],
 )
-def test_execute_command(tc_unittest, command, expected_stdout, expected_stderr, expected_exit_code):
+def test_execute_command(tc_unittest, command, expected_stdout,
+                         expected_stderr, expected_exit_code):
     stdout_path = tc_unittest.get_temp_file()
     stderr_path = tc_unittest.get_temp_file()
     command_executor = CommandExecutor(tc_unittest.get_fake_logger_factory())

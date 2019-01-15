@@ -32,7 +32,8 @@ class BSDFormat(object):
         if message.priority_value:
             formatted_message += "<{}>".format(message.priority_value)
         if message.timestamp_value:
-            bsd_time = datetime.datetime.fromtimestamp(message.timestamp_value).strftime("%b %e %H:%M:%S")
+            bsd_time = datetime.datetime.fromtimestamp(
+                message.timestamp_value).strftime("%b %e %H:%M:%S")
             formatted_message += "{}".format(bsd_time)
         if message.hostname_value:
             formatted_message += " {}".format(message.hostname_value)

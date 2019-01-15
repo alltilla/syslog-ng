@@ -55,19 +55,24 @@ class CommandExecutor(object):
     def run(self, command, stdout_path, stderr_path):
         printable_command = prepare_printable_command(command)
         executable_command = prepare_executable_command(command)
-        stdout, stderr = prepare_std_outputs(self.__file_ref, self.__logger_factory, stdout_path, stderr_path)
-        self.__logger.debug(
-            "The following command will be executed\
-        \n->Command:[{}]".format(
-                printable_command
-            )
-        )
-        cmd = psutil.Popen(executable_command, stdout=stdout.open_file(mode="w"), stderr=stderr.open_file(mode="w"))
+        stdout, stderr = prepare_std_outputs(
+            self.__file_ref, self.__logger_factory, stdout_path, stderr_path)
+        self.__logger.debug("The following command will be executed\
+        \n->Command:[{}]".format(printable_command))
+        cmd = psutil.Popen(
+            executable_command,
+            stdout=stdout.open_file(mode="w"),
+            stderr=stderr.open_file(mode="w"))
         exit_code = cmd.wait(timeout=self.__start_timeout)
 
-        stdout_content, stderr_content = self.__process_std_outputs(stdout, stderr)
+        stdout_content, stderr_content = self.__process_std_outputs(
+            stdout, stderr)
         self.__process_exit_code(printable_command, exit_code)
-        return {"exit_code": exit_code, "stdout": stdout_content, "stderr": stderr_content}
+        return {
+            "exit_code": exit_code,
+            "stdout": stdout_content,
+            "stderr": stderr_content
+        }
 
     def __process_std_outputs(self, stdout, stderr):
         stdout_content = stdout.open_file("r").read()
@@ -78,9 +83,7 @@ class CommandExecutor(object):
 
     def __process_exit_code(self, command, exit_code):
         exit_code_debug_log = "\n->Command:[{}]\
-        \n->Exit code:[{}]".format(
-            command, exit_code
-        )
+        \n->Exit code:[{}]".format(command, exit_code)
         if exit_code == 0:
             self.__logger.debug(exit_code_debug_log)
         else:

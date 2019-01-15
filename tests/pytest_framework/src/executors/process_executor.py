@@ -36,10 +36,14 @@ class ProcessExecutor(object):
     def start(self, command, stdout_path, stderr_path):
         printable_command = prepare_printable_command(command)
         executable_command = prepare_executable_command(command)
-        stdout, stderr = prepare_std_outputs(self.__file_ref, self.__logger_factory, stdout_path, stderr_path)
-        self.__logger.info("Following process will be started:\n{}".format(printable_command))
+        stdout, stderr = prepare_std_outputs(
+            self.__file_ref, self.__logger_factory, stdout_path, stderr_path)
+        self.__logger.info(
+            "Following process will be started:\n{}".format(printable_command))
         self.process = psutil.Popen(
-            executable_command, stdout=stdout.open_file(mode="a"), stderr=stderr.open_file(mode="a")
-        )
-        self.__logger.info("Process started with pid [{}]".format(self.process.pid))
+            executable_command,
+            stdout=stdout.open_file(mode="a"),
+            stderr=stderr.open_file(mode="a"))
+        self.__logger.info("Process started with pid [{}]".format(
+            self.process.pid))
         return self.process

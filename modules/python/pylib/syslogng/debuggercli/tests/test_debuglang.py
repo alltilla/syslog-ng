@@ -48,7 +48,14 @@ class TestDebugLang(CompleterLangTestCase):
         self._assert_token_follows("foo arg arg ", ["ARG"])
 
     def _get_command_tokens(self):
-        return [token for token in self._parser.tokens if token.startswith("COMMAND")]
+        return [
+            token for token in self._parser.tokens
+            if token.startswith("COMMAND")
+        ]
 
-    def _assert_command_token_follows(self, text, pos=None, replaced_token=None):
-        self._assert_token_follows(text, set(self._get_command_tokens()), pos, replaced_token)
+    def _assert_command_token_follows(self,
+                                      text,
+                                      pos=None,
+                                      replaced_token=None):
+        self._assert_token_follows(text, set(self._get_command_tokens()), pos,
+                                   replaced_token)

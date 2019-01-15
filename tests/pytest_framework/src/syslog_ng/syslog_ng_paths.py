@@ -37,23 +37,34 @@ class SyslogNgPaths(object):
             raise Exception("Instance already configured")
         self.__instance_name = instance_name
         working_dir = self.__testcase_parameters.get_working_dir()
-        relative_working_dir = self.__testcase_parameters.get_relative_working_dir()
+        relative_working_dir = self.__testcase_parameters.get_relative_working_dir(
+        )
         install_dir = self.__testcase_context.getfixturevalue("installdir")
         if not install_dir:
             raise ValueError("Missing --installdir start parameter")
 
         self.__syslog_ng_paths = {
-            "dirs": {"working_dir": working_dir, "install_dir": Path(install_dir)},
+            "dirs": {
+                "working_dir": working_dir,
+                "install_dir": Path(install_dir)
+            },
             "file_paths": {
-                "config_path": Path(working_dir, "syslog_ng_{}.conf".format(instance_name)),
-                "persist_path": Path(working_dir, "syslog_ng_{}.persist".format(instance_name)),
-                "pid_path": Path(working_dir, "syslog_ng_{}.pid".format(instance_name)),
-                "control_socket_path": Path(relative_working_dir, "syslog_ng_{}.ctl".format(instance_name)),
-                "stderr": Path(working_dir, "syslog_ng_{}_stderr".format(instance_name)),
-                "stdout": Path(working_dir, "syslog_ng_{}_stdout".format(instance_name)),
-                "valgrind": Path(
-                    working_dir, "valgrind_{}.log".format(get_unique_id())
-                ),
+                "config_path":
+                Path(working_dir, "syslog_ng_{}.conf".format(instance_name)),
+                "persist_path":
+                Path(working_dir,
+                     "syslog_ng_{}.persist".format(instance_name)),
+                "pid_path":
+                Path(working_dir, "syslog_ng_{}.pid".format(instance_name)),
+                "control_socket_path":
+                Path(relative_working_dir,
+                     "syslog_ng_{}.ctl".format(instance_name)),
+                "stderr":
+                Path(working_dir, "syslog_ng_{}_stderr".format(instance_name)),
+                "stdout":
+                Path(working_dir, "syslog_ng_{}_stdout".format(instance_name)),
+                "valgrind":
+                Path(working_dir, "valgrind_{}.log".format(get_unique_id())),
             },
             "binary_file_paths": {
                 "syslog_ng_binary": Path(install_dir, "sbin", "syslog-ng"),
@@ -87,13 +98,15 @@ class SyslogNgPaths(object):
         return self.__syslog_ng_paths["file_paths"]["stderr"]
 
     def get_stderr_path_with_postfix(self, postfix):
-        return Path("{}_{}".format(self.__syslog_ng_paths["file_paths"]["stderr"], postfix))
+        return Path("{}_{}".format(
+            self.__syslog_ng_paths["file_paths"]["stderr"], postfix))
 
     def get_stdout_path(self):
         return self.__syslog_ng_paths["file_paths"]["stdout"]
 
     def get_stdout_path_with_postfix(self, postfix):
-        return Path("{}_{}".format(self.__syslog_ng_paths["file_paths"]["stdout"], postfix))
+        return Path("{}_{}".format(
+            self.__syslog_ng_paths["file_paths"]["stdout"], postfix))
 
     def get_syslog_ng_bin(self):
         return self.__syslog_ng_paths["binary_file_paths"]["syslog_ng_binary"]

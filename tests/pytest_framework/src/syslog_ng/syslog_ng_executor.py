@@ -51,9 +51,11 @@ class SyslogNgExecutor(object):
             "--error-limit=no",
             "--num-callers=40",
             "--verbose",
-            "--log-file={}".format(self.__instance_paths.get_valgrind_log_path()),
+            "--log-file={}".format(
+                self.__instance_paths.get_valgrind_log_path()),
         ]
-        full_command_args = valgrind_command_args + self.__construct_syslog_ng_process()
+        full_command_args = valgrind_command_args + self.__construct_syslog_ng_process(
+        )
         return self.__process_executor.start(
             command=full_command_args,
             stdout_path=self.__instance_paths.get_stdout_path(),
@@ -63,8 +65,10 @@ class SyslogNgExecutor(object):
     def run_command(self, command_short_name, command):
         return self.__command_executor.run(
             command=self.__construct_syslog_ng_command(command),
-            stdout_path=self.__instance_paths.get_stdout_path_with_postfix(postfix=command_short_name),
-            stderr_path=self.__instance_paths.get_stderr_path_with_postfix(postfix=command_short_name),
+            stdout_path=self.__instance_paths.get_stdout_path_with_postfix(
+                postfix=command_short_name),
+            stderr_path=self.__instance_paths.get_stderr_path_with_postfix(
+                postfix=command_short_name),
         )
 
     def get_backtrace_from_core(self, core_file):
@@ -80,22 +84,24 @@ class SyslogNgExecutor(object):
         core_postfix = "gdb_core_{}".format(get_unique_id())
         return self.__command_executor.run(
             command=gdb_command_args,
-            stdout_path=self.__instance_paths.get_stdout_path_with_postfix(postfix=core_postfix),
-            stderr_path=self.__instance_paths.get_stderr_path_with_postfix(postfix=core_postfix),
+            stdout_path=self.__instance_paths.get_stdout_path_with_postfix(
+                postfix=core_postfix),
+            stderr_path=self.__instance_paths.get_stderr_path_with_postfix(
+                postfix=core_postfix),
         )
 
     def __construct_syslog_ng_process(
-        self,
-        stderr=True,
-        debug=True,
-        trace=True,
-        verbose=True,
-        startup_debug=True,
-        no_caps=True,
-        config_path=None,
-        persist_path=None,
-        pid_path=None,
-        control_socket_path=None,
+            self,
+            stderr=True,
+            debug=True,
+            trace=True,
+            verbose=True,
+            startup_debug=True,
+            no_caps=True,
+            config_path=None,
+            persist_path=None,
+            pid_path=None,
+            control_socket_path=None,
     ):
         syslog_ng_process_args = [self.__instance_paths.get_syslog_ng_bin()]
         syslog_ng_process_args += ["--foreground", "--enable-core"]
@@ -121,7 +127,8 @@ class SyslogNgExecutor(object):
             pid_path = self.__instance_paths.get_pid_path()
         syslog_ng_process_args += ["--pidfile={}".format(pid_path)]
         if control_socket_path is None:
-            control_socket_path = self.__instance_paths.get_control_socket_path()
+            control_socket_path = self.__instance_paths.get_control_socket_path(
+            )
         syslog_ng_process_args += ["--control={}".format(control_socket_path)]
         return syslog_ng_process_args
 

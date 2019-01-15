@@ -33,17 +33,21 @@ import os
 import sys
 import codecs
 
-grammar_file = os.path.join(os.environ.get('top_srcdir', ''), 'lib/cfg-grammar.y')
+grammar_file = os.path.join(
+    os.environ.get('top_srcdir', ''), 'lib/cfg-grammar.y')
 if not os.path.isfile(grammar_file):
-    grammar_file = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'cfg-grammar.y')
+    grammar_file = os.path.join(
+        os.path.dirname(os.path.abspath(__file__)), 'cfg-grammar.y')
 if not os.path.isfile(grammar_file):
     sys.exit('Error opening cfg-grammar.y')
+
 
 def print_to_stdout(line):
     if sys.hexversion >= 0x3000000:
         sys.stdout.buffer.write(line.encode("utf-8"))
     else:
         print(line.encode("utf-8"), end='')
+
 
 def include_block(block_type):
     start_marker = 'START_' + block_type
@@ -58,6 +62,7 @@ def include_block(block_type):
                 in_block = False
             elif in_block:
                 print_to_stdout(line)
+
 
 for line in fileinput.input(openhook=fileinput.hook_encoded("utf-8")):
     if 'INCLUDE_DECLS' in line:

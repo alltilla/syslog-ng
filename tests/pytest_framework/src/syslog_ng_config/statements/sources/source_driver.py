@@ -38,5 +38,5 @@ class SourceDriver(object):
         for __i in range(0, counter):
             self.__writer.write(formatted_log)
         self.__logger.print_io_content(
-            path, formatted_log, "Content has been written to number of times: {}".format(counter)
-        )
+            path, formatted_log,
+            "Content has been written to number of times: {}".format(counter))

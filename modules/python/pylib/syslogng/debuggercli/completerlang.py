@@ -36,7 +36,11 @@ class CompleterLang(object):
 
     def __init__(self):
         self._initialize_rules()
-        self._parser = yacc.yacc(module=self, write_tables=False, debug=False, errorlog=yacc.NullLogger())
+        self._parser = yacc.yacc(
+            module=self,
+            write_tables=False,
+            debug=False,
+            errorlog=yacc.NullLogger())
         self._lexer = TabLexer(self._construct_lexer())
         self._expected_tokens = []
         self._token_position = -1
@@ -51,7 +55,8 @@ class CompleterLang(object):
     def get_expected_tokens(self, text, drop_last_token):
         self._lexer.set_drop_last_token(drop_last_token)
         self._parser.parse(text, lexer=self._lexer)
-        return self._expected_tokens, self._lexer.get_replaced_token(), self._token_position
+        return self._expected_tokens, self._lexer.get_replaced_token(
+        ), self._token_position
 
     def p_error(self, p):
         if p is None:
@@ -105,10 +110,12 @@ class CompleterLang(object):
         return state < 0
 
     def _shift_production(self, production, token):
-        translated_state = self._get_target_state_after_shifting_production(production)
+        translated_state = self._get_target_state_after_shifting_production(
+            production)
         try:
             # this might be negative (e.g. indicate a production shift).
-            return self._parser.action[self._parser.goto[translated_state][production.name]][token]
+            return self._parser.action[self._parser.goto[translated_state][
+                production.name]][token]
         except KeyError:
             # this indicates a syntax error, the current token
             # does not match any rules where this production

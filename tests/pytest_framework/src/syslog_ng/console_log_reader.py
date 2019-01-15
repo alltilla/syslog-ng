@@ -29,8 +29,11 @@ from src.message_reader.single_line_parser import SingleLineParser
 class ConsoleLogReader(object):
     def __init__(self, logger_factory, instance_paths):
         self.__logger = logger_factory.create_logger("ConsoleLogReader")
-        self.__stderr_io = FileIO(logger_factory, instance_paths.get_stderr_path())
-        self.__message_reader = MessageReader(logger_factory, self.__stderr_io.read, SingleLineParser(logger_factory))
+        self.__stderr_io = FileIO(logger_factory,
+                                  instance_paths.get_stderr_path())
+        self.__message_reader = MessageReader(logger_factory,
+                                              self.__stderr_io.read,
+                                              SingleLineParser(logger_factory))
 
     def wait_for_start_message(self):
         syslog_ng_start_message = ["syslog-ng starting up;"]
@@ -46,7 +49,8 @@ class ConsoleLogReader(object):
             "Configuration reload request received, reloading configuration",
             "Configuration reload finished",
         ]
-        return self.__wait_for_messages_in_console_log(syslog_ng_reload_messages)
+        return self.__wait_for_messages_in_console_log(
+            syslog_ng_reload_messages)
 
     def __wait_for_messages_in_console_log(self, expected_messages):
         if not self.__stderr_io.wait_for_creation():
@@ -68,7 +72,9 @@ class ConsoleLogReader(object):
         for unexpected_pattern in unexpected_patterns:
             for console_log_message in console_log_messages:
                 if unexpected_pattern in console_log_message:
-                    self.__logger.error("Found unexpected message in console log: {}".format(console_log_message))
+                    self.__logger.error(
+                        "Found unexpected message in console log: {}".format(
+                            console_log_message))
                     assert False
 
     def dump_stderr(self, last_n_lines=10):

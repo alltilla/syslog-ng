@@ -39,14 +39,16 @@ class SetupTestCase(object):
         self.__prepare_testcase_working_dir()
 
         self.__logger_factory = LoggerFactory(
-            report_file=self.__testcase_parameters.get_report_file(), loglevel=self.__testcase_parameters.get_loglevel()
-        )
-        self.__logger = self.__logger_factory.create_logger("Setup", use_console_handler=True, use_file_handler=True)
+            report_file=self.__testcase_parameters.get_report_file(),
+            loglevel=self.__testcase_parameters.get_loglevel())
+        self.__logger = self.__logger_factory.create_logger(
+            "Setup", use_console_handler=True, use_file_handler=True)
         self.__instances = {}
 
         self.__teardown_actions = []
         testcase_context.addfinalizer(self.__teardown)
-        self.__logger.info("Testcase setup finish:%s", self.__testcase_parameters.get_testcase_name())
+        self.__logger.info("Testcase setup finish:%s",
+                           self.__testcase_parameters.get_testcase_name())
 
     def __prepare_testcase_working_dir(self):
         working_directory = self.__testcase_parameters.get_working_dir()
@@ -56,41 +58,47 @@ class SetupTestCase(object):
         copy_file(testcase_file_path, working_directory)
 
     def __teardown(self):
-        self.__logger = self.__logger_factory.create_logger("Teardown", use_console_handler=True, use_file_handler=True)
-        self.__logger.info("Testcase teardown start:%s", self.__testcase_parameters.get_testcase_name())
+        self.__logger = self.__logger_factory.create_logger(
+            "Teardown", use_console_handler=True, use_file_handler=True)
+        self.__logger.info("Testcase teardown start:%s",
+                           self.__testcase_parameters.get_testcase_name())
         for inner_function in self.__teardown_actions:
             try:
                 inner_function()
             except OSError:
                 pass
         self.__log_assertion_error()
-        self.__logger.info("Testcase teardown finish:%s", self.__testcase_parameters.get_testcase_name())
+        self.__logger.info("Testcase teardown finish:%s",
+                           self.__testcase_parameters.get_testcase_name())
 
     def __log_assertion_error(self):
-        terminalreporter = self.__testcase_context.config.pluginmanager.getplugin("terminalreporter")
+        terminalreporter = self.__testcase_context.config.pluginmanager.getplugin(
+            "terminalreporter")
         if terminalreporter.stats.get("failed"):
             for failed_report in terminalreporter.stats.get("failed"):
-                if failed_report.location[2] == self.__testcase_context.node.name:
+                if failed_report.location[
+                        2] == self.__testcase_context.node.name:
                     self.__logger = self.__logger_factory.create_logger(
-                        "Teardown", use_console_handler=False, use_file_handler=True
-                    )
+                        "Teardown",
+                        use_console_handler=False,
+                        use_file_handler=True)
                     self.__logger.error(str(failed_report.longrepr))
 
     def __is_instance_registered(self, instance_name):
         return instance_name in self.__instances.keys()
 
     def __register_instance(self, instance_name):
-        instance_paths = SyslogNgPaths(self.__testcase_context, self.__testcase_parameters).set_syslog_ng_paths(
-            instance_name
-        )
-        syslog_ng_cli = SyslogNgCli(self.__logger_factory, instance_paths, self.__testcase_parameters)
+        instance_paths = SyslogNgPaths(
+            self.__testcase_context,
+            self.__testcase_parameters).set_syslog_ng_paths(instance_name)
+        syslog_ng_cli = SyslogNgCli(self.__logger_factory, instance_paths,
+                                    self.__testcase_parameters)
         syslog_ng = SyslogNg(syslog_ng_cli)
         self.__teardown_actions.append(syslog_ng.stop)
         self.__instances.update({instance_name: {}})
         self.__instances[instance_name]["syslog-ng"] = syslog_ng
         self.__instances[instance_name]["config"] = SyslogNgConfig(
-            self.__logger_factory, instance_paths, syslog_ng.get_version()
-        )
+            self.__logger_factory, instance_paths, syslog_ng.get_version())
 
     def new_config(self, instance_name="server"):
         if not self.__is_instance_registered(instance_name):

@@ -113,10 +113,12 @@ matrix:
     - env: B=style-check
       dist: trusty
       sudo: required
+      install: pip install --user yapf
       before_script:
       - astyle --version
       script:
       - scripts/style-checker.sh format
+      - find -name "*.py" | xargs yapf --style pep8 -i
       - git diff --exit-code
     - env: B=copyright-check
       sudo: false

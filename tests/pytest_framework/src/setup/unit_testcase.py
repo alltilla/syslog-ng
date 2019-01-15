@@ -43,7 +43,8 @@ class SetupUnitTestcase(object):
 
     def get_temp_dir(self):
         testcase_name = get_testcase_name(self.testcase_context)
-        testcase_subdir = "{}_{}".format(self.__get_current_date(), testcase_name)
+        testcase_subdir = "{}_{}".format(self.__get_current_date(),
+                                         testcase_name)
         temp_dir = Path("/tmp", testcase_subdir)
         temp_dir.mkdir()
         self.__registered_dirs.append(temp_dir)
@@ -56,16 +57,24 @@ class SetupUnitTestcase(object):
         return temp_file_path
 
     def get_fake_testcase_parameters(self):
-        when(self.testcase_context).getfixturevalue("installdir").thenReturn(self.get_temp_dir())
-        when(self.testcase_context).getfixturevalue("reports").thenReturn(self.get_temp_dir())
-        when(self.testcase_context).getfixturevalue("loglevel").thenReturn("info")
-        when(self.testcase_context).getfixturevalue("runwithvalgrind").thenReturn(False)
+        when(self.testcase_context).getfixturevalue("installdir").thenReturn(
+            self.get_temp_dir())
+        when(self.testcase_context).getfixturevalue("reports").thenReturn(
+            self.get_temp_dir())
+        when(self.testcase_context).getfixturevalue("loglevel").thenReturn(
+            "info")
+        when(self.testcase_context).getfixturevalue(
+            "runwithvalgrind").thenReturn(False)
         return TestcaseParameters(self.testcase_context)
 
     def get_fake_logger_factory(self):
         loglevel = self.testcase_context.getfixturevalue("loglevel")
         report_file_path = self.get_temp_file()
-        return LoggerFactory(report_file_path, loglevel, use_console_handler=True, use_file_handler=False)
+        return LoggerFactory(
+            report_file_path,
+            loglevel,
+            use_console_handler=True,
+            use_file_handler=False)
 
     @staticmethod
     def get_utf8_test_messages(counter):

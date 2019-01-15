@@ -35,10 +35,11 @@ class LexBasedLexer(Lexer):
     def token(self):
         token = self._lexer.token()
         if token is None and self._lexer.lexstate != 'INITIAL':
-            return LexerToken('LITERAL',
-                              value=self._lexer.current_token,
-                              partial=True,
-                              lexpos=self._lexer.current_token_pos)
+            return LexerToken(
+                'LITERAL',
+                value=self._lexer.current_token,
+                partial=True,
+                lexpos=self._lexer.current_token_pos)
         return token
 
     def input(self, text):
@@ -56,9 +57,7 @@ class TemplateLexerError(Exception):
 
 class TemplateLexer(LexBasedLexer):
     # pylint: disable=no-self-use,invalid-name
-    tokens = (
-        'LITERAL', 'MACRO', "TEMPLATE_FUNC"
-    )
+    tokens = ('LITERAL', 'MACRO', "TEMPLATE_FUNC")
 
     states = (
         ('dollar', 'exclusive'),
@@ -175,7 +174,8 @@ class TemplateLexer(LexBasedLexer):
         t.lexer.pop_state()
 
     def t_error(self, t):
-        raise TemplateLexerError("Illegal character {} in state {}".format(t.value, self._lexer.lexstate))
+        raise TemplateLexerError("Illegal character {} in state {}".format(
+            t.value, self._lexer.lexstate))
 
     def t_dollar_error(self, t):
         return self.t_error(t)

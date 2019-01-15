@@ -63,6 +63,11 @@ def test_logger_error_level(tc_unittest):
 
 def test_logger_file_handler_disabled(tc_unittest):
     temp_file = tc_unittest.get_temp_file()
-    logger = Logger("UnitTest", temp_file, logging.DEBUG, use_console_handler=True, use_file_handler=False)
+    logger = Logger(
+        "UnitTest",
+        temp_file,
+        logging.DEBUG,
+        use_console_handler=True,
+        use_file_handler=False)
     logger.info("TestMessage")
     assert temp_file.exists() is False

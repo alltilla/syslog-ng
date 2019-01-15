@@ -37,9 +37,10 @@ class DestinationDriver(object):
             io = self.__IOClass(self.__logger_factory, path)
             io.wait_for_creation()
             message_reader = MessageReader(
-                self.__logger_factory, io.read, SingleLineParser(self.__logger_factory)
-            )
+                self.__logger_factory, io.read,
+                SingleLineParser(self.__logger_factory))
             self.__reader = message_reader
         messages = self.__reader.pop_messages(counter)
-        self.__logger.print_io_content(path, messages, "Content has been read from")
+        self.__logger.print_io_content(path, messages,
+                                       "Content has been read from")
         return messages

@@ -73,9 +73,9 @@ class TabLexer(Lexer):
             self._current_token = self._constuct_tab_token()
 
     def _is_current_token_partial(self):
-        return (self._current_token is not None and
-                (hasattr(self._current_token, 'partial') and
-                 self._current_token.partial))
+        return (self._current_token is not None
+                and (hasattr(self._current_token, 'partial')
+                     and self._current_token.partial))
 
     def _is_buffer_initialized(self):
         return self._buffered_tokens is not None

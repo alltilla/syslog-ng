@@ -28,14 +28,19 @@ from .getoptlexer import GetoptLexer
 
 class TemplateFunctionLang(CompleterLang):
     tokens = []
-    tokens_base = [
-        "COMMAND", "ARG", "OPT"
-    ]
+    tokens_base = ["COMMAND", "ARG", "OPT"]
     known_commands = ("format-json", "echo", "geoip")
     known_options = (
         # value-pairs
-        "--scope", "--exclude", "--key", "--rekey", "--pair",
-        "--shift", "--add-prefix", "--replace-prefix", "--replace")
+        "--scope",
+        "--exclude",
+        "--key",
+        "--rekey",
+        "--pair",
+        "--shift",
+        "--add-prefix",
+        "--replace-prefix",
+        "--replace")
 
     def p_template_func(self, p):
         '''template_func : tf_format_json
@@ -117,9 +122,10 @@ class TemplateFunctionLang(CompleterLang):
         self.tokens = tokens
 
     def _construct_lexer(self):
-        return GetoptLexer(CommandLineLexer(),
-                           known_commands=self.known_commands,
-                           known_options=self.known_options)
+        return GetoptLexer(
+            CommandLineLexer(),
+            known_commands=self.known_commands,
+            known_options=self.known_options)
 
     @staticmethod
     def _tokenize_argument(arg):
@@ -127,7 +133,8 @@ class TemplateFunctionLang(CompleterLang):
 
     def _convert_known_commands_to_tokens(self, tokens):
         for command in self.known_commands:
-            tokens.append("COMMAND_{}".format(self._tokenize_argument(command)))
+            tokens.append("COMMAND_{}".format(
+                self._tokenize_argument(command)))
 
     def _convert_known_options_to_tokens(self, tokens):
         for option in self.known_options:

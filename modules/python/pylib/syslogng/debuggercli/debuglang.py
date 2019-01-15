@@ -37,7 +37,8 @@ class DebugLang(CompleterLang):
         'p': 'print',
     }
     tokens = [
-        "COMMAND_PRINT", "COMMAND_DISPLAY",
+        "COMMAND_PRINT",
+        "COMMAND_DISPLAY",
         "COMMAND",
         "ARG",
     ]
@@ -70,6 +71,7 @@ class DebugLang(CompleterLang):
         pass
 
     def _construct_lexer(self):
-        return GetoptLexer(CommandLineLexer(),
-                           known_commands=self._known_commands,
-                           aliases=self._aliases)
+        return GetoptLexer(
+            CommandLineLexer(),
+            known_commands=self._known_commands,
+            aliases=self._aliases)
