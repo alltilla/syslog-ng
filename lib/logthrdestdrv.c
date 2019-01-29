@@ -76,10 +76,9 @@ log_threaded_dest_worker_rewind_messages(LogThreadedDestWorker *self, gint batch
   self->batch_size -= batch_size;
 }
 
-static const gchar *
-_format_queue_persist_name(LogThreadedDestWorker *self)
+static void
+_format_queue_persist_name(LogThreadedDestWorker *self, gchar *persist_name, size_t len)
 {
-  static gchar persist_name[1024];
   LogPipe *owner = &self->owner->super.super.super;
 
   if (self->worker_index == 0)
@@ -87,13 +86,11 @@ _format_queue_persist_name(LogThreadedDestWorker *self)
       /* the first worker uses the legacy persist name, e.g.  to be able to
        * recover the queue previously used.  */
 
-      return owner->generate_persist_name(owner);
+      g_snprintf(persist_name, len, "%s", owner->generate_persist_name(owner));
     }
   else
-    g_snprintf(persist_name, sizeof(persist_name), "%s.%d.queue",
+    g_snprintf(persist_name, len, "%s.%d.queue",
                owner->generate_persist_name(owner), self->worker_index);
-
-  return persist_name;
 }
 
 
@@ -677,8 +674,10 @@ ok:
 gboolean
 log_threaded_dest_worker_init_method(LogThreadedDestWorker *self)
 {
-  self->queue = log_dest_driver_acquire_queue(&self->owner->super,
-                                              _format_queue_persist_name(self));
+  gchar persist_name[1024];
+
+  _format_queue_persist_name(self, persist_name, sizeof(persist_name));
+  self->queue = log_dest_driver_acquire_queue(&self->owner->super, persist_name);
 
   if (!self->queue)
     return FALSE;
