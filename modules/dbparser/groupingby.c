@@ -338,15 +338,34 @@ _perform_groupby(GroupingBy *self, LogMessage *msg)
            * main thread, that is a possible deadlock
            */
           //grouping_by_expire_entry(self->timer_wheel, timer_wheel_get_time(self->timer_wheel), context);
-          GroupingBy *self_local = (GroupingBy *) timer_wheel_get_associated_data(self->timer_wheel);//This maybe identical, but keep as is for now
-
           msg_debug("Expiring grouping-by() correllation context",
                     evt_tag_long("utc", timer_wheel_get_time(self->timer_wheel)),
                     evt_tag_str("context-id", context->key.session_id),
-                    log_expr_node_location_tag(self_local->super.super.super.expr_node));
+                    log_expr_node_location_tag(self->super.super.super.expr_node));
 
-          grouping_by_emit_synthetic(self_local, context);
-          g_hash_table_remove(self_local->correllation->state, &context->key);
+          //inline:
+          //grouping_by_emit_synthetic(self, context);
+          LogMessage *nmsg;
+
+          if (_evaluate_having(self, context))
+            {
+              GString *buffer1 = g_string_sized_new(256);
+
+              nmsg = synthetic_message_generate_with_context(self->synthetic_message, context, buffer1);
+              //TODO: this only propagates the message, it should be fine to call without having the *lock*
+              stateful_parser_emit_synthetic(&self->super, nmsg);
+              log_msg_unref(nmsg);
+              g_string_free(buffer1, TRUE);
+            }
+          else
+            {
+              msg_debug("groupingby() dropping context, because having() is FALSE",
+                        evt_tag_str("key", context->key.session_id),
+                        log_expr_node_location_tag(self->super.super.super.expr_node));
+            }
+          //end inline: grouping_by_emit_synthetic
+
+          g_hash_table_remove(self->correllation->state, &context->key);
 
           /* correllation_context_free is automatically called when returning from
              this function by the timerwheel code as a destroy notify
