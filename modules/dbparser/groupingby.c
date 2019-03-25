@@ -329,7 +329,28 @@ _perform_groupby(GroupingBy *self, LogMessage *msg)
           /* close down state */
           if (context->timer)
             timer_wheel_del_timer(self->timer_wheel, context->timer);
-          grouping_by_expire_entry(self->timer_wheel, timer_wheel_get_time(self->timer_wheel), context);
+          /* Split grouping_by_expire so the part that creates a new message
+           * can be protected by the *lock*, but the *_queue methd
+           * could be called after the *lock* is released.
+           * This is needed as both the worker thread - which this _process is running
+           * and the main thread (because of the timer expires) wants to get the *lock*,
+           * while that is fine, the worker thread *may* wants to do some business in the
+           * main thread, that is a possible deadlock
+           */
+          //grouping_by_expire_entry(self->timer_wheel, timer_wheel_get_time(self->timer_wheel), context);
+          GroupingBy *self_local = (GroupingBy *) timer_wheel_get_associated_data(self->timer_wheel);//This maybe identical, but keep as is for now
+
+          msg_debug("Expiring grouping-by() correllation context",
+                    evt_tag_long("utc", timer_wheel_get_time(self->timer_wheel)),
+                    evt_tag_str("context-id", context->key.session_id),
+                    log_expr_node_location_tag(self_local->super.super.super.expr_node));
+
+          grouping_by_emit_synthetic(self_local, context);
+          g_hash_table_remove(self_local->correllation->state, &context->key);
+
+          /* correllation_context_free is automatically called when returning from
+             this function by the timerwheel code as a destroy notify
+             callback. */
         }
       else
         {
