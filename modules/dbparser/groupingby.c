@@ -351,6 +351,14 @@ _perform_groupby(GroupingBy *self, LogMessage *msg)
           /* correllation_context_free is automatically called when returning from
              this function by the timerwheel code as a destroy notify
              callback. */
+
+          g_static_mutex_unlock(&self->lock);
+
+          if (context)
+            log_msg_write_protect(msg);
+
+          g_string_free(buffer, TRUE);
+          return TRUE;
         }
       else
         {
