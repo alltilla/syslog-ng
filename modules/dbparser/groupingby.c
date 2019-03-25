@@ -356,6 +356,14 @@ _perform_groupby(GroupingBy *self, LogMessage *msg)
               stateful_parser_emit_synthetic(&self->super, nmsg);
               log_msg_unref(nmsg);
               g_string_free(buffer1, TRUE);
+
+              g_static_mutex_unlock(&self->lock);
+
+              if (context)
+                log_msg_write_protect(msg);
+
+              g_string_free(buffer, TRUE);
+              return TRUE;
             }
           else
             {
@@ -370,14 +378,6 @@ _perform_groupby(GroupingBy *self, LogMessage *msg)
           /* correllation_context_free is automatically called when returning from
              this function by the timerwheel code as a destroy notify
              callback. */
-
-          g_static_mutex_unlock(&self->lock);
-
-          if (context)
-            log_msg_write_protect(msg);
-
-          g_string_free(buffer, TRUE);
-          return TRUE;
         }
       else
         {
