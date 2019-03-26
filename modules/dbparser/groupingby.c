@@ -353,11 +353,12 @@ _perform_groupby(GroupingBy *self, LogMessage *msg)
 
               nmsg = synthetic_message_generate_with_context(self->synthetic_message, context, buffer1);
               //TODO: this only propagates the message, it should be fine to call without having the *lock*
+
+              g_static_mutex_unlock(&self->lock);
+
               stateful_parser_emit_synthetic(&self->super, nmsg);
               log_msg_unref(nmsg);
               g_string_free(buffer1, TRUE);
-
-              g_static_mutex_unlock(&self->lock);
 
               if (context)
                 log_msg_write_protect(msg);
