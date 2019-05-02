@@ -354,6 +354,13 @@ _perform_groupby(GroupingBy *self, LogMessage *msg)
               nmsg = synthetic_message_generate_with_context(self->synthetic_message, context, buffer1);
               //TODO: this only propagates the message, it should be fine to call without having the *lock*
 
+
+              g_hash_table_remove(self->correllation->state, &context->key);
+
+              /* correllation_context_free is automatically called when returning from
+                 this function by the timerwheel code as a destroy notify
+                 callback. */
+
               g_static_mutex_unlock(&self->lock);
 
               stateful_parser_emit_synthetic(&self->super, nmsg);
