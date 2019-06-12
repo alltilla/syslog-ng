@@ -120,7 +120,7 @@ _register_single_counter_with_name(void)
   {
     StatsClusterKey sc_key;
     StatsCounterItem *ctr_item;
-    stats_cluster_single_key_set_with_name(&sc_key, SCS_GLOBAL, "id", "instance", "name");
+    stats_cluster_single_key_set_with_name(&sc_key, scs_global, "id", "instance", "name");
     stats_register_counter(0, &sc_key, SC_TYPE_SINGLE_VALUE, &ctr_item);
   }
   stats_unlock();
@@ -133,9 +133,9 @@ _initialize_counter_hash(void)
 
   const CounterHashContent logpipe_cluster_counters[] =
   {
-    {SCS_CENTER, "guba.polo", "frozen", SC_TYPE_SUPPRESSED},
+    {scs_center, "guba.polo", "frozen", SC_TYPE_SUPPRESSED},
     {SCS_FILE | SCS_SOURCE, "guba", "processed", SC_TYPE_PROCESSED},
-    {SCS_GLOBAL, "guba.gumi.diszno", "frozen", SC_TYPE_SUPPRESSED},
+    {scs_global, "guba.gumi.diszno", "frozen", SC_TYPE_SUPPRESSED},
     {SCS_PIPE | SCS_SOURCE, "guba.gumi.disz", "frozen", SC_TYPE_SUPPRESSED},
     {SCS_TCP | SCS_DESTINATION, "guba.labda", "received", SC_TYPE_DROPPED},
     {SCS_TCP | SCS_SOURCE, "guba.frizbi", "left", SC_TYPE_QUEUED},
@@ -143,7 +143,7 @@ _initialize_counter_hash(void)
 
   const CounterHashContent single_cluster_counters[] =
   {
-    {SCS_GLOBAL, "", "guba", SC_TYPE_SINGLE_VALUE}
+    {scs_global, "", "guba", SC_TYPE_SINGLE_VALUE}
   };
 
   _register_counters(logpipe_cluster_counters, ARRAY_SIZE(logpipe_cluster_counters), stats_cluster_logpipe_key_set);

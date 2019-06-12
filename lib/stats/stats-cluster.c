@@ -29,24 +29,36 @@
 
 GPtrArray *stats_types;
 
+guint scs_group = 0;
+guint scs_global = 0;
+guint scs_center = 0;
+guint scs_host = 0;
+guint scs_sender = 0;
+guint scs_program = 0;
+guint scs_severity = 0;
+guint scs_facility = 0;
+guint scs_tag = 0;
+guint scs_filter = 0;
+guint scs_parser = 0;
+
 void
 stats_cluster_init(void)
 {
   g_assert(!stats_types);
   stats_types = g_ptr_array_new_with_free_func(g_free);
 
-  g_assert(stats_register_type("none") == 0);
-  g_assert(stats_register_type("group") == SCS_GROUP);
-  g_assert(stats_register_type("global") == SCS_GLOBAL);
-  g_assert(stats_register_type("center") == SCS_CENTER);
-  g_assert(stats_register_type("host") == SCS_HOST);
-  g_assert(stats_register_type("sender") == SCS_SENDER);
-  g_assert(stats_register_type("program") == SCS_PROGRAM);
-  g_assert(stats_register_type("severity") == SCS_SEVERITY);
-  g_assert(stats_register_type("facility") == SCS_FACILITY);
-  g_assert(stats_register_type("tag") == SCS_TAG);
-  g_assert(stats_register_type("filter") == SCS_FILTER);
-  g_assert(stats_register_type("parser") == SCS_PARSER);
+  stats_register_type("none");
+  scs_group = stats_register_type("group");
+  scs_global = stats_register_type("global");
+  scs_center = stats_register_type("center");
+  scs_host = stats_register_type("host");
+  scs_sender = stats_register_type("sender");
+  scs_program = stats_register_type("program");
+  scs_severity = stats_register_type("severity");
+  scs_facility = stats_register_type("facility");
+  scs_tag = stats_register_type("tag");
+  scs_filter = stats_register_type("filter");
+  scs_parser = stats_register_type("parser");
 }
 
 gboolean
@@ -149,7 +161,7 @@ _get_component_prefix(gint source)
 const gchar *
 stats_cluster_get_component_name(StatsCluster *self, gchar *buf, gsize buf_len)
 {
-  if ((self->key.component & SCS_SOURCE_MASK) == SCS_GROUP)
+  if ((self->key.component & SCS_SOURCE_MASK) == scs_group)
     {
       if (self->key.component & SCS_SOURCE)
         return "source";

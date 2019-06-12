@@ -32,19 +32,20 @@ enum
   /* direction bits, used to distinguish between source/destination drivers */
   SCS_SOURCE         = 0x0100,
   SCS_DESTINATION    = 0x0200,
-  SCS_GROUP          = 1,
-  SCS_GLOBAL,
-  SCS_CENTER,
-  SCS_HOST,
-  SCS_SENDER,
-  SCS_PROGRAM,
-  SCS_SEVERITY,
-  SCS_FACILITY,
-  SCS_TAG,
-  SCS_FILTER,
-  SCS_PARSER,
   SCS_SOURCE_MASK    = 0xff
 };
+
+extern guint scs_group;
+extern guint scs_global;
+extern guint scs_center;
+extern guint scs_host;
+extern guint scs_sender;
+extern guint scs_program;
+extern guint scs_severity;
+extern guint scs_facility;
+extern guint scs_tag;
+extern guint scs_filter;
+extern guint scs_parser;
 
 typedef struct _StatsCounterGroup StatsCounterGroup;
 typedef struct _StatsCounterGroupInit StatsCounterGroupInit;

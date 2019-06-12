@@ -40,7 +40,7 @@ Test(stats_cluster, test_stats_cluster_single)
 {
   StatsCluster *sc;
   StatsClusterKey sc_key;
-  stats_cluster_single_key_set(&sc_key, SCS_GLOBAL, "logmsg_allocated_bytes", NULL);
+  stats_cluster_single_key_set(&sc_key, scs_global, "logmsg_allocated_bytes", NULL);
 
   sc = stats_cluster_new(&sc_key);
   cr_assert_str_eq(sc->query_key, "global.logmsg_allocated_bytes", "Unexpected query key");
@@ -226,9 +226,9 @@ Test(stats_cluster, test_get_component_name_translates_component_to_name_properl
 {
   assert_stats_component_name(SCS_SOURCE | SCS_FILE, "src.file");
   assert_stats_component_name(SCS_DESTINATION | SCS_FILE, "dst.file");
-  assert_stats_component_name(SCS_GLOBAL, "global");
-  assert_stats_component_name(SCS_SOURCE | SCS_GROUP, "source");
-  assert_stats_component_name(SCS_DESTINATION | SCS_GROUP, "destination");
+  assert_stats_component_name(scs_global, "global");
+  assert_stats_component_name(SCS_SOURCE | scs_group, "source");
+  assert_stats_component_name(SCS_DESTINATION | scs_group, "destination");
 }
 
 Test(stats_cluster, test_get_counter)
