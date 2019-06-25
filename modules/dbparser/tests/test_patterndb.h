@@ -49,6 +49,34 @@
  </ruleset>\
 </patterndb>"
 
+#define pdb_multiple_rulesets_with_conflicting_patterns "<patterndb version='4' pub_date='2010-02-22'>\
+ <ruleset name='testset1' id='1'> \
+  <patterns>\
+   <pattern>prog1</pattern>\
+  </patterns>\
+  <rules>\
+    <rule provider='test1' id='10'>\
+     <patterns>\
+      <pattern>pattern foo1</pattern>\
+     </patterns>\
+    </rule>\
+  </rules>\
+ </ruleset>\
+ <ruleset name='testset2' id='2'> \
+  <patterns>\
+   <pattern>prog2</pattern>\
+   <pattern>prog1</pattern>\
+  </patterns>\
+  <rules>\
+    <rule provider='test2' id='20'>\
+     <patterns>\
+      <pattern>pattern foo2</pattern>\
+     </patterns>\
+    </rule>\
+  </rules>\
+ </ruleset>\
+</patterndb>"
+
 #define pdb_conflicting_rules_with_the_same_parsers "<patterndb version='4' pub_date='2010-02-22'>\
  <ruleset name='testset' id='1'>\
   <patterns>\

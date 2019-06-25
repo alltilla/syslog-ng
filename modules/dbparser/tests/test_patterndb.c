@@ -644,6 +644,13 @@ ParameterizedTestParameters(pattern_db, test_rules)
       .name = ".classifier.rule_id",
       .expected_value = "11"
     },
+    {
+      .pattern_db = pdb_multiple_rulesets_with_conflicting_patterns,
+      .program = "prog2",
+      .message = "pattern foo2",
+      .name = ".classifier.rule_id",
+      .expected_value = "20"
+    },
   };
 
   return cr_make_param_array(PatternDBTestParam, parser_params, G_N_ELEMENTS(parser_params));
