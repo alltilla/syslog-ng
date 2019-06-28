@@ -101,8 +101,7 @@ matrix:
     - env: B=autotools-clang
       compiler: clang
       script:
-        - . tests/build-log-cflags-propagation.sh;
-          make --keep-going -j $(nproc);
+        - make --keep-going -j $(nproc);
           S=$?;
           if [ "$S" = "0" ]; then
             make install
