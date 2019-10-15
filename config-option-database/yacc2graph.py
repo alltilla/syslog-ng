@@ -28,55 +28,6 @@ from os import remove
 import xml.etree.ElementTree as xml_parser
 import networkx
 
-class Rule():
-    def __init__(self, number, parent, symbols):
-        self.number = number
-        self.parent = parent
-        self.symbols = symbols
-
-def _run_in_shell(command):
-    proc = Popen(command)
-    proc.wait()
-    return proc.returncode == 0
-
-def _write_to_file(string):
-  file = NamedTemporaryFile(mode='w+')
-  file.write(string)
-  file.flush()
-  file.seek(0)
-  return file
-
-def _yacc2xml(yacc):
-    with _write_to_file(yacc) as file:
-        output = '/tmp/yacc2xml.xml'
-        try:
-            if not _run_in_shell(['bison', '--xml='+output, file.name]):
-                raise Exception('Failed to convert to xml:\n{}\n'.format(yacc))
-        except FileNotFoundError:
-            raise Exception('bison executable not found')
-        #_run_in_shell(['cat', '/tmp/yacc2xml.xml'])
-        return output
-
-def _xml2rules(filename):
-    rules = []
-    root = xml_parser.parse(filename).getroot()
-    for rule in root.iter('rule'):
-        number = int(rule.get('number'))
-        parent = rule.find('lhs').text
-        symbols = []
-        for symbol in rule.find('rhs'):
-            if symbol.tag == 'empty':
-                break
-            symbols.append(symbol.text)
-        rules.append(Rule(number, parent, symbols))
-    return rules
-
-def yacc2rules(yacc):
-    xml = _yacc2xml(yacc)
-    rules = _xml2rules(xml)
-    remove(xml)
-    return rules
-
 def show_graph(graph):
     import matplotlib.pyplot as plt
     pos=networkx.planar_layout (graph)
@@ -84,19 +35,71 @@ def show_graph(graph):
     networkx.draw_networkx_edge_labels(graph, pos)
     plt.show()
 
-def rules2graph(rules):
-    graph = networkx.DiGraph()
-    for rule in rules:
-        rule_node = str(rule.number)
-        graph.add_edge(rule.parent, rule_node)
-        for index, symbol in enumerate(rule.symbols):
-            graph.add_edge(rule_node, symbol, index=index)
 
-    #show_graph(graph)
-    return graph
+class ConfigGraph():
+    def __init__(self, yacc):
+        self.graph = self.yacc2graph(yacc)
 
-def yacc2graph(yacc):
-    return rules2graph(yacc2rules(yacc))
+    class Rule():
+        def __init__(self, number, parent, symbols):
+            self.number = number
+            self.parent = parent
+            self.symbols = symbols
+
+    def _yacc2xml(self, yacc):
+        with self._write_to_file(yacc) as file:
+            output = '/tmp/yacc2xml.xml'
+            try:
+                if not self._run_in_shell(['bison', '--xml='+output, file.name]):
+                    raise Exception('Failed to convert to xml:\n{}\n'.format(yacc))
+            except FileNotFoundError:
+                raise Exception('bison executable not found')
+            return output
+
+    def _xml2rules(self, filename):
+        rules = []
+        root = xml_parser.parse(filename).getroot()
+        for rule in root.iter('rule'):
+            number = int(rule.get('number'))
+            parent = rule.find('lhs').text
+            symbols = []
+            for symbol in rule.find('rhs'):
+                if symbol.tag == 'empty':
+                    break
+                symbols.append(symbol.text)
+            if symbols:
+                rules.append(ConfigGraph.Rule(number, parent, symbols))
+        return rules
+
+    def yacc2rules(self, yacc):
+        xml = self._yacc2xml(yacc)
+        rules = self._xml2rules(xml)
+        remove(xml)
+        return rules
+
+    def rules2graph(self, rules):
+        graph = networkx.DiGraph()
+        for rule in rules:
+            rule_node = str(rule.number)
+            graph.add_edge(rule.parent, rule_node)
+            for index, symbol in enumerate(rule.symbols):
+                graph.add_edge(rule_node, symbol, index=index)
+        return graph
+
+    def yacc2graph(self, yacc):
+        return self.rules2graph(self.yacc2rules(yacc))
+
+    def _run_in_shell(self, command):
+        proc = Popen(command)
+        proc.wait()
+        return proc.returncode == 0
+
+    def _write_to_file(self, string):
+        file = NamedTemporaryFile(mode='w+')
+        file.write(string)
+        file.flush()
+        file.seek(0)
+        return file
 
 def get_children(node):
     children = [(k, v) for k, v in node.items()]
@@ -125,11 +128,12 @@ def lines_append(lines, terminal):
         buf[i] += terminal
     return buf
 
-def get_options2(graph, node_key='$accept', stack=None, lines=None):
+def get_options2(graph, node_key, stack=None, lines=None):
     if not stack:
         stack = []
     if not lines:
         lines = ['']
+    
     if node_key in stack:
         return lines
     
@@ -139,7 +143,7 @@ def get_options2(graph, node_key='$accept', stack=None, lines=None):
     if is_rule(node_key):
         for child in get_children(node):
             if is_terminal(graph[child]):
-                if child != '$end':
+                if child != '$end' and '$@' != child[:2]:
                     lines = lines_append(lines, child)
             else:
                 lines = get_options2(graph, child, stack, lines)
@@ -153,57 +157,149 @@ def get_options2(graph, node_key='$accept', stack=None, lines=None):
     stack.pop()
     return lines
 
-class Option():
-    def __init__(self, line):
-        self.driver = None
-        self.driver_type = None
-        self.keyword = []
-        self.type = []
-        self.parents = []
+class OptionParser():
+    def __init__(self, line, options):
         self.tokens = line.split(' ')
-        print('---')
-        print('tokens', line)
-        self.parse(self.tokens)
+        self.options = options
 
-        print('hi', self.driver_type, self.driver, self.keyword, self.type, self.parents)
-
-    def parse(self, tokens):
-        if not tokens:
-            return
-        if not self.driver_type or not self.driver:
-            if 'LL_CONTEXT_' not in tokens[0]:
-                raise Exception('Not a driver option')
-            if tokens[2] != "'('":
-                raise Exception("Missing driver '('")
-            if tokens[-1] != "')'":
-                raise Exception("Missing driver ')'")
-            self.driver_type = tokens[0]
-            self.driver = tokens[1]
-            self.parse(tokens[3:-1])
-            return
-        if not "'('" in tokens and not "')'" in tokens:
-            self.keyword = tokens
-            return
-        else:
-            if tokens[-1] != "')'":
-                raise Exception("Missing option ')'")
-            lb = tokens.index("'('")
-            keyword = tokens[:lb]
-            types = tokens[lb+1:-1]
-            if "'('" in types:
-                self.parents.append(keyword)
-                self.parse(types)
-                return
+    class Option():
+        def __init__(self, drivers, keyword, types, parents):
+            self.drivers = drivers
             self.keyword = keyword
-            self.type = types
-            return
+            self.types = types
+            self.parents = parents
 
+        def __eq__(self, other):
+            return self.drivers == other.drivers and self.keyword == other.keyword and self.types == other.types and self.parents == other.parents
+
+    def _find_leaves(self):
+        leaves = set()
+        lb = None
+
+        for index, token in enumerate(self.tokens):
+            if token == "'('":
+                lb = index
+            elif token == "')'" and lb != None:
+                assert self.tokens[lb-1][0:3] == 'KW_', "No KW_ before '('"
+                leaves.add((lb-1, index))
+                lb = None
+
+        skip = 0
+        lb = None
+        for index in range(len(self.tokens)-1, 0, -1):
+            token = self.tokens[index]
+            if token == "'('":
+                if skip:
+                    skip -= 1
+                    continue
+                if lb and lb - index > 2:
+                    leaves.add((index+1, lb-1-1))
+                lb = index
+            elif token == "')'" and lb:
+                skip += 1
+
+        return leaves
+
+    def _get_options(self, leaves):
+        assert self.tokens[0][:11] == 'LL_CONTEXT_'
+        assert self.tokens[1][:3] == 'KW_'
+        assert self.tokens[2] == "'('"
+        options = []
+        drivers = [(self.tokens[0], self.tokens[1])]
+        for leave_interval in leaves:
+            leave = self.tokens[leave_interval[0]:leave_interval[1]+1]
+            if "'('" in leave and "')'" in leave:
+                assert leave.index("'('") == 1
+                assert leave.index("')'") == len(leave)-1
+                assert leave[0][:3] == 'KW_'
+                keyword = leave[0]
+                types = leave[leave.index("'('")+1:leave.index("')'")]
+            else:
+                keyword = None
+                types = leave
+
+            skip = 0
+            parents = []
+            next_is_kw = False
+            reverse_sublist = self.tokens[:leave_interval[0]]
+            reverse_sublist.reverse()
+            for token in reverse_sublist:
+                if token == "'('":
+                    if skip:
+                        skip -= 1
+                    else:
+                        next_is_kw = True
+                elif next_is_kw:
+                    parents.append(token)
+                    next_is_kw = False
+                elif token == "')'":
+                    skip += 1
+            parents.reverse()
+            parents = parents[1:]
+            option = OptionParser.Option(drivers, keyword, types, parents)
+            append = True
+            for other in self.options:
+                if option.keyword == other.keyword and option.types == other.types and option.parents == other.parents:
+                    if option.drivers[0] not in other.drivers:
+                        other.drivers.append(option.drivers[0])
+                    append = False
+                    break
+            if append:
+                options.append(option)
+        return options
+
+    def parse(self):
+        leaves = self._find_leaves()
+        options = self._get_options(leaves)
+        return options
 
 def get_options(graph):
-    lines = get_options2(graph)
+    types = [
+        'date_parser_flags',
+        'date_parser_stamp',
+        'dnsmode',
+        'facility_string',
+        'filter_content',
+        'filter_expr',
+        'filter_fac_list',
+        'filter_level_list',
+        'http_auth_header_plugin',
+        'inherit_mode',
+        'level_string',
+        'log_flags_items',
+        'matcher_flags',
+        'nonnegative_integer',
+        'nonnegative_integer64',
+        'parser_csv_delimiters',
+        'parser_csv_dialect',
+        'parser_csv_flags',
+        'path_check',
+        'path_no_check',
+        'path_secret',
+        'positive_integer',
+        'stateful_parser_inject_mode',
+        'string',
+        'string_list',
+        'string_or_number',
+        'synthetic_message',
+        'template_content',
+        'template_content_inner',
+        'vp_scope_list',
+        'yesno',
+    ]
+
+    for opt_type in types:
+        if not opt_type in graph:
+            continue
+        children = get_children(graph[opt_type])
+        for child in children:
+            graph.remove_edge(opt_type, child)
+
+    lines = get_options2(graph, '$accept')
     options = []
     for line in lines:
-        option = Option(line)
-        options.append(option)
-        #print(option.tokens)
+        option_parser = OptionParser(line, options)
+        options.extend(option_parser.parse())
+    #for option in options:
+    #    print(option.drivers, option.keyword, option.types, option.parents)
     return options
