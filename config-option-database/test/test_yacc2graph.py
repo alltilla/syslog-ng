@@ -74,37 +74,8 @@ test_opt
   #graph = yacc2graph.yacc2graph(yacc)
 
 def test_print_graph():
-  with open('/home/alltilla/Work/repos/OSE/build/modules/afsocket/afsocket-grammar.y', 'r') as myfile:
+  with open('/home/alltilla/Work/repos/OSE/build/modules/affile/affile-grammar.y', 'r') as myfile:
     yacc = myfile.read()
     graph = yacc2graph.ConfigGraph(yacc)
     options = yacc2graph.get_options(graph.graph)
 
-    database = {}
-
-    for option in options:
-      contexts = set()
-      for driver in option.drivers:
-        contexts.add(driver[0])
-      for context in contexts:
-        entry = {}
-        if option.keyword:
-          entry['option_name'] = option.keyword
-        else:
-          entry['option_name'] = ''
-        entry['option_value'] = option.types
-        entry['parent_options'] = option.parents
-        root_driver = []
-        for driver in option.drivers:
-          if driver[0] == context:
-            root_driver.append(driver[1])
-        entry['root_driver'] = root_driver
-        if context not in database:
-          database[context] = []
-        database[context].append(entry)
-
-  from pprint import pprint
-  pprint(database)
-
-  print()
-  #for line in lines:
-    #print(line)
