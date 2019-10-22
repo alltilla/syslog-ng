@@ -23,107 +23,70 @@
 
 from tempfile import NamedTemporaryFile
 from subprocess import Popen, DEVNULL
-from os import remove, path, listdir
-from glob import glob
-from importlib import import_module
-from inspect import getargspec
-
-from ConfigGraph import ConfigGraph
+from os import remove
+import xml.etree.ElementTree as xml_parser
 
 import networkx
 
-import xml.etree.ElementTree as xml_parser
+class Rule():
+    def __init__(self, number, parent, symbols):
+        self.number = number
+        self.parent = parent
+        self.symbols = symbols
 
+def _yacc2xml(yacc):
+    with _write_to_file(yacc) as file:
+        output = '/tmp/yacc2xml.xml'
+        try:
+            if not _run_in_shell(['bison', '--xml='+output, file.name]):
+                raise Exception('Failed to convert to xml:\n{}\n'.format(yacc))
+        except FileNotFoundError:
+            raise Exception('bison executable not found')
+        return output
 
-class Yacc2Graph():
-    class Rule():
-        def __init__(self, number, parent, symbols):
-            self.number = number
-            self.parent = parent
-            self.symbols = symbols
+def _xml2rules(filename):
+    rules = []
+    root = xml_parser.parse(filename).getroot()
+    for rule in root.iter('rule'):
+        #if rule.get('usefulness') != 'useful':
+        #    continue
+        number = int(rule.get('number'))
+        parent = rule.find('lhs').text
+        symbols = []
+        for symbol in rule.find('rhs'):
+            if symbol.tag == 'empty':
+                break
+            symbols.append(symbol.text)
+        if symbols:
+            rules.append(Rule(number, parent, symbols))
+    return rules
 
-    def _yacc2xml(self, yacc):
-        with self._write_to_file(yacc) as file:
-            output = '/tmp/yacc2xml.xml'
-            try:
-                if not self._run_in_shell(['bison', '--xml='+output, file.name]):
-                    raise Exception('Failed to convert to xml:\n{}\n'.format(yacc))
-            except FileNotFoundError:
-                raise Exception('bison executable not found')
-            return output
+def _yacc2rules(yacc):
+    xml = _yacc2xml(yacc)
+    rules = _xml2rules(xml)
+    remove(xml)
+    return rules
 
-    def _xml2rules(self, filename):
-        rules = []
-        root = xml_parser.parse(filename).getroot()
-        for rule in root.iter('rule'):
-            number = int(rule.get('number'))
-            parent = rule.find('lhs').text
-            symbols = []
-            for symbol in rule.find('rhs'):
-                if symbol.tag == 'empty':
-                    break
-                symbols.append(symbol.text)
-            if symbols:
-                rules.append(Yacc2Graph.Rule(number, parent, symbols))
-        return rules
+def _rules2graph(rules):
+    graph = networkx.DiGraph()
+    for rule in rules:
+        rule_node = str(rule.number)
+        graph.add_edge(rule.parent, rule_node)
+        for index, symbol in enumerate(rule.symbols):
+            graph.add_edge(rule_node, symbol, index=index)
+    return graph
 
-    def yacc2rules(self, yacc):
-        xml = self._yacc2xml(yacc)
-        rules = self._xml2rules(xml)
-        remove(xml)
-        return rules
+def yacc2graph(yacc):
+    return _rules2graph(_yacc2rules(yacc))
 
-    def rules2graph(self, rules):
-        graph = networkx.DiGraph()
-        for rule in rules:
-            rule_node = str(rule.number)
-            graph.add_edge(rule.parent, rule_node)
-            for index, symbol in enumerate(rule.symbols):
-                graph.add_edge(rule_node, symbol, index=index)
-        return graph
+def _run_in_shell(command):
+    proc = Popen(command, stderr=DEVNULL, stdout=DEVNULL)
+    proc.wait()
+    return proc.returncode == 0
 
-    def yacc2graph(self, yacc):
-        return self.rules2graph(self.yacc2rules(yacc))
-
-    def _run_in_shell(self, command):
-        proc = Popen(command, stderr=DEVNULL, stdout=DEVNULL)
-        proc.wait()
-        return proc.returncode == 0
-
-    def _write_to_file(self, string):
-        file = NamedTemporaryFile(mode='w+')
-        file.write(string)
-        file.flush()
-        file.seek(0)
-        return file
-
-class PluginExecutor():
-    def __init__(self, debug=False):
-        self.debug = debug
-        with open('/home/alltilla/Work/repos/OSE/build/modules/afsocket/afsocket-grammar.y', 'r') as myfile:
-            yacc = myfile.read()
-            graph = Yacc2Graph().yacc2graph(yacc)
-            self.graph = ConfigGraph(graph)
-            self.plugins = {}
-            self.load_plugins()
-
-    def log(self, message):
-        if self.debug:
-            print(message)
-
-    def load_plugins(self):
-        plugin_dir = path.join(path.dirname(__file__), 'plugins')
-        for full_filename in glob(path.join(plugin_dir, '*.py')):
-            plugin_name = path.basename(full_filename)[:-3]
-            plugin_module = import_module('plugins.'+plugin_name, package='plugin')
-            func_args = getargspec(plugin_module.plugin).args
-            assert func_args == ['graph', 'args'], 'Invalid arguments for plugin function'
-            self.load_plugin(plugin_name, plugin_module.plugin)
-
-    def load_plugin(self, plugin_name, plugin):
-        assert plugin_name not in self.plugins, 'Plugin already exists: ' + plugin_name
-        self.plugins[plugin_name] = plugin
-        self.log('Loaded plugin: ' + plugin_name)
-
-    def run_plugin(self, plugin_name, attrs):
-        self.plugins[plugin_name](self.graph, attrs)
+def _write_to_file(string):
+    file = NamedTemporaryFile(mode='w+')
+    file.write(string)
+    file.flush()
+    file.seek(0)
+    return file
