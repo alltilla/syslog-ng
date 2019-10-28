@@ -25,7 +25,7 @@ from yacc2graph import yacc2graph
 
 from pathlib import Path
 
-class ConfigGraph():
+class BisonGraph():
     def __init__(self, yaccfile):
         with open(yaccfile, 'r') as f:
             yacc = f.read()
@@ -38,7 +38,7 @@ class ConfigGraph():
         return '$end'
 
     def get_nodes(self):
-        return self.graph.nodes
+        return iter(list(self.graph.nodes))
 
     def get_children(self, node_name):
         children_as_list = self.graph.successors(node_name)
@@ -64,6 +64,9 @@ class ConfigGraph():
         children = self.get_children(node_name)
         for child in children:
             self.graph.remove_edge(node_name, child)
+    
+    def remove(self, node_name):
+        self.graph.remove_node(node_name)
 
     def get_paths(self, node=None, paths=None, stack=None):
         if node == None:
@@ -103,3 +106,39 @@ class ConfigGraph():
         networkx.draw(self.graph, pos, with_labels=True, node_size=500)
         networkx.draw_networkx_edge_labels(self.graph, pos)
         plt.show()
+
+class SyntaxGraph():
+    def __init__(self, paths):
+        self.graph = self.build_syntax_graph(paths)
+
+    def build_syntax_graph(self, paths):
+        graph = {None:{}}
+        for path in paths:
+            insert_to = graph[None]
+            for token in path:
+                if token[0] == "'" and token[-1] == "'":
+                    token = token[1:-1]
+                if not token in insert_to.keys():
+                    insert_to[token] = {}
+                insert_to = insert_to[token]
+        # from pprint import pprint
+        # pprint(graph)
+        return graph
+
+    def print_path(self, children=None, string=''):
+        if children == None:
+            children = self.graph[None]
+        keys = children.keys()
+        if len(keys) == 0:
+            print(string)
+        elif len(keys) == 1:
+            child = list(keys)[0]
+            string2 = string + ' ' + child
+            self.print_path(children[child], string2)
+        else:
+            print(string)
+            sorted_keys = list(children.keys())
+            sorted_keys.sort()
+            for child in sorted_keys:
+                string2 = len(string)*' ' + ' ' + child
+                self.print_path(children[child], string2)

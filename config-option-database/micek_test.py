@@ -25,11 +25,11 @@ from pprint import pprint
 from tempfile import NamedTemporaryFile
 
 from utils.MergeYm import merge_grammars
-from utils.ConfigGraph import ConfigGraph
+from utils.ConfigGraph import BisonGraph, SyntaxGraph
 
 class OptionParser():
     def __init__(self, tokens):
-        self.tokens = list(filter(lambda x: not x.startswith('$@'), list(tokens)))
+        self.tokens = tokens
 
     class Option():
         def __init__(self, drivers, keyword, types, parents):
@@ -175,10 +175,15 @@ contexts = [
 ]
 
 def get_options(graph):
+
     paths = filter(lambda x: x[0] in contexts, graph.get_paths())
+    # g = SyntaxGraph(paths)
+    # g.print_path()
     options = []
     for path in paths:
-        OptionParser(path).parse_and_merge(options)
+        #path = list(filter(lambda x: not x.startswith('$@'), list(path)))
+        print(path)
+        #OptionParser(path).parse_and_merge(options)
     return options
 
 def cut_at_types(graph):
@@ -186,6 +191,9 @@ def cut_at_types(graph):
         if not opt_type in graph.get_nodes():
             continue
         graph.make_terminal(opt_type)
+
+def remove_code_blocks(graph):
+    list(map(lambda x: graph.remove(x), filter(lambda x: x.startswith('$@'), graph.get_nodes())))
 
 def build_database(options):
     database = {}
@@ -211,8 +219,9 @@ def build_database(options):
 def main():
     with NamedTemporaryFile(mode='w+') as yaccfile:
         merge_grammars(yaccfile.name)
-        graph = ConfigGraph(yaccfile.name)
+        graph = BisonGraph(yaccfile.name)
     cut_at_types(graph)
+    remove_code_blocks(graph)
     options = get_options(graph)
     database = build_database(options)
     pprint(database)
