@@ -21,9 +21,11 @@
 #############################################################################
 
 import networkx
-from yacc2graph import yacc2graph
-
+from tempfile import NamedTemporaryFile
 from pathlib import Path
+
+from yacc2graph import yacc2graph
+from utils.MergeYm import merge_grammars
 
 class BisonGraph():
     def __init__(self, yaccfile):
@@ -100,49 +102,6 @@ class BisonGraph():
         stack.pop()
         return paths
 
-    def show_graph(self):
-        import matplotlib.pyplot as plt
-        pos=networkx.random_layout(self.graph)
-        networkx.draw(self.graph, pos, with_labels=True, node_size=500)
-        networkx.draw_networkx_edge_labels(self.graph, pos)
-        plt.show()
-
-class SyntaxGraph():
-    def __init__(self, paths):
-        self.graph = self.build_syntax_graph(paths)
-
-    def build_syntax_graph(self, paths):
-        graph = {None:{}}
-        for path in paths:
-            insert_to = graph[None]
-            for token in path:
-                if token[0] == "'" and token[-1] == "'":
-                    token = token[1:-1]
-                if not token in insert_to.keys():
-                    insert_to[token] = {}
-                insert_to = insert_to[token]
-        # from json import dumps
-        # print(dumps(graph, indent=2))
-        return graph
-
-    def print_path(self, children=None, string=''):
-        if children == None:
-            children = self.graph[None]
-        keys = children.keys()
-        if len(keys) == 0:
-            print(string)
-        elif len(keys) == 1:
-            child = list(keys)[0]
-            string2 = string + ' ' + child
-            self.print_path(children[child], string2)
-        else:
-            print(string)
-            sorted_keys = list(children.keys())
-            sorted_keys.sort()
-            for child in sorted_keys:
-                string2 = len(string)*' ' + ' ' + child
-                self.print_path(children[child], string2)
-
 def cut_at_types(graph):
     types = [
         'attribute_option',
@@ -188,13 +147,19 @@ def cut_at_types(graph):
 def remove_code_blocks(graph):
     list(map(lambda x: graph.remove(x), filter(lambda x: x.startswith('$@'), graph.get_nodes())))
 
-def get_options(graph):
+def get_options_from_path(path):
+    return OptionParser(path).get_options()
+
+def get_driver_options():
+    with NamedTemporaryFile(mode='w+') as yaccfile:
+        merge_grammars(yaccfile.name)
+        graph = BisonGraph(yaccfile.name)
     cut_at_types(graph)
     remove_code_blocks(graph)
     paths = filter(lambda path: path[0] in ['LL_CONTEXT_SOURCE', 'LL_CONTEXT_DESTINATION'], graph.get_paths())
     options = set()
     for path in paths:
-        for option in OptionParser(path).get_options():
+        for option in get_options_from_path(path):
             options.add(option)
     return options
 
@@ -202,88 +167,69 @@ class OptionParser():
     def __init__(self, tokens):
         self.tokens = list(tokens)
 
-    def _find_leaves(self):
-        leaves = set()
-        lb = None
+    def _find_options_with_keyword(self):
+        options = set()
+        option_start = None
+        for index, token in enumerate(self.tokens):
+            if token == "'('" and index != 2:
+                assert self.tokens[index - 1].startswith('KW_'), self.tokens
+                option_start = index - 1
+            elif token == "')'" and option_start != None:
+                options.add((option_start, index))
+                option_start = None
+        return options
 
+    def _find_options_wo_keyword(self):
+        options = set()
+        left_brace = None
         for index, token in enumerate(self.tokens):
             if token == "'('":
-                lb = index
-            elif token == "')'" and lb != None:
-                assert self.tokens[lb-1][0:3] == 'KW_', self.tokens
-                leaves.add((lb-1, index))
-                lb = None
-
-        skip = 0
-        lb = None
-        for index in range(len(self.tokens)-1, 0, -1):
-            token = self.tokens[index]
-            if token == "'('":
-                if skip:
-                    skip -= 1
+                if left_brace == None:
+                    left_brace = index
                     continue
-                if lb and lb - index > 2:
-                    leaves.add((index+1, lb-1-1))
-                lb = index
-            elif token == "')'" and lb:
-                skip += 1
+                option_start = left_brace + 1
+                option_end = index - 2
+                if option_start <= option_end:
+                    options.add((option_start, option_end))
+                left_brace = index
+            elif token == "')'":
+                left_brace = None
+        return options
 
-        return leaves
+    def _find_options(self):
+        return self._find_options_wo_keyword() | self._find_options_with_keyword()
 
-    def _parse_keyword_and_arguments(self, leaf_interval):
-        leaf = self.tokens[leaf_interval[0]:leaf_interval[1]+1]
-        if "'('" in leaf and "')'" in leaf:
-            assert leaf[0].startswith('KW_') and leaf[1] == "'('" and leaf[-1] == "')'", leaf
-            keyword = leaf[0]
-            arguments = leaf[2:-1]
+    def _parse_keyword_and_arguments(self, option):
+        tokens = tuple(self.tokens[option[0]:option[1] + 1])
+        if "'('" in tokens and "')'" in tokens:
+            assert tokens[0].startswith('KW_') and tokens[1] == "'('" and tokens[-1] == "')'", tokens
+            keyword = tokens[0]
+            arguments = tokens[2:-1]
         else:
-            keyword = None
-            arguments = leaf
-        return keyword, tuple(arguments)
+            keyword = ''
+            arguments = tokens
+        return keyword, arguments
 
-    def _parse_parents(self, leaf_interval):
-        skip = 0
+    def _parse_parents(self, option):
         parents = []
-        next_is_kw = False
-        reverse_sublist = self.tokens[:leaf_interval[0]]
-        reverse_sublist.reverse()
-        for token in reverse_sublist:
+        skip = 0
+        for index, token in reversed(list(enumerate(self.tokens[:option[0]]))):
             if token == "'('":
                 if skip:
                     skip -= 1
                 else:
-                    next_is_kw = True
-            elif next_is_kw:
-                parents.append(token)
-                next_is_kw = False
+                    parents.append(self.tokens[index - 1])
             elif token == "')'":
                 skip += 1
-        parents.reverse()
-        return tuple(parents[1:])
+        return tuple(reversed(parents[:-1]))
 
     def get_options(self):
-        options = []
         assert self.tokens[1].startswith('KW_')
         assert self.tokens[2] == "'('"
-        for leaf_interval in self._find_leaves():
-            context, driver = self.tokens[0], self.tokens[1]
-            keyword, arguments = self._parse_keyword_and_arguments(leaf_interval)
-            parents = self._parse_parents(leaf_interval)
+        context, driver = self.tokens[0], self.tokens[1]
+        options = []
+        for option in self._find_options():
+            keyword, arguments = self._parse_keyword_and_arguments(option)
+            parents = self._parse_parents(option)
             options.append((context, driver, keyword, arguments, parents))
         return options
-
-    # def _merge(self, options, option_list):
-    #     append = True
-    #     for option in options:
-    #         for other in option_list:
-    #             if option.keyword == other.keyword and option.types == other.types and option.parents == other.parents:
-    #                 if option.driver not in other.drivers:
-    #                     other.drivers.append(option.driver)
-    #                 append = False
-    #                 break
-    #         if append:
-    #             option_list.append(option)
-
-    # def parse_and_merge(self, option_list):
-    #     options = self.get_options()
-    #     self._merge(options, option_list)

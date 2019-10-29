@@ -21,12 +21,10 @@
 #
 #############################################################################
 
-from tempfile import NamedTemporaryFile
 from pathlib import Path
 import json
 
-from utils.MergeYm import merge_grammars
-from utils.ConfigGraph import BisonGraph, get_options
+from utils.ConfigGraph import get_driver_options
 from argparse import ArgumentParser
 
 def parse_args():
@@ -37,21 +35,15 @@ def parse_args():
     args = parser.parse_args()
     return args.context, args.driver, args.rebuild
 
-def get_graph():
-    with NamedTemporaryFile(mode='w+') as yaccfile:
-        merge_grammars(yaccfile.name)
-        graph = BisonGraph(yaccfile.name)
-    return graph
-
 def build_db():
     db = {'LL_CONTEXT_SOURCE': {}, 'LL_CONTEXT_DESTINATION': {}}
-    for context, driver, keyword, arguments, parents in get_options(get_graph()):
+    for context, driver, keyword, arguments, parents in get_driver_options():
         db[context].setdefault(driver, {'options': [], 'blocks': {}})
         add_to = db[context][driver]
         for parent in parents:
             add_to['blocks'].setdefault(parent, {'options': [], 'blocks':{}})
             add_to = add_to['blocks'][parent]
-        add_to['options'].append((keyword if keyword else '', arguments))
+        add_to['options'].append((keyword, arguments))
     return db
 
 def get_db(rebuild):
