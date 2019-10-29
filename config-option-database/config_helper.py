@@ -22,57 +22,66 @@
 #############################################################################
 
 from tempfile import NamedTemporaryFile
+from pathlib import Path
+import json
 
 from utils.MergeYm import merge_grammars
-from utils.ConfigGraph import BisonGraph, cut_at_types, remove_code_blocks, OptionParser
+from utils.ConfigGraph import BisonGraph, get_options
 from argparse import ArgumentParser
-
-def get_paths():
-    with NamedTemporaryFile(mode='w+') as yaccfile:
-        merge_grammars(yaccfile.name)
-        graph = BisonGraph(yaccfile.name)
-    cut_at_types(graph)
-    remove_code_blocks(graph)
-    return graph.get_paths()
-
-def get_db():
-    contexts = ['LL_CONTEXT_SOURCE', 'LL_CONTEXT_DESTINATION']
-    paths = filter(lambda x: x[0] in contexts, get_paths())
-    db = dict.fromkeys(contexts, {})
-    for path in paths:
-        for option in OptionParser(path).get_options():
-            context, driver = option.drivers[0]
-            keyword = option.keyword
-            db[context].setdefault(driver, {'options': set(), 'blocks': {}})
-            add_to = db[context][driver]
-            for parent in option.parents:
-                add_to['blocks'].setdefault(parent, {'options':set(), 'blocks':{}})
-                add_to = add_to['blocks'][parent]
-            add_to['options'].add((keyword if keyword else '', ' '.join(option.types)))
-    return db
-
-def print_options(db, context, driver):
-    print('{} {}:'.format(context, driver))
-    print_options_helper(db[context][driver], 1)
-
-def print_options_helper(block, depth):
-    indent = '  ' * depth
-    for keyword, arguments in sorted(block['options']):
-        print('{}{}<{}>'.format(indent, (keyword + ': ') if keyword else '', arguments))
-    for key in sorted(block['blocks'].keys()):
-        print('{}{}:'.format(indent, key))
-        print_options_helper(block['blocks'][key], depth + 1)
 
 def parse_args():
     parser = ArgumentParser()
     parser.add_argument('context', type=str, help='source/destination')
     parser.add_argument('driver', type=str, help='driver')
+    parser.add_argument('--rebuild', '-r', action='store_true')
     args = parser.parse_args()
-    return args.context, args.driver
+    return args.context, args.driver, args.rebuild
+
+def get_graph():
+    with NamedTemporaryFile(mode='w+') as yaccfile:
+        merge_grammars(yaccfile.name)
+        graph = BisonGraph(yaccfile.name)
+    return graph
+
+def build_db():
+    db = {'LL_CONTEXT_SOURCE': {}, 'LL_CONTEXT_DESTINATION': {}}
+    for context, driver, keyword, arguments, parents in get_options(get_graph()):
+        db[context].setdefault(driver, {'options': [], 'blocks': {}})
+        add_to = db[context][driver]
+        for parent in parents:
+            add_to['blocks'].setdefault(parent, {'options': [], 'blocks':{}})
+            add_to = add_to['blocks'][parent]
+        add_to['options'].append((keyword if keyword else '', arguments))
+    return db
+
+def get_db(rebuild):
+    cache_file = Path(__file__).parents[0] / '.cache' / 'options.json'
+    Path.mkdir(cache_file.parents[0], exist_ok=True)
+    if rebuild or not cache_file.exists():
+        db = build_db()
+        with cache_file.open('w') as f:
+            json.dump(db, f, indent=2)
+    else:
+        with cache_file.open() as f:
+            db = json.load(f)
+    return db
+
+def print_options_helper(block, depth):
+    indent = '  ' * depth
+    for keyword, arguments in sorted(block['options']):
+        print('{}{}{}'.format(indent, (keyword + ': ') if keyword else '', ' '.join(['<'+x+'>' for x in arguments])))
+    for key in sorted(block['blocks'].keys()):
+        print('{}{}:'.format(indent, key))
+        print_options_helper(block['blocks'][key], depth + 1)
+
+def print_options(db, context, driver):
+    print('{} {}:'.format(context, driver))
+    print_options_helper(db[context][driver], 1)
 
 def main():
-    context, driver = parse_args()
-    print_options(get_db(), context, driver)
+    context, driver, rebuild = parse_args()
+    db = get_db(rebuild)
+    print_options(db, context, driver)
 
 if __name__ == '__main__':
     main()

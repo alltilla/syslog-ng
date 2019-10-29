@@ -188,25 +188,19 @@ def cut_at_types(graph):
 def remove_code_blocks(graph):
     list(map(lambda x: graph.remove(x), filter(lambda x: x.startswith('$@'), graph.get_nodes())))
 
+def get_options(graph):
+    cut_at_types(graph)
+    remove_code_blocks(graph)
+    paths = filter(lambda path: path[0] in ['LL_CONTEXT_SOURCE', 'LL_CONTEXT_DESTINATION'], graph.get_paths())
+    options = set()
+    for path in paths:
+        for option in OptionParser(path).get_options():
+            options.add(option)
+    return options
+
 class OptionParser():
     def __init__(self, tokens):
         self.tokens = list(tokens)
-
-    class Option():
-        def __init__(self, drivers, keyword, types, parents):
-            self.drivers = drivers
-            self.keyword = keyword
-            self.types = types
-            self.parents = parents
-
-        def __eq__(self, other):
-            return self.drivers == other.drivers and self.keyword == other.keyword and self.types == other.types and self.parents == other.parents
-
-        def __str__(self):
-            return str(self.drivers) + ', ' + str(self.keyword) + ', ' + ' '.join(self.types) + ', ' + ' '.join(self.parents)
-
-        def __hash__(self):
-            return hash(str(self))
 
     def _find_leaves(self):
         leaves = set()
@@ -236,21 +230,16 @@ class OptionParser():
 
         return leaves
 
-    def _parse_drivers(self):
-        #assert self.tokens[1].startswith('KW_')
-        assert self.tokens[2] == "'('"
-        return [(self.tokens[0], self.tokens[1])]
-
-    def _parse_keyword_and_types(self, leaf_interval):
+    def _parse_keyword_and_arguments(self, leaf_interval):
         leaf = self.tokens[leaf_interval[0]:leaf_interval[1]+1]
         if "'('" in leaf and "')'" in leaf:
             assert leaf[0].startswith('KW_') and leaf[1] == "'('" and leaf[-1] == "')'", leaf
             keyword = leaf[0]
-            types = leaf[2:-1]
+            arguments = leaf[2:-1]
         else:
             keyword = None
-            types = leaf
-        return keyword, types
+            arguments = leaf
+        return keyword, tuple(arguments)
 
     def _parse_parents(self, leaf_interval):
         skip = 0
@@ -270,29 +259,31 @@ class OptionParser():
             elif token == "')'":
                 skip += 1
         parents.reverse()
-        return parents[1:]
+        return tuple(parents[1:])
 
     def get_options(self):
         options = []
+        assert self.tokens[1].startswith('KW_')
+        assert self.tokens[2] == "'('"
         for leaf_interval in self._find_leaves():
-            drivers = self._parse_drivers()
-            keyword, types = self._parse_keyword_and_types(leaf_interval)
+            context, driver = self.tokens[0], self.tokens[1]
+            keyword, arguments = self._parse_keyword_and_arguments(leaf_interval)
             parents = self._parse_parents(leaf_interval)
-            options.append(OptionParser.Option(drivers, keyword, types, parents))
+            options.append((context, driver, keyword, arguments, parents))
         return options
 
-    def _merge(self, options, option_list):
-        append = True
-        for option in options:
-            for other in option_list:
-                if option.keyword == other.keyword and option.types == other.types and option.parents == other.parents:
-                    if option.drivers[0] not in other.drivers:
-                        other.drivers.append(option.drivers[0])
-                    append = False
-                    break
-            if append:
-                option_list.append(option)
+    # def _merge(self, options, option_list):
+    #     append = True
+    #     for option in options:
+    #         for other in option_list:
+    #             if option.keyword == other.keyword and option.types == other.types and option.parents == other.parents:
+    #                 if option.driver not in other.drivers:
+    #                     other.drivers.append(option.driver)
+    #                 append = False
+    #                 break
+    #         if append:
+    #             option_list.append(option)
 
-    def parse_and_merge(self, option_list):
-        options = self.get_options()
-        self._merge(options, option_list)
+    # def parse_and_merge(self, option_list):
+    #     options = self.get_options()
+    #     self._merge(options, option_list)
