@@ -38,7 +38,7 @@ def _yacc2xml(yacc):
     with _write_to_file(yacc) as file:
         output = '/tmp/yacc2xml.xml'
         try:
-            if not _run_in_shell(['bison', '--xml='+output, file.name]):
+            if not _run_in_shell(['bison', '--xml='+output, '--output=/dev/null', file.name]):
                 raise Exception('Failed to convert to xml:\n{}\n'.format(yacc))
         except FileNotFoundError:
             raise Exception('bison executable not found')
@@ -48,8 +48,6 @@ def _xml2rules(filename):
     rules = []
     root = xml_parser.parse(filename).getroot()
     for rule in root.iter('rule'):
-        #if rule.get('usefulness') != 'useful':
-        #    continue
         number = int(rule.get('number'))
         parent = rule.find('lhs').text
         symbols = []

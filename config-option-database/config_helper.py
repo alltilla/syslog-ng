@@ -24,7 +24,7 @@
 from pathlib import Path
 import json
 
-from utils.ConfigGraph import get_driver_options
+from utils.ConfigOptions import get_driver_options
 from argparse import ArgumentParser
 
 def parse_args():
