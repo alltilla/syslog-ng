@@ -1,12 +1,33 @@
 #!/usr/bin/env python3
+#############################################################################
+# Copyright (c) 2019 Balabit
+#
+# This program is free software; you can redistribute it and/or modify it
+# under the terms of the GNU General Public License version 2 as published
+# by the Free Software Foundation, or (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program; if not, write to the Free Software
+# Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
+#
+# As an additional exemption you are allowed to compile & link against the
+# OpenSSL libraries as published by the OpenSSL project. See the file
+# COPYING for details.
+#
+#############################################################################
 
 from pathlib import Path
 from sys import argv
 
 def get_grammar_files():
     root_dir = Path(__file__).resolve().parents[2]
-    files = list(root_dir.glob('**/*.ym'))
-    files.append(root_dir.joinpath('lib/cfg-grammar.y'))
+    files = list(root_dir.rglob('*.ym'))
+    files.append(root_dir / 'lib' / 'cfg-grammar.y')
     return files
 
 def skip_filepath(filepath):
@@ -38,7 +59,6 @@ def main():
     output_filepath = 'syslog-grammar-merged.y'
     if len(argv) >= 2:
         output_filepath = argv[1]
-
     merge_grammars(output_filepath)
 
 

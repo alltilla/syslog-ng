@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 #############################################################################
 # Copyright (c) 2019 Balabit
 #
@@ -74,9 +73,6 @@ def _rules2graph(rules):
             graph.add_edge(rule_node, symbol, index=index)
     return graph
 
-def yacc2graph(yacc):
-    return _rules2graph(_yacc2rules(yacc))
-
 def _run_in_shell(command):
     proc = Popen(command, stderr=DEVNULL, stdout=DEVNULL)
     proc.wait()
@@ -88,3 +84,6 @@ def _write_to_file(string):
     file.flush()
     file.seek(0)
     return file
+
+def yacc2graph(yacc):
+    return _rules2graph(_yacc2rules(yacc))

@@ -24,81 +24,10 @@ from tempfile import NamedTemporaryFile
 
 from utils.BisonGraph import BisonGraph
 from utils.MergeYm import merge_grammars
-
-class OptionParser():
-    def __init__(self, tokens):
-        self.tokens = list(tokens)
-
-    def _find_options_with_keyword(self):
-        options = set()
-        option_start = None
-        for index, token in enumerate(self.tokens):
-            if token == "'('" and index != 2:
-                assert self.tokens[index - 1].startswith('KW_'), self.tokens
-                option_start = index - 1
-            elif token == "')'" and option_start != None:
-                options.add((option_start, index))
-                option_start = None
-        return options
-
-    def _find_options_wo_keyword(self):
-        options = set()
-        left_brace = None
-        for index, token in enumerate(self.tokens):
-            if token == "'('":
-                if left_brace == None:
-                    left_brace = index
-                    continue
-                option_start = left_brace + 1
-                option_end = index - 2
-                if option_start <= option_end:
-                    options.add((option_start, option_end))
-                left_brace = index
-            elif token == "')'":
-                left_brace = None
-        return options
-
-    def _find_options(self):
-        return self._find_options_wo_keyword() | self._find_options_with_keyword()
-
-    def _parse_keyword_and_arguments(self, option):
-        tokens = tuple(self.tokens[option[0]:option[1] + 1])
-        if "'('" in tokens and "')'" in tokens:
-            assert tokens[0].startswith('KW_') and tokens[1] == "'('" and tokens[-1] == "')'", tokens
-            keyword = tokens[0]
-            arguments = tokens[2:-1]
-        else:
-            keyword = ''
-            arguments = tokens
-        return keyword, arguments
-
-    def _parse_parents(self, option):
-        parents = []
-        skip = 0
-        for index, token in reversed(list(enumerate(self.tokens[:option[0]]))):
-            if token == "'('":
-                if skip:
-                    skip -= 1
-                else:
-                    parents.append(self.tokens[index - 1])
-            elif token == "')'":
-                skip += 1
-        return tuple(reversed(parents[:-1]))
-
-    def get_options(self):
-        assert self.tokens[1].startswith('KW_')
-        assert self.tokens[2] == "'('"
-        context, driver = self.tokens[0], self.tokens[1]
-        options = []
-        for option in self._find_options():
-            keyword, arguments = self._parse_keyword_and_arguments(option)
-            parents = self._parse_parents(option)
-            options.append((context, driver, keyword, arguments, parents))
-        return options
+from utils.OptionParser import path_to_options
 
 def _make_types_terminal(graph):
     types = [
-        'attribute_option',
         'date_parser_flags',
         'date_parser_stamp',
         'dnsmode',
@@ -143,7 +72,7 @@ def _remove_code_blocks(graph):
         graph.remove(node)
 
 def get_driver_options():
-    with NamedTemporaryFile(mode='w+') as yaccfile:
+    with NamedTemporaryFile(mode='w') as yaccfile:
         merge_grammars(yaccfile.name)
         graph = BisonGraph(yaccfile.name)
     _make_types_terminal(graph)
@@ -151,7 +80,7 @@ def get_driver_options():
     paths = filter(lambda path: path[0] in ['LL_CONTEXT_SOURCE', 'LL_CONTEXT_DESTINATION'], graph.get_paths())
     options = set()
     for path in paths:
-        for option in OptionParser(path).get_options():
+        for option in path_to_options(path):
             options.add(option)
     return options
 

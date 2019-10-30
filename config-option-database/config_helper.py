@@ -33,10 +33,10 @@ def parse_args():
     parser.add_argument('driver', type=str, help='driver')
     parser.add_argument('--rebuild', '-r', action='store_true')
     args = parser.parse_args()
-    return args.context, args.driver, args.rebuild
+    return (args.context, args.driver, args.rebuild)
 
 def build_db():
-    db = {'LL_CONTEXT_SOURCE': {}, 'LL_CONTEXT_DESTINATION': {}}
+    db = {'source': {}, 'destination': {}}
     for context, driver, keyword, arguments, parents in get_driver_options():
         db[context].setdefault(driver, {'options': [], 'blocks': {}})
         add_to = db[context][driver]
@@ -61,14 +61,19 @@ def get_db(rebuild):
 def print_options_helper(block, depth):
     indent = '  ' * depth
     for keyword, arguments in sorted(block['options']):
-        print('{}{}{}'.format(indent, (keyword + ': ') if keyword else '', ' '.join(['<'+x+'>' for x in arguments])))
+        if keyword:
+            print(indent + '{}({})'.format(keyword, ' '.join(arguments)))
+        else:
+            print(indent + '{}'.format(' '.join(arguments)))
     for key in sorted(block['blocks'].keys()):
-        print('{}{}:'.format(indent, key))
+        print(indent + '{}('.format(key))
         print_options_helper(block['blocks'][key], depth + 1)
+        print(indent + ')')
 
 def print_options(db, context, driver):
-    print('{} {}:'.format(context, driver))
+    print('{} {}('.format(context, driver))
     print_options_helper(db[context][driver], 1)
+    print(')')
 
 def main():
     context, driver, rebuild = parse_args()
