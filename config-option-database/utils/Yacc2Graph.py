@@ -33,6 +33,18 @@ class Rule():
         self.parent = parent
         self.symbols = symbols
 
+def _run_in_shell(command):
+    proc = Popen(command, stderr=DEVNULL, stdout=DEVNULL)
+    proc.wait()
+    return proc.returncode == 0
+
+def _write_to_file(string):
+    file = NamedTemporaryFile(mode='w')
+    file.write(string)
+    file.flush()
+    file.seek(0)
+    return file
+
 def _yacc2xml(yacc):
     with _write_to_file(yacc) as file:
         output = '/tmp/yacc2xml.xml'
@@ -51,11 +63,9 @@ def _xml2rules(filename):
         parent = rule.find('lhs').text
         symbols = []
         for symbol in rule.find('rhs'):
-            if symbol.tag == 'empty':
-                break
-            symbols.append(symbol.text)
-        if symbols:
-            rules.append(Rule(number, parent, symbols))
+            if symbol.tag != 'empty':
+                symbols.append(symbol.text)
+        rules.append(Rule(number, parent, symbols))
     return rules
 
 def _yacc2rules(yacc):
@@ -72,18 +82,6 @@ def _rules2graph(rules):
         for index, symbol in enumerate(rule.symbols):
             graph.add_edge(rule_node, symbol, index=index)
     return graph
-
-def _run_in_shell(command):
-    proc = Popen(command, stderr=DEVNULL, stdout=DEVNULL)
-    proc.wait()
-    return proc.returncode == 0
-
-def _write_to_file(string):
-    file = NamedTemporaryFile(mode='w+')
-    file.write(string)
-    file.flush()
-    file.seek(0)
-    return file
 
 def yacc2graph(yacc):
     return _rules2graph(_yacc2rules(yacc))

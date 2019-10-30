@@ -61,6 +61,5 @@ def main():
         output_filepath = argv[1]
     merge_grammars(output_filepath)
 
-
 if __name__ == '__main__':
     main()

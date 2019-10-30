@@ -106,7 +106,7 @@ def _resolve_token(token, is_type=False):
         return type_template.format(_sanitize(token[3:]))
     try:
         db = _get_resolve_db()
-        return '/'.join(db[token])
+        return '/'.join(sorted(db[token]))
     except:
         if is_type:
             return type_template.format(_sanitize(token))
@@ -134,4 +134,5 @@ def path_to_options(path):
         keyword, arguments = _parse_keyword_and_arguments(path, option)
         parents = _parse_parents(path, option)
         options.append(_resolve_option(context, driver, keyword, arguments, parents))
+    print(' '.join(path), options)
     return options

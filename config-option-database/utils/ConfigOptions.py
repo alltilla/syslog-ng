@@ -77,10 +77,10 @@ def get_driver_options():
         graph = BisonGraph(yaccfile.name)
     _make_types_terminal(graph)
     _remove_code_blocks(graph)
-    paths = filter(lambda path: path[0] in ['LL_CONTEXT_SOURCE', 'LL_CONTEXT_DESTINATION'], graph.get_paths())
+    not_empty = filter(lambda path: len(path) > 0, graph.get_paths())
+    paths = filter(lambda path: path[0] in ['LL_CONTEXT_SOURCE', 'LL_CONTEXT_DESTINATION'], not_empty)
     options = set()
     for path in paths:
         for option in path_to_options(path):
             options.add(option)
     return options
-

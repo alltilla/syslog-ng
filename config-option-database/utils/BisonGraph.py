@@ -37,7 +37,7 @@ class BisonGraph():
         return '$end'
 
     def get_nodes(self):
-        return iter(list(self.graph.nodes))
+        return list(self.graph.nodes)
 
     def get_children(self, node_name):
         children_as_list = self.graph.successors(node_name)
@@ -46,7 +46,7 @@ class BisonGraph():
             children.sort(key=lambda x: x[1]['index'])
             return list(map(lambda x: x[0], children))
         else:
-            return list(children_as_list)
+            return sorted(children_as_list)
 
     def is_terminal(self, node_name):
         return len(self.get_children(node_name)) == 0
