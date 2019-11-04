@@ -31,6 +31,7 @@ doc/man
 (_configs\.sed|\.project|\.cproject|config\.status)$
 stamp-h1$
 tests/functional/test\.conf$
+contrib/config_option_database/.coveragerc
 scripts/update-patterndb$
 (contrib|debian)
 packaging/debian
@@ -72,6 +73,7 @@ modules/timestamp/rewrite-.*$
 modules/add-contextual-data/add-contextual-data-glob-selector\.[ch]$
 modules/add-contextual-data/tests/test_glob_selector\.c$
  GPLv2+_SSL
+contib/config_option_database
 dev-utils/plugin_skeleton_creator/create_plugin.sh
 tests/functional
 tests/unit
