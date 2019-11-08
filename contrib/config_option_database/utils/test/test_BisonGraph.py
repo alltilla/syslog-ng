@@ -135,3 +135,14 @@ def test_get_paths(graph):
         ()
     ]
     assert graph.get_paths() == expected
+
+
+def test_add_arc(graph):
+    graph.add_arc('start', '4')
+    assert '4' in graph.get_children('start')
+
+
+def test_invalid_add_arc(graph):
+    with pytest.raises(Exception) as e:
+        graph.add_arc('3', '4')
+    assert 'Arc must be added from non-rule to rule:' in str(e.value)
