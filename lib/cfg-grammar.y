@@ -187,7 +187,6 @@ extern struct _LogRewrite *last_rewrite;
 
 /* source & destination items */
 %token KW_INTERNAL                    10020
-%token KW_SYSLOG                      10060
 
 /* option items */
 %token KW_MARK_FREQ                   10071
@@ -1155,7 +1154,6 @@ facility_string
 	    free($1);
 	    $$ = n;
 	  }
-        | KW_SYSLOG 				{ $$ = LOG_SYSLOG; }
         ;
 
 parser_opt

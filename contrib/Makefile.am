@@ -91,7 +91,6 @@ EXTRA_DIST += \
 	contrib/config_option_database/__init__.py \
 	contrib/config_option_database/utils/BisonGraph.py \
 	contrib/config_option_database/utils/ConfigOptions.py \
-	contrib/config_option_database/utils/MergeYm.py \
 	contrib/config_option_database/utils/OptionParser.py \
 	contrib/config_option_database/utils/Yacc2Graph.py \
 	contrib/config_option_database/utils/__init__.py \

@@ -20,6 +20,8 @@
 #
 #############################################################################
 
+from pathlib import Path
+
 import pytest
 
 from utils.OptionParser import (_find_options, _find_options_with_keyword,
@@ -27,6 +29,9 @@ from utils.OptionParser import (_find_options, _find_options_with_keyword,
                                 _parse_keyword_and_arguments, _parse_parents,
                                 _resolve_context_token, _resolve_option,
                                 _resolve_tokens, _sanitize, path_to_options)
+
+
+ROOT_DIR = Path(__file__).parents[4]
 
 
 @pytest.mark.parametrize(
@@ -135,7 +140,10 @@ def test_resolve_context_token():
 
 
 def test_get_resolve_db():
-    assert len(_get_resolve_db()) > 0
+    parser_files = [
+        ROOT_DIR / 'modules' / 'http' / 'http-parser.c'
+    ]
+    assert len(_get_resolve_db(parser_files)) > 0
 
 
 @pytest.mark.parametrize(
@@ -147,17 +155,24 @@ def test_get_resolve_db():
     ]
 )
 def test_resolve_tokens(tokens, resolved_tokens):
-    assert _resolve_tokens(tokens) == resolved_tokens
+    parser_files = [
+        ROOT_DIR / 'lib' / 'cfg-parser.c',
+        ROOT_DIR / 'modules' / 'http' / 'http-parser.c'
+    ]
+    assert _resolve_tokens(tokens, parser_files) == resolved_tokens
 
 
 def test_resolve_tokens_keyword_without_resolvation():
+    parser_files = [
+        ROOT_DIR / 'modules' / 'http' / 'http-parser.c'
+    ]
     with pytest.raises(Exception) as e:
-        _resolve_tokens(('KW_I_HAVE_NO_RESOLVE',))
+        _resolve_tokens(('KW_I_HAVE_NO_RESOLVE',), parser_files)
     assert 'Keyword without resolvation:' in str(e.value)
 
 
 @pytest.mark.parametrize(
-    'option,resolved_option',
+    'option,resolved_option,parser_files',
     [
         (
             (
@@ -174,6 +189,10 @@ def test_resolve_tokens_keyword_without_resolvation():
                 ('<nonnegative-integer>',),
                 ()
             ),
+            [
+                ROOT_DIR / 'lib' / 'cfg-parser.c',
+                ROOT_DIR / 'modules' / 'affile' / 'affile-parser.c'
+            ]
         ),
         (
             (
@@ -189,7 +208,11 @@ def test_resolve_tokens_keyword_without_resolvation():
                 '<identifier>',
                 ('<template-content>',),
                 ('attributes',)
-            )
+            ),
+            [
+                ROOT_DIR / 'lib' / 'cfg-parser.c',
+                ROOT_DIR / 'modules' / 'riemann' / 'riemann-parser.c'
+            ]
         ),
         (
             (
@@ -205,16 +228,20 @@ def test_resolve_tokens_keyword_without_resolvation():
                 '',
                 ('key', '<string>'),
                 ('attributes',)
-            )
+            ),
+            [
+                ROOT_DIR / 'lib' / 'cfg-parser.c',
+                ROOT_DIR / 'modules' / 'riemann' / 'riemann-parser.c'
+            ]
         )
     ]
 )
-def test_resolve_option(option, resolved_option):
-    assert _resolve_option(*option) == resolved_option
+def test_resolve_option(option, resolved_option, parser_files):
+    assert _resolve_option(*option, parser_files) == resolved_option
 
 
 @pytest.mark.parametrize(
-    'path,options',
+    'path,options,parser_files',
     [
         (
             "LL_CONTEXT_DESTINATION KW_UDP '(' string KW_FAILOVER '(' KW_SERVERS '(' string_list ')' KW_FAILBACK "
@@ -223,16 +250,24 @@ def test_resolve_option(option, resolved_option):
                 ('destination', 'udp', 'servers', ('<string-list>',), ('failover',)),
                 ('destination', 'udp', 'tcp-probe-interval', ('<positive-integer>',), ('failover', 'failback')),
                 ('destination', 'udp', '', ('<string>',), ())
-            }
+            },
+            [
+                ROOT_DIR / 'lib' / 'cfg-parser.c',
+                ROOT_DIR / 'modules' / 'afsocket' / 'afsocket-parser.c'
+            ]
         ),
         (
             "LL_CONTEXT_DESTINATION KW_RIEMANN '(' KW_ATTRIBUTES '(' KW_KEY string KW_REKEY '(' ')' ')' ')'",
             {
                 ('destination', 'riemann', '', ('key', '<string>'), ('attributes',)),
                 ('destination', 'riemann', 'rekey', (), ('attributes',))
-            }
+            },
+            [
+                ROOT_DIR / 'lib' / 'cfg-parser.c',
+                ROOT_DIR / 'modules' / 'riemann' / 'riemann-parser.c'
+            ]
         )
     ]
 )
-def test_path_to_options(path, options):
-    assert path_to_options(path.split()) == options
+def test_path_to_options(path, options, parser_files):
+    assert path_to_options(path.split(), parser_files) == options

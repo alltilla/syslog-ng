@@ -21,9 +21,8 @@
 #############################################################################
 
 import re
-from pathlib import Path
 
-resolve_db = None
+resolve_db = {}
 
 
 def _find_options_with_keyword(path):
@@ -94,32 +93,33 @@ def _resolve_context_token(context):
     return _sanitize(context.replace('LL_CONTEXT_', ''))
 
 
-def _get_resolve_db():
-    # TODO: Fix reuse of a keyword in different drivers
+def _get_resolve_db(parser_files):
     global resolve_db
-    root_dir = Path(__file__).parents[3]
-    if not resolve_db:
-        resolve_db = {}
-        struct_regex = re.compile(r'CfgLexerKeyword[^;]*')
-        entry_regex = re.compile(r'{[^{}]+,[^{}]+}')
-        for f in root_dir.rglob('*-parser.c'):
-            for struct_match in struct_regex.finditer(f.read_text().replace('\n', '')):
-                for entry_match in entry_regex.finditer(struct_match.group(0)):
-                    entry = entry_match.group(0)[1:-1].replace(' ', '').split(',')
-                    token = entry[1]
-                    string = _sanitize(entry[0])
-                    resolve_db.setdefault(token, set()).add(string)
-    return resolve_db
+    key = hash(str(parser_files))
+    if key in resolve_db.keys():
+        return resolve_db[key]
+
+    resolve_db[key] = {}
+    struct_regex = re.compile(r'CfgLexerKeyword[^;]*')
+    entry_regex = re.compile(r'{[^{}]+,[^{}]+}')
+    for f in parser_files:
+        for struct_match in struct_regex.finditer(f.read_text().replace('\n', '')):
+            for entry_match in entry_regex.finditer(struct_match.group(0)):
+                entry = entry_match.group(0)[1:-1].replace(' ', '').split(',')
+                token = entry[1]
+                string = _sanitize(entry[0])
+                resolve_db[key].setdefault(token, set()).add(string)
+    return resolve_db[key]
 
 
-def _resolve_token(token):
+def _resolve_token(token, parser_files):
     if len(token) == 0:
         return token
     type_template = '<{}>'
     if token.startswith('LL_'):
         return type_template.format(_sanitize(token[3:]))
     try:
-        db = _get_resolve_db()
+        db = _get_resolve_db(parser_files)
         return '/'.join(sorted(db[token]))
     except KeyError:
         if token.startswith("KW_"):
@@ -127,28 +127,28 @@ def _resolve_token(token):
         return type_template.format(_sanitize(token))
 
 
-def _resolve_tokens(tokens):
+def _resolve_tokens(tokens, parser_files):
     resolved_tokens = tuple()
     for token in tokens:
-        resolved_tokens += (_resolve_token(token),)
+        resolved_tokens += (_resolve_token(token, parser_files),)
     return resolved_tokens
 
 
-def _resolve_option(context, driver, keyword, arguments, parents):
+def _resolve_option(context, driver, keyword, arguments, parents, parser_files):
     context = _resolve_context_token(context)
-    driver = _resolve_token(driver)
-    keyword = _resolve_token(keyword)
-    arguments = _resolve_tokens(arguments)
-    parents = _resolve_tokens(parents)
+    driver = _resolve_token(driver, parser_files)
+    keyword = _resolve_token(keyword, parser_files)
+    arguments = _resolve_tokens(arguments, parser_files)
+    parents = _resolve_tokens(parents, parser_files)
     return (context, driver, keyword, arguments, parents)
 
 
-def path_to_options(path):
+def path_to_options(path, parser_files):
     context, driver = path[0], path[1]
     assert context.startswith('LL_CONTEXT_') and driver.startswith('KW_') and path[2] == "'('" and path[-1] == "')'", path
     options = set()
     for option in _find_options(path):
         keyword, arguments = _parse_keyword_and_arguments(path, option)
         parents = _parse_parents(path, option)
-        options.add(_resolve_option(context, driver, keyword, arguments, parents))
+        options.add(_resolve_option(context, driver, keyword, arguments, parents, parser_files))
     return options

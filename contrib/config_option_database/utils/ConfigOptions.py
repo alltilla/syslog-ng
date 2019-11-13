@@ -20,11 +20,34 @@
 #
 #############################################################################
 
+from pathlib import Path
 from tempfile import NamedTemporaryFile
 
 from utils.BisonGraph import BisonGraph
-from utils.MergeYm import merge_grammars
 from utils.OptionParser import path_to_options
+
+
+ROOT_DIR = Path(__file__).parents[3]
+
+
+def _merge_grammars(grammar_files, output_filepath):
+    declarations = set()
+    blocks = r'%%' + '\n'
+
+    for grammar_file in grammar_files:
+        with grammar_file.open() as f:
+            in_block = False
+            for line in f:
+                if line.startswith('%token') or line.startswith(r'%left') or line.startswith('%type'):
+                    declarations.add(line)
+                elif line.startswith(r'%%'):
+                    in_block = not in_block
+                elif in_block:
+                    blocks += line
+    blocks += r'%%' + '\n'
+
+    with open(output_filepath, 'w') as f:
+        f.write(''.join(declarations) + blocks)
 
 
 def _make_types_terminal(graph):
@@ -53,22 +76,57 @@ def _remove_code_blocks(graph):
 
 
 def _remove_ifdef(graph):
-    nodes = ['KW_IFDEF', 'KW_ENDIF']
-    for node in nodes:
-        for parent in graph.get_parents(node):
+    nodes = graph.get_nodes()
+    ifdefs = ['KW_IFDEF', 'KW_ENDIF']
+    for ifdef in filter(lambda x: x in nodes, ifdefs):
+        for parent in graph.get_parents(ifdef):
             graph.remove(parent)
 
 
-def get_driver_options():
-    with NamedTemporaryFile(mode='w') as yaccfile:
-        merge_grammars(yaccfile.name)
-        graph = BisonGraph(yaccfile.name)
+def _init_graph(graph):
     _make_types_terminal(graph)
     _remove_code_blocks(graph)
     _remove_ifdef(graph)
-    not_empty = filter(lambda path: len(path) > 0, graph.get_paths())
-    paths = filter(lambda path: path[0] in ['LL_CONTEXT_SOURCE', 'LL_CONTEXT_DESTINATION'], not_empty)
+
+
+def _get_grammar_and_parser_files():
+    files = []
+    grammar_files = []
+    grammar_files.extend(list((ROOT_DIR / 'modules').rglob('*.ym')))
+    grammar_files.extend(list((ROOT_DIR / 'lib').rglob('*.ym')))
+    for grammar_file in grammar_files:
+        parser_file = Path(grammar_file.parent / (grammar_file.name[:-11] + '-parser.c'))
+        files.append((grammar_file, parser_file))
+    return files
+
+
+def _add_necessary_parser_files(parser_file):
+    parser_files = [
+        ROOT_DIR / 'lib' / 'cfg-parser.c',
+        parser_file
+    ]
+    return parser_files
+
+
+def _add_necessary_grammar_files(grammar_file):
+    grammar_files = [
+        ROOT_DIR / 'lib' / 'cfg-grammar.y',
+        grammar_file
+    ]
+    return grammar_files
+
+
+def get_driver_options():
+    contexts = [
+        'LL_CONTEXT_SOURCE',
+        'LL_CONTEXT_DESTINATION',
+    ]
     options = set()
-    for path in paths:
-        options |= path_to_options(path)
+    for grammar_file, parser_file in _get_grammar_and_parser_files():
+        with NamedTemporaryFile(mode='w') as yaccfile:
+            _merge_grammars(_add_necessary_grammar_files(grammar_file), yaccfile.name)
+            graph = BisonGraph(yaccfile.name)
+        _init_graph(graph)
+        for path in filter(lambda path: len(path) > 0 and path[0] in contexts, graph.get_paths()):
+            options |= path_to_options(path, _add_necessary_parser_files(parser_file))
     return options
