@@ -25,6 +25,7 @@ from tempfile import NamedTemporaryFile
 
 from utils.BisonGraph import BisonGraph
 from utils.OptionParser import path_to_options
+from utils.SclOptionParser import SclOptionParser
 
 
 ROOT_DIR = Path(__file__).parents[3]
@@ -138,7 +139,7 @@ def _add_necessary_grammar_files(grammar_file):
     return grammar_files
 
 
-def get_driver_options():
+def _get_driver_options_from_grammar():
     contexts = [
         'LL_CONTEXT_SOURCE',
         'LL_CONTEXT_DESTINATION',
@@ -153,3 +154,20 @@ def get_driver_options():
         for path in filter(lambda path: len(path) > 0 and path[0] in contexts, graph.get_paths()):
             options |= path_to_options(path, _add_necessary_parser_files(parser_file))
     return options
+
+
+def _get_driver_options_from_scl():
+    options = set()
+    for f in (ROOT_DIR / 'scl').rglob('*.conf'):
+        scl_parser = SclOptionParser(f.read_text())
+        while True:
+            option = scl_parser.get_next_option()
+            if option:
+                options.add(option)
+            else:
+                break
+    return options
+
+
+def get_driver_options():
+    return _get_driver_options_from_grammar() | _get_driver_options_from_scl()
