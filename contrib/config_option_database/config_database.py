@@ -37,6 +37,26 @@ def parse_args():
     return args
 
 
+def fix_block_as_option_helper(current_dict):
+    options = current_dict['options']
+    blocks = current_dict['blocks']
+    for option in options.copy():
+        keyword, arguments = option
+        if keyword in blocks:
+            options.remove(option)
+            if not arguments:
+                arguments = ('<empty>',)
+            blocks[keyword]['options'].append(('', arguments))
+    for block in blocks.values():
+        fix_block_as_option_helper(block)
+
+
+def fix_block_as_option(db):
+    for context in db:
+        for driver in db[context]:
+            fix_block_as_option_helper(db[context][driver])
+
+
 def build_db():
     db = {}
     for context, driver, keyword, arguments, parents in get_driver_options():
@@ -49,6 +69,7 @@ def build_db():
             add_to['blocks'].setdefault(parent, {'options': [], 'blocks': {}})
             add_to = add_to['blocks'][parent]
         add_to['options'].append((keyword, arguments))
+    fix_block_as_option(db)
     return db
 
 
