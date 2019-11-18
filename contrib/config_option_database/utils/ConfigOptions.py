@@ -61,13 +61,29 @@ def _make_types_terminal(graph):
         'template_content',
         'yesno'
     ]
+
+    for node in types:
+        graph.make_terminal(node)
+
+
+def _process_helpers(graph):
     helpers = [
+        'inner_dest',
+        'inner_source',
         'filter_content',
         'parser_content'
     ]
+    connections = [
+        ('inner_dest', 'LL_CONTEXT_INNER_DEST'),
+        ('inner_source', 'LL_CONTEXT_INNER_SRC'),
+    ]
 
-    for node in types + helpers:
+    for node in helpers:
         graph.make_terminal(node)
+    for from_node, to_node in connections:
+        for parent in graph.get_parents(to_node):
+            graph.add_arc(from_node, parent)
+        graph.remove(to_node)
 
 
 def _remove_code_blocks(graph):
@@ -85,6 +101,7 @@ def _remove_ifdef(graph):
 
 def _init_graph(graph):
     _make_types_terminal(graph)
+    _process_helpers(graph)
     _remove_code_blocks(graph)
     _remove_ifdef(graph)
 
@@ -103,6 +120,8 @@ def _get_grammar_and_parser_files():
 def _add_necessary_parser_files(parser_file):
     parser_files = [
         ROOT_DIR / 'lib' / 'cfg-parser.c',
+        ROOT_DIR / 'modules' / 'diskq' / 'diskq-parser.c',
+        ROOT_DIR / 'modules' / 'hook-commands' / 'hook-commands-parser.c',
         parser_file
     ]
     return parser_files
@@ -111,6 +130,8 @@ def _add_necessary_parser_files(parser_file):
 def _add_necessary_grammar_files(grammar_file):
     grammar_files = [
         ROOT_DIR / 'lib' / 'cfg-grammar.y',
+        ROOT_DIR / 'modules' / 'diskq' / 'diskq-grammar.ym',
+        ROOT_DIR / 'modules' / 'hook-commands' / 'hook-commands-grammar.ym',
         grammar_file
     ]
     return grammar_files
