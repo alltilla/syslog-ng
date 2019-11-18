@@ -111,6 +111,7 @@ def _get_grammar_and_parser_files():
     grammar_files = []
     grammar_files.extend(list((ROOT_DIR / 'modules').rglob('*.ym')))
     grammar_files.extend(list((ROOT_DIR / 'lib').rglob('*.ym')))
+    grammar_files = filter(lambda x: x.name != 'native-grammar.ym', grammar_files)
     for grammar_file in grammar_files:
         parser_file = Path(grammar_file.parent / (grammar_file.name[:-11] + '-parser.c'))
         files.append((grammar_file, parser_file))
@@ -141,6 +142,7 @@ def get_driver_options():
     contexts = [
         'LL_CONTEXT_SOURCE',
         'LL_CONTEXT_DESTINATION',
+        'LL_CONTEXT_PARSER'
     ]
     options = set()
     for grammar_file, parser_file in _get_grammar_and_parser_files():
