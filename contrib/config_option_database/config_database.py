@@ -24,15 +24,22 @@
 from pathlib import Path
 import json
 
-from utils.ConfigOptions import get_driver_options
-from argparse import ArgumentParser
+try:
+    from utils.ConfigOptions import get_driver_options
+    script_installed = False
+except ImportError:
+    script_installed = True
+from argparse import ArgumentParser, SUPPRESS
 
 
 def parse_args():
     parser = ArgumentParser()
     parser.add_argument('--context', '-c', type=str, help='e.g.: destination')
     parser.add_argument('--driver', '-d', type=str, help='e.g.: http')
-    parser.add_argument('--rebuild', '-r', action='store_true')
+    parser.add_argument('--rebuild', '-r', action='store_true',
+                        help=(SUPPRESS if script_installed
+                              else 'Use this flag, if there is a modification in either '
+                                   'the DB generating script, or the grammar files'))
     args = parser.parse_args()
     return args
 
@@ -75,14 +82,19 @@ def build_db():
 
 def get_db(rebuild):
     cache_file = Path(__file__).parents[0] / '.cache' / 'options.json'
-    Path.mkdir(cache_file.parents[0], exist_ok=True)
-    if rebuild or not cache_file.exists():
-        db = build_db()
-        with cache_file.open('w') as f:
-            json.dump(db, f, indent=2)
-    else:
-        with cache_file.open() as f:
+    db_file = Path(__file__).parents[0] / 'options.json'
+    if script_installed:
+        with db_file.open() as f:
             db = json.load(f)
+    else:
+        if rebuild or not cache_file.exists():
+            db = build_db()
+            Path.mkdir(cache_file.parents[0], exist_ok=True)
+            with cache_file.open('w') as f:
+                json.dump(db, f, indent=2)
+        else:
+            with cache_file.open() as f:
+                db = json.load(f)
     return db
 
 
