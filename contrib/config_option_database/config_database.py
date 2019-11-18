@@ -21,15 +21,15 @@
 #
 #############################################################################
 
-from pathlib import Path
 import json
+from argparse import SUPPRESS, ArgumentParser
+from pathlib import Path
 
 try:
     from utils.ConfigOptions import get_driver_options
     script_installed = False
 except ImportError:
     script_installed = True
-from argparse import ArgumentParser, SUPPRESS
 
 
 def parse_args():
@@ -151,7 +151,7 @@ def main():
         print_drivers(db, args.context)
     elif args.driver:
         print('Please define the context of this driver with `--context CONTEXT`.')
-    else:
+    elif not args.rebuild:
         print_contexts(db)
 
 
