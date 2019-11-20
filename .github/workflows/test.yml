@@ -1,0 +1,64 @@
+name: macOS-latest
+
+on: [push]
+
+jobs:
+  build:
+    runs-on: macOS-latest
+    env:
+      PYTHONUSERBASE: $HOME/python_packages
+      PKG_CONFIG_PATH: /usr/local/opt/openssl/lib/pkgconfig:$PKG_CONFIG_PATH
+      PATH: /usr/local/opt/bison/bin:/usr/local/opt/libnet/bin:$PYTHONUSERBASE/bin:$PATH
+
+    steps:
+      - uses: actions/checkout@v1
+
+      - name: brew
+        run: brew bundle --file=contrib/Brewfile --verbose
+
+      # - name: prerun
+      #   run: |
+          # pip install --user -r requirements.txt
+          # pip list
+          # echo 'Europe/Budapest' | sudo tee /etc/timezone
+          # sudo dpkg-reconfigure --frontend noninteractive tzdata
+
+      - name: autogen
+        run: ./autogen.sh
+
+      - name: configure
+        run: |
+             ls -alh
+             ./configure \
+             --with-ivykis=system \
+             --disable-sun-streams \
+             --disable-systemd \
+             --disable-pacct \
+             --disable-smtp \
+             --disable-geoip
+              # --enable-all-modules
+
+      - name: sima-make
+        run: make
+
+      - name: make
+        run: PATH=$CUSTOM_PATH \
+               make --keep-going -j $(sysctl -n hw.physicalcpu) || \
+                 { \
+                   S=$?; \
+                   make V=1; \
+                   return $S; \
+                 }
+
+      - name: make check
+        run: PATH=$CUSTOM_PATH \
+            make --keep-going check -j $(sysctl -n hw.physicalcpu) || \
+              { \
+                S=$?; \
+                echo "Output of first test invocation:"; \
+                find . -name test-suite.log | xargs cat; \
+                make V=1 check; \
+                echo "Output of second test invocation:"; \
+                find . -name test-suite.log | xargs cat; \
+                return $S; \
+              }
