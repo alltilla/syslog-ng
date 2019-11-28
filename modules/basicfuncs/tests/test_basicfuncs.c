@@ -447,6 +447,13 @@ Test(basicfuncs, test_list_funcs)
   assert_template_format("$(list-search --mode literal --start-index 1 baz '\"foo,\",\"bar\",\"baz\",\"bar\"')", "2");
   assert_template_format("$(list-search --start-index 5 baz 5 '\"foo,\",\"bar\",\"baz\",\"bar\"')", "");
   assert_template_format("$(list-search almafa --mode literal '\"foo,\",\"bar\",\"baz\",\"bar\"')", "");
+
+  assert_template_format("$(list-search --mode prefix --start-index 0 almafa '')", "");
+  assert_template_format("$(list-search --start-index 0 --mode prefix fo '\"foo,\",\"bar\",\"baz\"')", "0");
+  assert_template_format("$(list-search --mode prefix ba '\"foo,\",\"bar\",\"baz\"')", "1");
+  assert_template_format("$(list-search --mode prefix --start-index 1 ba '\"foo,\",\"bar\",\"baz\"')", "1");
+  assert_template_format("$(list-search --start-index 2 --mode prefix ba '\"foo,\",\"bar\",\"baz\"')", "2");
+  assert_template_format("$(list-search --mode prefix --start-index 0 almafa '\"foo,\",\"bar\",\"baz\"')", "");
 }
 
 Test(basicfuncs, test_context_funcs)
