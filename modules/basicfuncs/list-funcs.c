@@ -329,25 +329,223 @@ tf_implode(LogMessage *msg, gint argc, GString *argv[], GString *result)
 
 TEMPLATE_FUNCTION_SIMPLE(tf_implode);
 
+typedef enum _StringMatchMode
+{
+  SMM_LITERAL = 0
+} StringMatchMode;
+
+typedef struct _StringMatcher
+{
+  StringMatchMode mode;
+  gchar *pattern;
+} StringMatcher;
+
+static gboolean
+string_matcher_prepare(StringMatcher *self)
+{
+  switch (self->mode)
+    {
+    default:
+      return TRUE;
+    }
+}
+
+static gboolean
+string_matcher_match(StringMatcher *self, const char *string, gsize string_len)
+{
+  switch (self->mode)
+    {
+    case SMM_LITERAL:
+      return (strcmp(string, self->pattern) == 0);
+    default:
+      g_assert_not_reached();
+    }
+}
+
+static StringMatcher *
+string_matcher_new(StringMatchMode mode, const gchar *pattern)
+{
+  StringMatcher *self = g_new0(StringMatcher, 1);
+
+  self->mode = mode;
+  self->pattern = g_strdup(pattern);
+
+  return self;
+}
+
+static void
+string_matcher_free(StringMatcher *self)
+{
+  if (self->pattern)
+    g_free(self->pattern);
+  g_free(self);
+}
+
 typedef struct _ListSearchState
 {
+  GSList *args;
+  StringMatcher *matcher;
+  gint start_index;
 } ListSearchState;
+
+static void
+_string_free(gpointer data)
+{
+  GString *string = (GString *)data;
+  g_string_free(string, TRUE);
+}
 
 static void
 list_search_state_free(gpointer s)
 {
+  ListSearchState *self = (ListSearchState *)s;
+
+  if (self->args)
+    g_slist_free_full(self->args, _string_free);
+  if (self->matcher)
+    string_matcher_free(self->matcher);
+}
+
+static gboolean
+_list_search_mode_str_to_string_match_mode(const gchar *mode_str, StringMatchMode *string_match_mode)
+{
+  gboolean result = TRUE;
+
+  if (mode_str == NULL || strcmp(mode_str, "literal") == 0)
+    *string_match_mode = SMM_LITERAL;
+  else
+    result = FALSE;
+
+  return result;
+}
+
+static gboolean
+_list_search_parse_options(StringMatchMode *mode, gint *start_index, gint *argc, gchar **argv[], GError **error)
+{
+  gboolean result = FALSE;
+  GOptionContext *ctx;
+  gchar *mode_str = NULL;
+  GOptionEntry list_search_options[] =
+  {
+    { "mode", 0, 0, G_OPTION_ARG_STRING, &mode_str, NULL, NULL },
+    { "start-index", 0, 0, G_OPTION_ARG_INT, start_index, NULL, NULL },
+    { NULL }
+  };
+
+  ctx = g_option_context_new((*argv)[0]);
+  g_option_context_add_main_entries(ctx, list_search_options, NULL);
+
+  if (!g_option_context_parse(ctx, argc, argv, error))
+    {
+      goto exit;
+    }
+
+  if (!_list_search_mode_str_to_string_match_mode(mode_str, mode))
+    {
+      g_set_error(error, LOG_TEMPLATE_ERROR, LOG_TEMPLATE_ERROR_COMPILE,
+                  "$(list-search) Invalid list-search mode: %s. "
+                  "Valid modes are: literal", mode_str);
+      goto exit;
+    }
+
+  result = TRUE;
+
+exit:
+  g_free(mode_str);
+  g_option_context_free(ctx);
+
+  return result;
+}
+
+static GSList *
+_char_p_array_to_str_slist(gint argc, gchar *argv[])
+{
+  GSList *slist = NULL;
+
+  for (gint i = 0; i < argc; i++)
+    slist = g_slist_append(slist, g_string_new(argv[i]));
+
+  return slist;
+}
+
+static gboolean _list_search_init_matcher(ListSearchState *state, StringMatchMode mode, gint argc, gchar *argv[],
+                                          GError **error)
+{
+  if (argc < 2)
+    {
+      g_set_error(error, LOG_TEMPLATE_ERROR, LOG_TEMPLATE_ERROR_COMPILE,
+                  "$(list-search) Pattern is missing. Usage: $(list-search [options] <pattern> ${list})");
+      return FALSE;
+    }
+  else if (argc < 3)
+    {
+      g_set_error(error, LOG_TEMPLATE_ERROR, LOG_TEMPLATE_ERROR_COMPILE,
+                  "$(list-search) List is missing. Usage: $(list-search [options] <pattern> ${list}");
+      return FALSE;
+    }
+
+  gchar *pattern = argv[1];
+  state->matcher = string_matcher_new(mode, pattern);
+
+  if (!string_matcher_prepare(state->matcher))
+    {
+      g_set_error(error, LOG_TEMPLATE_ERROR, LOG_TEMPLATE_ERROR_COMPILE,
+                  "$(list-search) Failed to prepare pattern: %s", pattern);
+      return FALSE;
+    }
+
+  state->args = _char_p_array_to_str_slist(argc-2, argv+2);
+
+  return TRUE;
 }
 
 static gboolean
 tf_list_search_prepare(LogTemplateFunction *self, gpointer s, LogTemplate *parent, gint argc, gchar *argv[],
                        GError **error)
 {
+  ListSearchState *state = (ListSearchState *)s;
+  StringMatchMode mode;
+
+  if (!_list_search_parse_options(&mode, &state->start_index, &argc, &argv, error))
+    return FALSE;
+
+  if (!_list_search_init_matcher(state, mode, argc, argv, error))
+    return FALSE;
+
   return TRUE;
+}
+
+static void _load_arg(gpointer data, gpointer user_data)
+{
+  GString *arg = (GString *)data;
+  ListScanner *scanner = (ListScanner *)user_data;
+
+  list_scanner_input_string(scanner, arg->str, arg->len);
 }
 
 static void
 tf_list_search_call(LogTemplateFunction *self, gpointer s, const LogTemplateInvokeArgs *args, GString *result)
 {
+  ListSearchState *state = (ListSearchState *)s;
+  ListScanner scanner;
+  gint index = state->start_index;
+
+  list_scanner_init(&scanner);
+  g_slist_foreach(state->args, _load_arg, &scanner);
+  list_scanner_skip_n(&scanner, index);
+
+  while (list_scanner_scan_next(&scanner))
+    {
+      if (string_matcher_match(state->matcher,
+                               list_scanner_get_current_value(&scanner),
+                               list_scanner_get_current_value_len(&scanner)))
+        {
+          format_int32_padded(result, -1, ' ', 10, index);
+          break;
+        }
+      index++;
+    }
+  list_scanner_deinit(&scanner);
 }
 
 TEMPLATE_FUNCTION(ListSearchState, tf_list_search, tf_list_search_prepare, NULL,
