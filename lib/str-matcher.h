@@ -26,20 +26,14 @@
 
 #include "syslog-ng.h"
 
-typedef enum _StringMatchMode
-{
-  SMM_LITERAL = 0,
-  SMM_PREFIX,
-  SMM_SUBSTRING,
-  SMM_GLOB,
-  SMM_PCRE
-} StringMatchMode;
-
 typedef struct _StringMatcher StringMatcher;
 
-StringMatcher *string_matcher_new(StringMatchMode mode, const gchar *pattern);
-void string_matcher_free(StringMatcher *self);
-gboolean string_matcher_prepare(StringMatcher *self);
+gboolean string_matcher_prepare(StringMatcher *self, gpointer user_data);
 gboolean string_matcher_match(StringMatcher *self, const char *string, gsize string_len);
+void string_matcher_free(StringMatcher *self);
+
+StringMatcher *string_matcher_literal_new(const gchar *pattern);
+StringMatcher *string_matcher_prefix_new(const gchar *pattern);
+StringMatcher *string_matcher_substring_new(const gchar *pattern);
 
 #endif

@@ -335,6 +335,7 @@ typedef struct _ListSearchState
   GSList *args;
   StringMatcher *matcher;
   gint start_index;
+  gchar *mode;
 } ListSearchState;
 
 static void
@@ -351,40 +352,20 @@ list_search_state_free(gpointer s)
 
   if (self->args)
     g_slist_free_full(self->args, _string_free);
+  if (self->mode)
+    g_free(self->mode);
   if (self->matcher)
     string_matcher_free(self->matcher);
 }
 
 static gboolean
-_list_search_mode_str_to_string_match_mode(const gchar *mode_str, StringMatchMode *string_match_mode)
-{
-  gboolean result = TRUE;
-
-  if (mode_str == NULL || strcmp(mode_str, "literal") == 0)
-    *string_match_mode = SMM_LITERAL;
-  else if (strcmp(mode_str, "prefix") == 0)
-    *string_match_mode = SMM_PREFIX;
-  else if (strcmp(mode_str, "substring") == 0)
-    *string_match_mode = SMM_SUBSTRING;
-  else if (strcmp(mode_str, "glob") == 0)
-    *string_match_mode = SMM_GLOB;
-  else if (strcmp(mode_str, "pcre") == 0)
-    *string_match_mode = SMM_PCRE;
-  else
-    result = FALSE;
-
-  return result;
-}
-
-static gboolean
-_list_search_parse_options(StringMatchMode *mode, gint *start_index, gint *argc, gchar **argv[], GError **error)
+_list_search_parse_options(gchar **mode, gint *start_index, gint *argc, gchar **argv[], GError **error)
 {
   gboolean result = FALSE;
   GOptionContext *ctx;
-  gchar *mode_str = NULL;
   GOptionEntry list_search_options[] =
   {
-    { "mode", 0, 0, G_OPTION_ARG_STRING, &mode_str, NULL, NULL },
+    { "mode", 0, 0, G_OPTION_ARG_STRING, mode, NULL, NULL },
     { "start-index", 0, 0, G_OPTION_ARG_INT, start_index, NULL, NULL },
     { NULL }
   };
@@ -397,18 +378,9 @@ _list_search_parse_options(StringMatchMode *mode, gint *start_index, gint *argc,
       goto exit;
     }
 
-  if (!_list_search_mode_str_to_string_match_mode(mode_str, mode))
-    {
-      g_set_error(error, LOG_TEMPLATE_ERROR, LOG_TEMPLATE_ERROR_COMPILE,
-                  "$(list-search) Invalid list-search mode: %s. "
-                  "Valid modes are: literal, prefix, substring, glob, pcre", mode_str);
-      goto exit;
-    }
-
   result = TRUE;
 
 exit:
-  g_free(mode_str);
   g_option_context_free(ctx);
 
   return result;
@@ -426,7 +398,7 @@ _char_p_array_to_str_slist(gint argc, gchar *argv[])
 }
 
 static gboolean
-_list_search_init_matcher(ListSearchState *state, StringMatchMode mode, gint argc, gchar *argv[],
+_list_search_init_matcher(ListSearchState *state, gint argc, gchar *argv[],
                           GError **error)
 {
   if (argc < 2)
@@ -443,9 +415,26 @@ _list_search_init_matcher(ListSearchState *state, StringMatchMode mode, gint arg
     }
 
   gchar *pattern = argv[1];
-  state->matcher = string_matcher_new(mode, pattern);
+  if (state->mode == NULL || strcmp(state->mode, "literal") == 0)
+    {
+      state->matcher = string_matcher_literal_new(pattern);
+    }
+  else if (strcmp(state->mode, "prefix") == 0)
+    {
+      state->matcher = string_matcher_prefix_new(pattern);
+    }
+  else if (strcmp(state->mode, "substring") == 0)
+    {
+      state->matcher = string_matcher_substring_new(pattern);
+    }
+  else
+    {
+      g_set_error(error, LOG_TEMPLATE_ERROR, LOG_TEMPLATE_ERROR_COMPILE,
+                  "($list-search) Invalid mode. Valid modes are: literal, prefix, substring");
+      return FALSE;
+    }
 
-  if (!string_matcher_prepare(state->matcher))
+  if (!string_matcher_prepare(state->matcher, NULL))
     {
       g_set_error(error, LOG_TEMPLATE_ERROR, LOG_TEMPLATE_ERROR_COMPILE,
                   "$(list-search) Failed to prepare pattern: %s", pattern);
@@ -462,12 +451,11 @@ tf_list_search_prepare(LogTemplateFunction *self, gpointer s, LogTemplate *paren
                        GError **error)
 {
   ListSearchState *state = (ListSearchState *)s;
-  StringMatchMode mode;
 
-  if (!_list_search_parse_options(&mode, &state->start_index, &argc, &argv, error))
+  if (!_list_search_parse_options(&state->mode, &state->start_index, &argc, &argv, error))
     return FALSE;
 
-  if (!_list_search_init_matcher(state, mode, argc, argv, error))
+  if (!_list_search_init_matcher(state, argc, argv, error))
     return FALSE;
 
   return TRUE;

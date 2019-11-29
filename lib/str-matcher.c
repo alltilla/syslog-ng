@@ -29,141 +29,100 @@
 
 typedef struct _StringMatcher
 {
-  StringMatchMode mode;
   gchar *pattern;
-  GPatternSpec *glob;
-  pcre *pcre;
-  pcre_extra *pcre_extra;
+  gboolean prepared;
+
+  gboolean (*prepare_fn)(StringMatcher *self, gpointer user_data);
+  gboolean (*match_fn)(StringMatcher *self, const char *string, gsize string_len);
+  void (*free_fn)(StringMatcher *self);
 } StringMatcher;
 
-static gboolean
-string_matcher_prepare_glob(StringMatcher *self)
-{
-  self->glob = g_pattern_spec_new(self->pattern);
-
-  return TRUE;
-}
-
-static gboolean
-string_matcher_prepare_pcre(StringMatcher *self)
-{
-  const gchar *errptr;
-  gint erroffset;
-  gint rc;
-
-  self->pcre = pcre_compile2(self->pattern, PCRE_ANCHORED, &rc, &errptr, &erroffset, NULL);
-  if (!self->pcre)
-    {
-      msg_error("Error while compiling regular expression",
-                evt_tag_str("regular_expression", self->pattern),
-                evt_tag_str("error_at", &self->pattern[erroffset]),
-                evt_tag_int("error_offset", erroffset),
-                evt_tag_str("error_message", errptr),
-                evt_tag_int("error_code", rc));
-      return FALSE;
-    }
-  self->pcre_extra = pcre_study(self->pcre, PCRE_STUDY_JIT_COMPILE, &errptr);
-  if (errptr)
-    {
-      msg_error("Error while optimizing regular expression",
-                evt_tag_str("regular_expression", self->pattern),
-                evt_tag_str("error_message", errptr));
-      pcre_free(self->pcre);
-      if (self->pcre_extra)
-        pcre_free_study(self->pcre_extra);
-      return FALSE;
-    }
-
-  return TRUE;
-}
-
 gboolean
-string_matcher_prepare(StringMatcher *self)
+string_matcher_prepare(StringMatcher *self, gpointer user_data)
 {
-  switch (self->mode)
-    {
-    case SMM_GLOB:
-      return string_matcher_prepare_glob(self);
-    case SMM_PCRE:
-      return string_matcher_prepare_pcre(self);
-    default:
-      return TRUE;
-    }
-}
+  gboolean result = TRUE;
 
-static gboolean
-string_matcher_match_pcre(StringMatcher *self, const char *string, gsize string_len)
-{
-  gint rc;
-  gint num_matches;
+  if (self->prepare_fn)
+    result = self->prepare_fn(self, user_data);
 
-  if (pcre_fullinfo(self->pcre, self->pcre_extra, PCRE_INFO_CAPTURECOUNT, &num_matches) < 0)
-    g_assert_not_reached();
-  if (num_matches > 256)
-    num_matches = 256;
+  self->prepared = result;
 
-  gsize matches_size = 3 * (num_matches + 1);
-  gint *matches = g_alloca(matches_size * sizeof(gint));
-
-  rc = pcre_exec(self->pcre, self->pcre_extra, string, string_len, 0, 0, matches, matches_size);
-  if (rc == PCRE_ERROR_NOMATCH)
-    {
-      return FALSE;
-    }
-  if (rc < 0)
-    {
-      msg_error("Error while matching pcrep", evt_tag_int("error_code", rc));
-      return FALSE;
-    }
-  if (rc == 0)
-    {
-      msg_error("Error while storing matching substrings");
-      return FALSE;
-    }
-  return TRUE;
+  return result;
 }
 
 gboolean
 string_matcher_match(StringMatcher *self, const char *string, gsize string_len)
 {
-  switch (self->mode)
-    {
-    case SMM_LITERAL:
-      return (strcmp(string, self->pattern) == 0);
-    case SMM_PREFIX:
-      return (strncmp(string, self->pattern, strlen(self->pattern)) == 0);
-    case SMM_SUBSTRING:
-      return (strstr(string, self->pattern) != NULL);
-    case SMM_GLOB:
-      return (g_pattern_match_string(self->glob, string));
-    case SMM_PCRE:
-      return (string_matcher_match_pcre(self, string, string_len));
-    default:
-      g_assert_not_reached();
-    }
+  g_assert((self->prepare_fn && self->prepared) || (!self->prepare_fn));
+
+  if (self->match_fn)
+    return self->match_fn(self, string, string_len);
+  else
+    g_assert_not_reached();
 }
 
-StringMatcher *
-string_matcher_new(StringMatchMode mode, const gchar *pattern)
+static void
+string_matcher_init_instance(StringMatcher *self, const gchar *pattern)
 {
-  StringMatcher *self = g_new0(StringMatcher, 1);
-
-  self->mode = mode;
   self->pattern = g_strdup(pattern);
-
-  return self;
 }
 
 void
 string_matcher_free(StringMatcher *self)
 {
-  if (self->pattern)
-    g_free(self->pattern);
-  if (self->glob)
-    g_pattern_spec_free(self->glob);
-  if (self->pcre)
-    pcre_free(self->pcre);
-  if (self->pcre_extra)
-    pcre_free_study(self->pcre_extra);
+  if (self->free_fn)
+    self->free_fn(self);
+  g_free(self->pattern);
   g_free(self);
+}
+
+static gboolean
+string_matcher_literal_match(StringMatcher *s, const char *string, gsize string_len)
+{
+  return (strcmp(string, s->pattern) == 0);
+}
+
+StringMatcher *
+string_matcher_literal_new(const gchar *pattern)
+{
+  StringMatcher *self = g_new0(StringMatcher, 1);
+
+  string_matcher_init_instance(self, pattern);
+  self->match_fn = string_matcher_literal_match;
+
+  return self;
+}
+
+static gboolean
+string_matcher_prefix_match(StringMatcher *s, const char *string, gsize string_len)
+{
+  return (strncmp(string, s->pattern, strlen(s->pattern)) == 0);
+}
+
+StringMatcher *
+string_matcher_prefix_new(const gchar *pattern)
+{
+  StringMatcher *self = g_new0(StringMatcher, 1);
+
+  string_matcher_init_instance(self, pattern);
+  self->match_fn = string_matcher_prefix_match;
+
+  return self;
+}
+
+static gboolean
+string_matcher_substring_match(StringMatcher *s, const char *string, gsize string_len)
+{
+  return (strstr(string, s->pattern) != NULL);
+}
+
+StringMatcher *
+string_matcher_substring_new(const gchar *pattern)
+{
+  StringMatcher *self = g_new0(StringMatcher, 1);
+
+  string_matcher_init_instance(self, pattern);
+  self->match_fn = string_matcher_substring_match;
+
+  return self;
 }
