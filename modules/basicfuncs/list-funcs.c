@@ -24,6 +24,7 @@
 #include "scanner/list-scanner/list-scanner.h"
 #include "str-repr/encode.h"
 #include "str-matcher.h"
+#include "compat/pcre.h"
 
 static void
 _append_comma_between_list_elements_if_needed(GString *result, gsize initial_len)
@@ -415,6 +416,10 @@ _list_search_init_matcher(ListSearchState *state, gint argc, gchar *argv[],
     }
 
   gchar *pattern = argv[1];
+  gpointer prepare_options;
+  StringMatcherPcreOptions pcre_prepare_options = {
+    .compile_flags = PCRE_ANCHORED
+  };
   if (state->mode == NULL || strcmp(state->mode, "literal") == 0)
     {
       state->matcher = string_matcher_literal_new(pattern);
@@ -431,6 +436,11 @@ _list_search_init_matcher(ListSearchState *state, gint argc, gchar *argv[],
     {
       state->matcher = string_matcher_glob_new(pattern);
     }
+  else if (strcmp(state->mode, "pcre") == 0)
+    {
+      state->matcher = string_matcher_pcre_new(pattern);
+      prepare_options = &pcre_prepare_options;
+    }
   else
     {
       g_set_error(error, LOG_TEMPLATE_ERROR, LOG_TEMPLATE_ERROR_COMPILE,
@@ -438,7 +448,7 @@ _list_search_init_matcher(ListSearchState *state, gint argc, gchar *argv[],
       return FALSE;
     }
 
-  if (!string_matcher_prepare(state->matcher, NULL))
+  if (!string_matcher_prepare(state->matcher, prepare_options))
     {
       g_set_error(error, LOG_TEMPLATE_ERROR, LOG_TEMPLATE_ERROR_COMPILE,
                   "$(list-search) Failed to prepare pattern: %s", pattern);
@@ -488,7 +498,8 @@ tf_list_search_call(LogTemplateFunction *self, gpointer s, const LogTemplateInvo
     {
       if (string_matcher_match(state->matcher,
                                list_scanner_get_current_value(&scanner),
-                               list_scanner_get_current_value_len(&scanner)))
+                               list_scanner_get_current_value_len(&scanner),
+                               NULL))
         {
           format_int32_padded(result, -1, ' ', 10, index);
           break;

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019 Balabit
+ * Copyright (c) 2019 One Identity
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -27,14 +27,23 @@
 #include "syslog-ng.h"
 
 typedef struct _StringMatcher StringMatcher;
+typedef struct _StringMatcherPcreOptions
+{
+  gint compile_flags;
+  gint study_flags;
+  gint max_matches;
+} StringMatcherPcreOptions;
+
+#define STRING_MATCHER_PCRE_NO_LIMIT -1
 
 gboolean string_matcher_prepare(StringMatcher *self, gpointer user_data);
-gboolean string_matcher_match(StringMatcher *self, const char *string, gsize string_len);
+gboolean string_matcher_match(StringMatcher *self, const char *string, gsize string_len, gpointer user_data);
 void string_matcher_free(StringMatcher *self);
 
 StringMatcher *string_matcher_literal_new(const gchar *pattern);
 StringMatcher *string_matcher_prefix_new(const gchar *pattern);
 StringMatcher *string_matcher_substring_new(const gchar *pattern);
 StringMatcher *string_matcher_glob_new(const gchar *pattern);
+StringMatcher *string_matcher_pcre_new(const gchar *pattern);
 
 #endif
