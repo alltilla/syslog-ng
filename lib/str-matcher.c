@@ -126,3 +126,48 @@ string_matcher_substring_new(const gchar *pattern)
 
   return self;
 }
+
+typedef struct _StringMatcherGlob
+{
+  StringMatcher super;
+  GPatternSpec *glob;
+} StringMatcherGlob;
+
+static gboolean
+string_matcher_glob_prepare(StringMatcher *s, gpointer user_data)
+{
+  StringMatcherGlob *self = (StringMatcherGlob *)s;
+
+  self->glob = g_pattern_spec_new(s->pattern);
+  return TRUE;
+}
+
+static gboolean
+string_matcher_glob_match(StringMatcher *s, const char *string, gsize string_len)
+{
+  StringMatcherGlob *self = (StringMatcherGlob *)s;
+
+  return g_pattern_match_string(self->glob, string);
+}
+
+static void
+string_matcher_glob_free(StringMatcher *s)
+{
+  StringMatcherGlob *self = (StringMatcherGlob *)s;
+
+  if (self->glob)
+    g_pattern_spec_free(self->glob);
+}
+
+StringMatcher *
+string_matcher_glob_new(const gchar *pattern)
+{
+  StringMatcherGlob *self = g_new0(StringMatcherGlob, 1);
+
+  string_matcher_init_instance(&self->super, pattern);
+  self->super.prepare_fn = string_matcher_glob_prepare;
+  self->super.match_fn = string_matcher_glob_match;
+  self->super.free_fn = string_matcher_glob_free;
+
+  return &self->super;
+}

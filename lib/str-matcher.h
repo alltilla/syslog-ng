@@ -35,5 +35,6 @@ void string_matcher_free(StringMatcher *self);
 StringMatcher *string_matcher_literal_new(const gchar *pattern);
 StringMatcher *string_matcher_prefix_new(const gchar *pattern);
 StringMatcher *string_matcher_substring_new(const gchar *pattern);
+StringMatcher *string_matcher_glob_new(const gchar *pattern);
 
 #endif

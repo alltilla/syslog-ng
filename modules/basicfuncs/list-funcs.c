@@ -427,6 +427,10 @@ _list_search_init_matcher(ListSearchState *state, gint argc, gchar *argv[],
     {
       state->matcher = string_matcher_substring_new(pattern);
     }
+  else if (strcmp(state->mode, "glob") == 0)
+    {
+      state->matcher = string_matcher_glob_new(pattern);
+    }
   else
     {
       g_set_error(error, LOG_TEMPLATE_ERROR, LOG_TEMPLATE_ERROR_COMPILE,
