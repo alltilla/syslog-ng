@@ -27,12 +27,6 @@
 #include "syslog-ng.h"
 
 typedef struct _StringMatcher StringMatcher;
-typedef struct _StringMatcherPcreOptions
-{
-  gint compile_flags;
-  gint study_flags;
-  gint max_matches;
-} StringMatcherPcreOptions;
 
 #define STRING_MATCHER_PCRE_NO_LIMIT -1
 
@@ -45,5 +39,21 @@ StringMatcher *string_matcher_prefix_new(const gchar *pattern);
 StringMatcher *string_matcher_substring_new(const gchar *pattern);
 StringMatcher *string_matcher_glob_new(const gchar *pattern);
 StringMatcher *string_matcher_pcre_new(const gchar *pattern);
+
+typedef struct _StringMatcherPcrePrepareOptions
+{
+  gint compile_flags;
+  gint study_flags;
+} StringMatcherPcrePrepareOptions;
+
+typedef struct _StringMatcherPcreMatchOptions
+{
+  gint match_flags;
+  gint max_matches;
+  gint *matches;
+  gsize matches_size;
+} StringMatcherPcreMatchOptions;
+
+gsize string_matcher_pcre_get_matches_size(StringMatcher *self, gint max_matches);
 
 #endif

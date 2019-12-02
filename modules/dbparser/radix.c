@@ -22,6 +22,7 @@
  */
 
 #include "radix.h"
+#include "str-matcher.h"
 
 #include <string.h>
 #include <stdlib.h>
@@ -129,81 +130,28 @@ r_parser_estring(gchar *str, gint *len, const gchar *param, gpointer state, RPar
 
 typedef struct _RParserPCREState
 {
-  pcre *re;
-  pcre_extra *extra;
+  StringMatcher *matcher;
 } RParserPCREState;
 
 gboolean
 r_parser_pcre(gchar *str, gint *len, const gchar *param, gpointer state, RParserMatch *match)
 {
   RParserPCREState *self = (RParserPCREState *) state;
-  gint rc;
-  gint num_matches;
 
-  if (pcre_fullinfo(self->re, self->extra, PCRE_INFO_CAPTURECOUNT, &num_matches) < 0)
-    g_assert_not_reached();
-  if (num_matches > RE_MAX_MATCHES)
-    num_matches = RE_MAX_MATCHES;
-
-  gsize matches_size = 3 * (num_matches + 1);
+  gsize matches_size = string_matcher_pcre_get_matches_size(self->matcher, RE_MAX_MATCHES);
   gint *matches = g_alloca(matches_size * sizeof(gint));
 
-  rc = pcre_exec(self->re, self->extra, str, strlen(str), 0, 0, matches, matches_size);
+  StringMatcherPcreMatchOptions options = {
+    .max_matches = RE_MAX_MATCHES,
+    .matches = matches,
+    .matches_size = matches_size
+  };
 
-  if (rc == PCRE_ERROR_NOMATCH)
-    {
-      return FALSE;
-    }
-
-  if (rc < 0)
-    {
-      msg_error("Error while matching regexp", evt_tag_int("error_code", rc));
-      return FALSE;
-    }
-
-  if (rc == 0)
-    {
-      msg_error("Error while storing matching substrings");
-      return FALSE;
-    }
+  if (!string_matcher_match(self->matcher, str, strlen(str), &options))
+    return FALSE;
 
   *len = matches[1] - matches[0];
   return TRUE;
-}
-
-gpointer
-r_parser_pcre_compile_state(const gchar *expr)
-{
-  RParserPCREState *self = g_new0(RParserPCREState, 1);
-  const gchar *errptr;
-  gint erroffset;
-  gint rc;
-
-  self->re = pcre_compile2(expr, PCRE_ANCHORED, &rc, &errptr, &erroffset, NULL);
-  if (!self->re)
-    {
-      msg_error("Error while compiling regular expression",
-                evt_tag_str("regular_expression", expr),
-                evt_tag_str("error_at", &expr[erroffset]),
-                evt_tag_int("error_offset", erroffset),
-                evt_tag_str("error_message", errptr),
-                evt_tag_int("error_code", rc));
-      g_free(self);
-      return NULL;
-    }
-  self->extra = pcre_study(self->re, 0, &errptr);
-  if (errptr)
-    {
-      msg_error("Error while optimizing regular expression",
-                evt_tag_str("regular_expression", expr),
-                evt_tag_str("error_message", errptr));
-      pcre_free(self->re);
-      if (self->extra)
-        pcre_free(self->extra);
-      g_free(self);
-      return NULL;
-    }
-  return (gpointer) self;
 }
 
 static void
@@ -211,11 +159,24 @@ r_parser_pcre_free_state(gpointer s)
 {
   RParserPCREState *self = (RParserPCREState *) s;
 
-  if (self->re)
-    pcre_free(self->re);
-  if (self->extra)
-    pcre_free(self->extra);
+  if (self->matcher)
+    string_matcher_free(self->matcher);
   g_free(self);
+}
+
+gpointer
+r_parser_pcre_compile_state(const gchar *expr)
+{
+  RParserPCREState *self = g_new0(RParserPCREState, 1);
+  self->matcher = string_matcher_pcre_new(expr);
+
+  if (!string_matcher_prepare(self->matcher, NULL))
+    {
+      r_parser_pcre_free_state((gpointer) self);
+      return NULL;
+    }
+
+  return (gpointer) self;
 }
 
 gboolean

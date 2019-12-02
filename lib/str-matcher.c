@@ -180,13 +180,12 @@ typedef struct _StringMatcherPcre
   gint max_matches;
 } StringMatcherPcre;
 
-static StringMatcherPcreOptions
-string_matcher_pcre_options_default()
+static StringMatcherPcrePrepareOptions
+string_matcher_pcre_prepare_options_default()
 {
-  StringMatcherPcreOptions options = {
-    .compile_flags = 0,
-    .study_flags = 0,
-    .max_matches = STRING_MATCHER_PCRE_NO_LIMIT
+  static StringMatcherPcrePrepareOptions options = {
+    .compile_flags = PCRE_ANCHORED,
+    .study_flags = PCRE_STUDY_JIT_COMPILE
   };
 
   return options;
@@ -196,17 +195,15 @@ static gboolean
 string_matcher_pcre_prepare(StringMatcher *s, gpointer user_data)
 {
   StringMatcherPcre *self = (StringMatcherPcre *)s;
-  StringMatcherPcreOptions options;
+  StringMatcherPcrePrepareOptions options;
   const gchar *errptr;
   gint erroffset;
   gint rc;
 
   if (user_data)
-    options = *(StringMatcherPcreOptions *)user_data;
+    options = *(StringMatcherPcrePrepareOptions *)user_data;
   else
-    options = string_matcher_pcre_options_default();
-
-  self->max_matches = options.max_matches;
+    options = string_matcher_pcre_prepare_options_default();
 
   self->pcre = pcre_compile2(s->pattern, options.compile_flags, &rc, &errptr, &erroffset, NULL);
   if (!self->pcre)
@@ -219,7 +216,7 @@ string_matcher_pcre_prepare(StringMatcher *s, gpointer user_data)
                 evt_tag_int("error_code", rc));
       return FALSE;
     }
-  self->pcre_extra = pcre_study(self->pcre, PCRE_STUDY_JIT_COMPILE | options.study_flags, &errptr);
+  self->pcre_extra = pcre_study(self->pcre, options.study_flags, &errptr);
   if (errptr)
     {
       msg_error("Error while optimizing regular expression",
@@ -234,24 +231,59 @@ string_matcher_pcre_prepare(StringMatcher *s, gpointer user_data)
   return TRUE;
 }
 
-static gboolean
-string_matcher_pcre_match(StringMatcher *s, const char *string, gsize string_len, gpointer user_data)
+static StringMatcherPcreMatchOptions
+string_matcher_pcre_match_options_default()
+{
+  static StringMatcherPcreMatchOptions options = {
+    .match_flags = 0,
+    .max_matches = STRING_MATCHER_PCRE_NO_LIMIT,
+    .matches = NULL,
+    .matches_size = 0,
+  };
+
+  return options;
+}
+
+gsize
+string_matcher_pcre_get_matches_size(StringMatcher *s, gint max_matches)
 {
   StringMatcherPcre *self = (StringMatcherPcre *)s;
-  gint match_flags = user_data ? *(gint *)user_data : 0;
-  gint rc;
   gint num_matches;
+
+  g_assert(self->super.prepared);
 
   if (pcre_fullinfo(self->pcre, self->pcre_extra, PCRE_INFO_CAPTURECOUNT, &num_matches) < 0)
     g_assert_not_reached();
 
-  if (self->max_matches != STRING_MATCHER_PCRE_NO_LIMIT && num_matches > self->max_matches)
-    num_matches = self->max_matches;
+  if (max_matches != STRING_MATCHER_PCRE_NO_LIMIT && num_matches > max_matches)
+    num_matches = max_matches;
 
-  gsize matches_size = 3 * (num_matches + 1);
-  gint *matches = g_alloca(matches_size * sizeof(gint));
+  return 3 * (num_matches + 1);
+}
 
-  rc = pcre_exec(self->pcre, self->pcre_extra, string, string_len, 0, match_flags, matches, matches_size);
+static gboolean
+string_matcher_pcre_match(StringMatcher *s, const char *string, gsize string_len, gpointer user_data)
+{
+  StringMatcherPcre *self = (StringMatcherPcre *)s;
+  StringMatcherPcreMatchOptions options;
+  gint rc;
+  gint *matches;
+  gsize matches_size;
+
+  if (user_data)
+    {
+      options = *(StringMatcherPcreMatchOptions *)user_data;
+      matches_size = options.matches_size;
+      matches = options.matches;
+    }
+  else
+    {
+      options = string_matcher_pcre_match_options_default();
+      matches_size = string_matcher_pcre_get_matches_size(&self->super, options.max_matches);
+      matches = g_alloca(matches_size * sizeof(gint));
+    }
+
+  rc = pcre_exec(self->pcre, self->pcre_extra, string, string_len, 0, options.match_flags, matches, matches_size);
   if (rc == PCRE_ERROR_NOMATCH)
     {
       return FALSE;
