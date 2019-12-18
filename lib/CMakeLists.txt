@@ -129,6 +129,7 @@ set (LIB_HEADERS
     service-management.h
     seqnum.h
     str-format.h
+    str-matcher.h
     str-utils.h
     syslog-names.h
     syslog-ng.h
@@ -216,6 +217,7 @@ set(LIB_SOURCES
     serialize.c
     service-management.c
     str-format.c
+    str-matcher.c
     str-utils.c
     syslog-names.c
     string-list.c

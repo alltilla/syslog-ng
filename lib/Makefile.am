@@ -164,6 +164,7 @@ pkginclude_HEADERS			+= \
 	lib/service-management.h	\
 	lib/seqnum.h			\
 	lib/str-format.h		\
+	lib/str-matcher.h		\
 	lib/str-utils.h			\
 	lib/syslog-names.h		\
 	lib/syslog-ng.h			\
@@ -249,6 +250,7 @@ lib_libsyslog_ng_la_SOURCES		= \
 	lib/serialize.c			\
 	lib/service-management.c	\
 	lib/str-format.c		\
+	lib/str-matcher.c		\
 	lib/str-utils.c			\
 	lib/syslog-names.c		\
 	lib/string-list.c		\
