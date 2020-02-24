@@ -51,7 +51,7 @@ add_string_to_dict(PyObject *dict, const gchar *name, const char *value, gsize v
 {
   gchar buf[256];
 
-  PyObject *pyobject_to_add = PyBytes_FromStringAndSize(value, value_len);
+  PyObject *pyobject_to_add = PyUnicode_FromStringAndSize(value, value_len);
   if (!pyobject_to_add)
     {
       msg_error("Error while constructing python object",
