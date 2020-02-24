@@ -325,7 +325,7 @@ matrix:
         - make python-pep8
         - make python-pylint
         - make pytest-linters
-        - #make VERBOSE=1 func-test # micek atportolja
+        - make VERBOSE=1 func-test # micek atportolja
         - make pytest-check
 
 branches:
