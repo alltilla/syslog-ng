@@ -557,6 +557,9 @@ _list_search_init_matcher(ListSearchState *state, StringMatchMode mode, gint arg
     }
 
   gchar *pattern = argv[1];
+
+  printf("\n\n\n[DEBUG] list-search pattern:\n%s\n\n\n", pattern);
+
   state->matcher = string_matcher_new(mode, pattern);
 
   if (!string_matcher_prepare(state->matcher))
