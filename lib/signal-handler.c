@@ -27,23 +27,26 @@
 
 #include <signal.h>
 
+static const struct sigaction *external_sigactions[64] = { NULL };
+static gboolean sigaction_registered[64] = { FALSE };
+
+void
+signal_handler_exec_external_handler(gint signum)
+{
+  const struct sigaction *external_sigaction = external_sigactions[signum];
+
+  if (!external_sigaction || !external_sigaction->sa_handler)
+    return;
+
+  external_sigaction->sa_handler(signum);
+}
+
 #if SYSLOG_NG_HAVE_DLFCN_H
 
 #include <dlfcn.h>
 
-static const struct sigaction *sgchld_handler;
-
-void
-trigger_sigchld_handler_chain(int signum)
-{
-  if (sgchld_handler && sgchld_handler->sa_handler)
-    {
-      sgchld_handler->sa_handler(signum);
-    }
-}
-
 static int
-call_original_sigaction(int signum, const struct sigaction *act, struct sigaction *oldact)
+_call_original_sigaction(int signum, const struct sigaction *act, struct sigaction *oldact)
 {
   static int (*real_sa)(int, const struct sigaction *, struct sigaction *);
 
@@ -55,42 +58,39 @@ call_original_sigaction(int signum, const struct sigaction *act, struct sigactio
 }
 
 static gboolean
-_save_handler(const struct sigaction *act)
+_need_to_save_external_sigaction_handler(gint signum)
 {
-  static gboolean is_first_handler = TRUE;
-  if (is_first_handler)
+  switch (signum)
     {
-      is_first_handler = FALSE;
+    case SIGCHLD:
+      return TRUE;
+    default:
       return FALSE;
     }
+}
 
-  sgchld_handler = act;
+static void
+_save_external_sigaction_handler(gint signum, const struct sigaction *external_sigaction)
+{
+  if (external_sigaction && external_sigaction->sa_handler == SIG_DFL)
+    return;
 
-  child_manager_register_external_sigchld_handler(&trigger_sigchld_handler_chain);
-
-  return TRUE;
+  external_sigactions[signum] = external_sigaction;
 }
 
 /* This should be as defined in the <signal.h> */
 int
 sigaction(int signum, const struct sigaction *act, struct sigaction *oldact)
 {
-
-  if (signum == SIGCHLD)
+  if (sigaction_registered[signum] && _need_to_save_external_sigaction_handler(signum))
     {
-      if (act && act->sa_handler == SIG_DFL)
-        {
-          return 0;
-        }
-
-      if (_save_handler(act))
-        {
-          return 0;
-        }
+      _save_external_sigaction_handler(signum, act);
+      return 0;
     }
 
+  sigaction_registered[signum] = TRUE;
 
-  return call_original_sigaction(signum, act, oldact);
+  return _call_original_sigaction(signum, act, oldact);
 }
-#endif
 
+#endif
