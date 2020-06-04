@@ -66,6 +66,7 @@ _need_to_save_external_sigaction_handler(gint signum)
   switch (signum)
     {
     case SIGCHLD:
+    case SIGINT:
       g_assert(signum < SIGNAL_HANDLER_ARRAY_SIZE);
       return TRUE;
     default:
