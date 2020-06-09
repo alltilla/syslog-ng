@@ -23,13 +23,14 @@
  */
 
 #include "syslog-ng.h"
+#include "children.h"
 
 #include <signal.h>
 
 #define SIGNAL_HANDLER_ARRAY_SIZE 128
 
 static const struct sigaction *external_sigactions[SIGNAL_HANDLER_ARRAY_SIZE] = { NULL };
-static gboolean internal_sigaction_registered[SIGNAL_HANDLER_ARRAY_SIZE] = { FALSE };
+static gboolean sigaction_registered[SIGNAL_HANDLER_ARRAY_SIZE] = { FALSE };
 
 void
 signal_handler_exec_external_handler(gint signum)
@@ -49,7 +50,7 @@ signal_handler_exec_external_handler(gint signum)
 #include <dlfcn.h>
 
 static int
-_original_sigaction(int signum, const struct sigaction *act, struct sigaction *oldact)
+_call_original_sigaction(int signum, const struct sigaction *act, struct sigaction *oldact)
 {
   static int (*real_sa)(int, const struct sigaction *, struct sigaction *);
 
@@ -62,7 +63,6 @@ _original_sigaction(int signum, const struct sigaction *act, struct sigaction *o
 static gboolean
 _need_to_save_external_sigaction_handler(gint signum)
 {
-  /* We need to save external sigaction handlers for signums we internally set a handler to. See lib/mainloop.c */
   switch (signum)
     {
     case SIGCHLD:
@@ -75,12 +75,21 @@ _need_to_save_external_sigaction_handler(gint signum)
 }
 
 static void
-_save_external_sigaction_handler(gint signum, const struct sigaction *external_sigaction)
+_save_external_sigaction_handler(gint signum, const struct sigaction *external_sigaction, struct sigaction *oldact)
 {
-  if (external_sigaction && external_sigaction->sa_handler == SIG_DFL)
-    return;
+  if (oldact)
+    {
+      memset(oldact, 0, sizeof(struct sigaction));
+      oldact->sa_handler = SIG_DFL;
 
-  external_sigactions[signum] = external_sigaction;
+      if (external_sigactions[signum])
+        memcpy(oldact, external_sigactions[signum], sizeof(struct sigaction));
+    }
+
+  struct sigaction *copied_sigaction = g_malloc0(sizeof(struct sigaction));
+  memcpy(copied_sigaction, external_sigaction, sizeof(struct sigaction));
+
+  external_sigactions[signum] = copied_sigaction;
 }
 
 /* This should be as defined in the <signal.h> */
@@ -88,20 +97,19 @@ int
 sigaction(int signum, const struct sigaction *act, struct sigaction *oldact)
 {
   if (!_need_to_save_external_sigaction_handler(signum))
-    return _original_sigaction(signum, act, oldact);
+    return _call_original_sigaction(signum, act, oldact);
 
-  /* Internal sigactions are always the first one to arrive to this function. */
-  if (!internal_sigaction_registered[signum])
+  if (!sigaction_registered[signum])
     {
-      gint result = _original_sigaction(signum, act, oldact);
+      gint result = _call_original_sigaction(signum, act, oldact);
 
       if (result == 0)
-        internal_sigaction_registered[signum] = TRUE;
+        sigaction_registered[signum] = TRUE;
 
       return result;
     }
 
-  _save_external_sigaction_handler(signum, act);
+  _save_external_sigaction_handler(signum, act, oldact);
   return 0;
 }
 
