@@ -6,7 +6,7 @@ jobs:
   general:
     runs-on: ubuntu-18.04
     container:
-      image: balabit/syslog-ng-devshell:latest
+      image: alltilla/syslog-ng-github-actions-test:v11
       env:
         PYTHONUSERBASE: /github/home/python_packages
         PATH: /github/home/python_packages/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
@@ -80,7 +80,7 @@ jobs:
   distcheck:
     runs-on: ubuntu-18.04
     container:
-      image: balabit/syslog-ng-devshell:latest
+      image: alltilla/syslog-ng-github-actions-test:v11
       env:
         DISTCHECK_CONFIGURE_FLAGS:
           CFLAGS=-Werror
@@ -116,7 +116,7 @@ jobs:
   style-check:
     runs-on: ubuntu-18.04
     container:
-      image: balabit/syslog-ng-devshell:latest
+      image: alltilla/syslog-ng-github-actions-test:v11
 
     steps:
       - name: Checkout syslog-ng source
@@ -137,7 +137,7 @@ jobs:
   copyright-check:
     runs-on: ubuntu-18.04
     container:
-      image: balabit/syslog-ng-devshell:latest
+      image: alltilla/syslog-ng-github-actions-test:v11
       env:
         COPYRIGHTVERBOSITY: 1
 
@@ -158,7 +158,7 @@ jobs:
   commits-check:
     runs-on: ubuntu-18.04
     container:
-      image: balabit/syslog-ng-devshell:latest
+      image: alltilla/syslog-ng-github-actions-test:v11
 
     steps:
       - name: Checkout syslog-ng source
