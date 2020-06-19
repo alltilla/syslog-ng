@@ -21,7 +21,6 @@
 #
 #############################################################################
 from enum import Enum
-
 from pathlib2 import Path
 
 import src.testcase_parameters.testcase_parameters as tc_parameters
