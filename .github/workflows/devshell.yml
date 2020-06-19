@@ -23,11 +23,13 @@ jobs:
           export CONFIGURE_FLAGS="
             --prefix=${HOME}/install/syslog-ng
             --enable-all-modules
+            --enable-extra-warnings
             --with-python=${PYTHONVERSION}
           "
           export CMAKE_FLAGS="
             -DCMAKE_C_FLAGS=-Werror
             -DCMAKE_INSTALL_PREFIX=${HOME}/install/syslog-ng
+            -DENABLE_EXTRA_WARNINGS=ON
             -DPYTHON_VERSION=${PYTHONVERSION}
           "
 
