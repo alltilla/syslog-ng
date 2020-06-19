@@ -12,6 +12,7 @@ jobs:
       matrix:
         python: [python2, python3]
         build-tool: [autotools, cmake]
+        compiler: ['gcc', 'clang']
       fail-fast: false
 
     steps:
@@ -37,6 +38,7 @@ jobs:
           echo "::set-env name=PATH::`echo ${PATH}`"
           echo "::set-env name=CONFIGURE_FLAGS::`echo ${CONFIGURE_FLAGS}`"
           echo "::set-env name=CMAKE_FLAGS::`echo ${CMAKE_FLAGS}`"
+          echo "::set-env name=CC::`echo ${{ matrix.compiler }}`"
 
       - name: Checkout syslog-ng source
         uses: actions/checkout@v2
