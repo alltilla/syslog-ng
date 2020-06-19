@@ -22,6 +22,7 @@ jobs:
           export PYTHONUSERBASE=${HOME}/python_packages
           export PATH=${PYTHONUSERBASE}:${PATH}
           export CONFIGURE_FLAGS="
+            CFLAGS=-Werror
             --prefix=${HOME}/install/syslog-ng
             --enable-all-modules
             --enable-extra-warnings
