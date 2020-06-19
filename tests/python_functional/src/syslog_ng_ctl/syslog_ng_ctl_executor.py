@@ -20,7 +20,7 @@
 # COPYING for details.
 #
 #############################################################################
-from enum import Enum
+from enum import Enum  # noreorder
 
 from pathlib2 import Path
 
