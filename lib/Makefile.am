@@ -87,7 +87,7 @@ endif
 
 if JSON_INTERNAL
 lib/jsonc/libjson-c.la:
-	${MAKE} CFLAGS="${CFLAGS} -Wno-error=all" -C lib/jsonc
+	${MAKE} CFLAGS="${CFLAGS} -Wno-error=all -Wno-error=implicit-int-float-conversion" -C lib/jsonc
 
 CLEAN_SUBDIRS				+= @JSON_SUBDIRS@
 endif
