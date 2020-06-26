@@ -32,7 +32,7 @@ if (EXISTS ${PROJECT_SOURCE_DIR}/lib/jsonc/json.h)
         INSTALL_DIR       ${CMAKE_CURRENT_BINARY_DIR}
         SOURCE_DIR        ${PROJECT_SOURCE_DIR}/lib/jsonc/
         DOWNLOAD_COMMAND  echo
-        BUILD_COMMAND     make
+        BUILD_COMMAND     CFLAGS=-Wno-error=all make
         INSTALL_COMMAND   make install
         CONFIGURE_COMMAND ${PROJECT_SOURCE_DIR}/lib/jsonc/configure  --prefix=${PROJECT_BINARY_DIR}
         STEP_TARGETS update patch configure

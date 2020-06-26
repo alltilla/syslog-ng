@@ -32,7 +32,7 @@ if (EXISTS ${PROJECT_SOURCE_DIR}/lib/ivykis/src/include/iv.h.in)
         INSTALL_DIR       ${CMAKE_CURRENT_BINARY_DIR}/ivykis-install/
         SOURCE_DIR        ${PROJECT_SOURCE_DIR}/lib/ivykis/
         DOWNLOAD_COMMAND  echo
-        BUILD_COMMAND     make
+        BUILD_COMMAND     CFLAGS=-Wno-error=all make
         INSTALL_COMMAND   make install
         CONFIGURE_COMMAND autoreconf -i ${PROJECT_SOURCE_DIR}/lib/ivykis && ${PROJECT_SOURCE_DIR}/lib/ivykis/configure --prefix=${CMAKE_CURRENT_BINARY_DIR}/ivykis-install/
     )
