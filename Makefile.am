@@ -66,13 +66,11 @@ if ENABLE_EXTRA_WARNINGS
 AM_CFLAGS += \
 	-Wimplicit-function-declaration \
 	-Wnested-externs \
-	-Wold-style-declaration \
 	-Wstrict-prototypes \
 	-Wswitch-default \
 	-Wimplicit-int \
 	-Wall \
 	-Wuninitialized \
-	-Wunused-but-set-parameter \
 	-Wdeprecated \
 	-Wdeprecated-declarations \
 	-Woverflow \
@@ -84,8 +82,14 @@ AM_CFLAGS += \
 	-Wold-style-definition \
 	-Wundef \
 	-Wignored-qualifiers \
-	-Woverride-init \
 	-Wno-misleading-indentation
+
+	if !COMPILER_IS_CLANG
+	AM_CFLAGS += \
+		-Wold-style-declaration \
+		-Wunused-but-set-parameter \
+		-Woverride-init
+	endif
 endif
 
 TEST_CFLAGS		= -I$(top_srcdir)/libtest -DTOP_SRCDIR=\"$(abs_top_srcdir)\" $(AM_CFLAGS) $(CRITERION_CFLAGS)

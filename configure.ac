@@ -1907,6 +1907,7 @@ AM_CONDITIONAL([HAVE_FMEMOPEN], [test x$ac_cv_func_fmemopen = xyes])
 AM_CONDITIONAL(ENABLE_IPV6, [test $enable_ipv6 = yes])
 AM_CONDITIONAL(NOSETESTS, [test "x$NOSETESTS" != "x"])
 AM_CONDITIONAL(PYLINT, [test "x$PYLINT" != "x"])
+AM_CONDITIONAL(COMPILER_IS_CLANG, echo $CC | grep -q clang)
 
 
 AC_SUBST(NOSETESTS)
