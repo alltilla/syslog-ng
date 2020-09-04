@@ -1,0 +1,15 @@
+name: Prepare release
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'syslog-ng version to be released'
+        required: true
+
+jobs:
+  prepare-release:
+    runs-on: ubuntu-latest
+    steps:
+    - run: |
+        echo "version: {{ github.event.inputs.version }}"
