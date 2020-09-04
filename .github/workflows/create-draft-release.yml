@@ -1,0 +1,59 @@
+name: Create draft release
+
+on:
+  pull_request:
+    types: [closed]
+
+jobs:
+  create-draft-release:
+    runs-on: ubuntu-18.04
+    if: github.event.pull_request.merged && contains(github.event.pull_request.labels.*.name, 'release-candidate')
+    env:
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      COMMENT_API: repos/${{ github.repository_owner }}/syslog-ng/issues/${{ github.event.number }}/comments
+      CURRENT_JOB_URL: https://github.com/${{ github.repository_owner }}/syslog-ng/actions/runs/${{ github.run_id }}
+      RELEASES_URL: https://github.com/${{ github.repository_owner }}/syslog-ng/releases
+    steps:
+      - name: Comment current job URL
+        run: |
+          COMMENT="**Create draft release** job started: ${CURRENT_JOB_URL}."
+
+          hub api \
+            ${COMMENT_API} \
+            --field body="${COMMENT}"
+
+      - name: Checkout syslog-ng source
+        uses: actions/checkout@v2
+
+      - name: "DBLD: release"
+        run: |
+          ./dbld/rules release VERSION=`cat VERSION`
+
+      - name: Create draft release
+        run: |
+          RELEASE_NAME=syslog-ng-`cat VERSION`
+          sed "1 i${RELEASE_NAME}\n" NEWS.md > /tmp/message.md
+
+          hub release create \
+            --draft \
+            --file /tmp/message.md \
+            --attach dbld/build/${RELEASE_NAME}.tar.gz \
+            ${RELEASE_NAME}
+
+      - name: Comment job success
+        if: success()
+        run: |
+          COMMENT="**Create draft release** job finished successfully. Please check the Releases page: ${RELEASES_URL}"
+
+          hub api \
+            ${COMMENT_API} \
+            --field body="${COMMENT}"
+
+      - name: Comment job failure
+        if: failure()
+        run: |
+          COMMENT="**Create draft release** job failed."
+
+          hub api \
+            ${COMMENT_API} \
+            --field body="${COMMENT}"
