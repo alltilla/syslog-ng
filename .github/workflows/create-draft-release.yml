@@ -1,0 +1,38 @@
+name: Create draft release
+
+on:
+  pull_request:
+    types: [closed]
+
+jobs:
+  create-draft-release:
+    runs-on: ubuntu-18.04
+    if: github.event.pull_request.merged && contains(github.event.pull_request.labels.*.name, 'release-candidate')
+    steps:
+      - name: Checkout syslog-ng source
+        uses: actions/checkout@v2
+
+      - name: Calculate release name
+        run: |
+          echo "::set-env name=RELEASE_NAME::syslog-ng-`cat VERSION`"
+
+      - name: "DBLD: release"
+        run: |
+          # ./dbld/rules release VERSION=`cat VERSION`
+          mkdir dbld/build
+          touch dbld/build/${RELEASE_NAME}.tar.gz
+
+      - name: Create draft release
+        uses: actions/create-release@v1
+        id: create_release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ env.RELEASE_NAME }}
+          release_name: ${{ env.RELEASE_NAME }}
+          body_path: NEWS.md
+          draft: true
+
+      - name: Upload tarball
+        run: |
+          hub release edit -a dbld/build/${RELEASE_NAME}.tar.gz -m "" ${RELEASE_NAME}
