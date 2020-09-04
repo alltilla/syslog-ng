@@ -1,0 +1,14 @@
+name: Create Draft release
+
+on:
+  pull_request:
+    types: [closed]
+
+jobs:
+  create-draft-release:
+    runs-on: ubuntu-18.04
+    if: github.event.pull_request.merged
+    steps:
+      - name: merged-e
+        run: |
+          echo MERGED
