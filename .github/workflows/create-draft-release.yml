@@ -1,0 +1,39 @@
+name: Create draft release
+
+on:
+  pull_request:
+    types: [closed]
+
+jobs:
+  create-draft-release:
+    runs-on: ubuntu-18.04
+    if: github.event.pull_request.merged && contains(github.event.pull_request.labels.*.name, 'release-candidate')
+    env:
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+      - name: Comment job URL
+        run: |
+          CURRENT_JOB_URL="https://github.com/${{ github.repository_owner }}/syslog-ng/actions/runs/${{ github.run_id }}"
+          COMMENT="Draft release creating job started at ${CURRENT_JOB_URL}."
+
+          hub api \
+            repos/${{ github.repository_owner }}/syslog-ng/issues/${{ github.event.number }}/comments \
+            --field body="${COMMENT}"
+
+      - name: Checkout syslog-ng source
+        uses: actions/checkout@v2
+
+      - name: "DBLD: release"
+        run: |
+          ./dbld/rules release VERSION=`cat VERSION`
+
+      - name: Create draft release
+        run: |
+          RELEASE_NAME=syslog-ng-`cat VERSION`
+          sed "1 i${RELEASE_NAME}\n" NEWS.md > /tmp/message.md
+
+          hub release create \
+            --draft \
+            --file /tmp/message.md \
+            --attach dbld/build/${RELEASE_NAME}.tar.gz \
+            ${RELEASE_NAME}
