@@ -1,0 +1,23 @@
+name: Create Draft release
+
+on:
+  pull_request:
+    types: [closed]
+
+jobs:
+  create-draft-release:
+    runs-on: ubuntu-18.04
+    if: github.event.pull_request.merged
+    steps:
+      - name: merged-e
+        run: |
+          echo ${{ github.event.issue.labels }}
+          echo ${{ github.event.issue }}
+          echo ${{ github.event }}
+          echo ${{ github.event.issue.labels.* }}
+          echo ${{ github.event.issue.labels.*.text }}
+          echo ${{ join(github.event.issue.labels.*.text, ', ') }}
+          echo ${{ contains(github.event.issue.labels.*.text, 'release-candidate') }}
+          echo ${{ join(github.event.pull_request.labels.*.text, ', ') }}
+          echo ${{ contains(github.event.pull_request.labels.*.text, 'release-candidate') }}
+
