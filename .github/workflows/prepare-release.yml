@@ -1,0 +1,93 @@
+name: Create release candidate
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'VERSION'
+        required: true
+
+jobs:
+  create-release-candidate:
+    runs-on: ubuntu-18.04
+    steps:
+      - name: Set ENV variables
+        run: |
+          echo "::set-env name=RELEASE_VERSION::${{ github.event.inputs.version }}"
+
+      - name: Checkout syslog-ng source
+        uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+
+      - name: Configure git user
+        run: |
+          git config user.name "GitHub Actions"
+          git config user.email "github-actions@github.com"
+
+      - name: Create release candidate git branch
+        run: |
+          i=0
+          while true; do
+            RELEASE_CANDIDATE_BRANCH=v${RELEASE_VERSION}rc${i};
+
+            git ls-remote --exit-code --heads origin ${RELEASE_CANDIDATE_BRANCH} \
+              && BRANCH_NAME_IS_FREE=1 || BRANCH_NAME_IS_FREE=0
+
+            if [ ${BRANCH_NAME_IS_FREE} -eq 0 ]
+            then
+              git switch -c ${RELEASE_CANDIDATE_BRANCH}
+              break
+            fi
+            i=$((i+1))
+          done
+
+          echo "::set-env name=RELEASE_CANDIDATE_BRANCH::${RELEASE_CANDIDATE_BRANCH}"
+
+      - name: "DBLD: prepare-release"
+        run: |
+          ./dbld/rules prepare-release VERSION=${RELEASE_VERSION}
+          git commit -a -s -m "version: bumped to ${RELEASE_VERSION}"
+
+      - name: Generate NEWS.md
+        run: |
+          # TODO: Generate contributors!
+          ./news/create-newsfile.py
+          git commit -a -s -m "NEWS: generate for $RELEASE_VERSION"
+
+      # - name: "DBLD: release"
+      #   run: |
+      #     ./dbld/rules release VERSION=$RELEASE_VERSION
+
+      # - name: Upload tarballs
+      #   uses: actions/upload-artifact@v2
+      #   with:
+      #     name: tarballs-${{ env.RELEASE_CANDIDATE_BRANCH }}
+      #     path: dbld/build/*.tar*
+
+      - name: Open Pull Request
+        run: |
+          sudo apt-get -qq update && sudo apt-get -qq --yes install jq
+
+          git push origin ${RELEASE_CANDIDATE_BRANCH}
+
+          TITLE="Release candidate: ${RELEASE_CANDIDATE_BRANCH}"
+          DESCRIPTION="Tarballs are available at: https://github.com/${{ github.repository_owner }}/syslog-ng/actions/runs/${{ github.run_id }}"
+
+          RESPONSE=$( \
+            curl \
+              --request "POST" \
+              --header "authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
+              --header "Accept: application/vnd.github.v3+json" \
+              --url "https://api.github.com/repos/${{ github.repository_owner }}/syslog-ng/pulls" \
+              --data '{"title":"'"${TITLE}"'","body":"'"${DESCRIPTION}"'","head":"'"${RELEASE_CANDIDATE_BRANCH}"'","base":"master"}' \
+          )
+          PR_URL=$(jq -r "._links.issue.href" ${RESPONSE})
+
+          curl \
+            --silent \
+            --request "PATCH" \
+            --header "authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
+            --header "Accept: application/vnd.github.v3+json" \
+            --url "${PR_URL}" \
+            --data '{"labels":["release-candidate"]}'
