@@ -1,0 +1,77 @@
+name: Create release candidate PR
+
+on:
+  workflow_dispatch:
+    inputs:
+      release_version:
+        description: 'VERSION'
+        required: true
+
+jobs:
+  create-release-candidate-pr:
+    runs-on: ubuntu-18.04
+    env:
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      CURRENT_JOB_URL: https://github.com/${{ github.repository_owner }}/syslog-ng/actions/runs/${{ github.run_id }}
+      RELEASE_VERSION: ${{ github.event.inputs.release_version }}
+    steps:
+      - name: Checkout syslog-ng source
+        uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+
+      - name: Configure git user
+        run: |
+          git config user.name "GitHub Actions"
+          git config user.email "github-actions@github.com"
+
+      - name: Create release candidate git branch
+        run: |
+          i=0
+          while true; do
+            RELEASE_CANDIDATE_BRANCH=v${RELEASE_VERSION}rc${i};
+
+            git ls-remote --exit-code --heads origin ${RELEASE_CANDIDATE_BRANCH} \
+              && BRANCH_NAME_IS_FREE=1 || BRANCH_NAME_IS_FREE=0
+
+            if [ ${BRANCH_NAME_IS_FREE} -eq 0 ]
+            then
+              git switch -c ${RELEASE_CANDIDATE_BRANCH}
+              break
+            fi
+            i=$((i+1))
+          done
+
+          echo "::set-env name=RELEASE_CANDIDATE_BRANCH::${RELEASE_CANDIDATE_BRANCH}"
+
+      - name: "DBLD: prepare-release"
+        run: |
+          ./dbld/rules prepare-release VERSION=${RELEASE_VERSION}
+          git commit -a -s -m "version: bumped to ${RELEASE_VERSION}"
+
+      - name: Generate NEWS.md
+        run: |
+          # TODO: Generate contributors!
+          ./news/create-newsfile.py
+          git commit -a -s -m "NEWS: generate for ${RELEASE_VERSION}"
+
+      # - name: "DBLD: release"
+      #   run: |
+      #     ./dbld/rules release VERSION=${RELEASE_VERSION}
+
+      # - name: Upload tarballs
+      #   uses: actions/upload-artifact@v2
+      #   with:
+      #     name: tarballs-${{ env.RELEASE_CANDIDATE_BRANCH }}
+      #     path: dbld/build/*.tar*
+
+      - name: Open Pull Request
+        run: |
+          TITLE="Release candidate: ${RELEASE_CANDIDATE_BRANCH}"
+          DESCRIPTION="Tarballs are available at: ${CURRENT_JOB_URL}"
+          echo -e "${TITLE}\n\n${DESCRIPTION}" > /tmp/message
+
+          hub pull-request \
+            --push \
+            --file /tmp/message \
+            --labels "release-candidate"
