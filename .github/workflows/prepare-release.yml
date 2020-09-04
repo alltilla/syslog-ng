@@ -1,0 +1,24 @@
+name: Prepare release
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'VERSION'
+        required: true
+
+jobs:
+  prepare-release:
+    runs-on: ubuntu-18.04
+    steps:
+    - name: Checkout syslog-ng source
+      uses: actions/checkout@v2
+    - name: prep
+      run: |
+        ./dbld/rules prepare-release VERSION="${{ github.event.inputs.version }}"
+        sed 's/Version: 3.28.1/Version: ${{ github.event.inputs.version }}/g' packaging/rhel/syslog-ng.spec > packaging/rhel/syslog-ng.spec2 ; mv packaging/rhel/syslog-ng.spec2 packaging/rhel/syslog-ng.spec
+        git config user.name github-actions
+        git config user.email github-actions@github.com
+        git commit -a -s -m "temp: temp"
+        rm -rf dbld/build ; mkdir dbld/build
+        ./dbld/rules release VERSION="${{ github.event.inputs.version }}"
