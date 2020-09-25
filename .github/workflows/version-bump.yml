@@ -34,7 +34,7 @@ jobs:
   version-bump:
     runs-on: ubuntu-latest
     env:
-      GITHUB_TOKEN: ${{ secrets.PAT }}
+      GITHUB_TOKEN: ${{ secrets.PAT_FOR_ACTIONS }}
       RELEASE_VERSION: ${{ github.event.inputs.release_version }}
       VERSION_BUMP_BRANCH: version/${{ github.event.inputs.release_version }}
       CURRENT_RUN_URL: https://github.com/${{ github.repository_owner }}/syslog-ng/actions/runs/${{ github.run_id }}
