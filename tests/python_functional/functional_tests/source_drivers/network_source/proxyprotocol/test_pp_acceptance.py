@@ -34,6 +34,6 @@ def test_pp_acceptance(config, syslog_ng, loggen, port_allocator):
 
     syslog_ng.start(config)
 
-    network_source.write_log(INPUT_MESSAGES)
+    network_source.entrypoint.write_log(INPUT_MESSAGES)
 
     assert file_destination.read_log() == EXPECTED_MESSAGE0

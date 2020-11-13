@@ -46,7 +46,7 @@ def cast_to_list(items):
 def copy_shared_file(testcase_parameters, shared_file_name):
     shared_dir = testcase_parameters.get_shared_dir()
     copy_file(Path(shared_dir, shared_file_name), testcase_parameters.get_working_dir())
-    return Path(testcase_parameters.get_working_dir(), shared_file_name)
+    return str(Path(testcase_parameters.get_working_dir(), shared_file_name))
 
 
 def delete_session_file(shared_file_name):
@@ -62,3 +62,7 @@ def create_file(file, content=None):
     if content:
         f.write(content)
     f.close()
+
+
+def sanitize(string):
+    return string.replace("_", "-").replace("'", "").replace('"', "").lower()

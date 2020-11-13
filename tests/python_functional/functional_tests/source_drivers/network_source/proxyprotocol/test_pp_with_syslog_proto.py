@@ -34,6 +34,6 @@ def test_pp_with_syslog_proto(config, port_allocator, syslog_ng, loggen):
 
     syslog_ng.start(config)
 
-    network_source.write_log(PROXY_PROTO_HEADER + RFC3164_EXAMPLE)
+    network_source.entrypoint.write_log(PROXY_PROTO_HEADER + RFC3164_EXAMPLE)
 
     assert file_destination.read_log() == RFC3164_EXAMPLE_WITHOUT_PRI

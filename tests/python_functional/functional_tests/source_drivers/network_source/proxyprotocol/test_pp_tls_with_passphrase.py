@@ -50,6 +50,6 @@ def test_pp_tls_with_passphrase(config, syslog_ng, syslog_ng_ctl, port_allocator
 
     syslog_ng_ctl.credentials_add(credential=server_key_path, secret="asdfg")
 
-    network_source.write_log(INPUT_MESSAGES)
+    network_source.entrypoint.write_log(INPUT_MESSAGES)
 
     assert file_destination.read_log() == EXPECTED_MESSAGES

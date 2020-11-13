@@ -48,8 +48,8 @@ def test_pp_with_multiple_clients(config, port_allocator, syslog_ng):
     syslog_ng.start(config)
 
     # These 2 run simultaneously
-    network_source.write_log(CLIENT_A_INPUT, rate=1)
-    network_source.write_log(CLIENT_B_INPUT, rate=1)
+    network_source.entrypoint.write_log(CLIENT_A_INPUT, rate=1)
+    network_source.entrypoint.write_log(CLIENT_B_INPUT, rate=1)
 
     output_messages = file_destination.read_logs(counter=4)
     assert sorted(output_messages) == sorted(CLIENT_A_EXPECTED + CLIENT_B_EXPECTED)

@@ -32,7 +32,7 @@ def test_pp_with_simple_tcp_connection(config, port_allocator, syslog_ng, loggen
 
     syslog_ng.start(config)
 
-    loggen.start(network_source.options["ip"], network_source.options["port"], inet=True, stream=True, number=NUMBER_OF_MESSAGES)
+    loggen.start(network_source.config.get_ip_or_default(), network_source.config.get_port_or_default(), inet=True, stream=True, number=NUMBER_OF_MESSAGES)
     wait_until_true(lambda: loggen.get_sent_message_count() == NUMBER_OF_MESSAGES)
 
     # We could check the source side stats, too, but it is not yet implemented

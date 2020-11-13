@@ -46,10 +46,6 @@ class SourceStats(Stats):
         super(SourceStats, self).__init__("src", driver_name, instance, counters)
 
 
-# src.file./home/alltilla/asd.txt <src/dst>.<driver_name>.<instance> == component
-# source.file_ajsh92783pion23bd1n <source/destination>.<group_id> == id
-
-
 class DestinationStats(Stats):
     def __init__(self, driver_name, instance):
         counters = ["processed", "written", "dropped", "memory_usage", "queued"]

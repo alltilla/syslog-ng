@@ -38,7 +38,7 @@ def test_pp_reload(config, syslog_ng, loggen, port_allocator):
 
     syslog_ng.start(config)
 
-    network_source.write_log(INPUT_MESSAGES, rate=1)
+    network_source.entrypoint.write_log(INPUT_MESSAGES, rate=1)
 
     # With the current loggen implementation there is no way to properly timing messages.
     # Here I made an assumption that with rate=1, there will be messages which will arrive

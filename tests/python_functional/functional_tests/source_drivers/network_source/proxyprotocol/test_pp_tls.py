@@ -48,6 +48,6 @@ def test_pp_tls(config, syslog_ng, port_allocator, loggen, testcase_parameters):
 
     syslog_ng.start(config)
 
-    network_source.write_log(INPUT_MESSAGES)
+    network_source.entrypoint.write_log(INPUT_MESSAGES)
 
     assert file_destination.read_log() == EXPECTED_MESSAGES

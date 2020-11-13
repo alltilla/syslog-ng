@@ -29,42 +29,40 @@ from src.common.operations import open_file
 
 
 class FileEntrypoint(Entrypoint):
-    def __init__(self, file_path):
-        self.file_path = file_path
+    def __init__(self, path):
+        self.path = path
         super(FileEntrypoint, self).__init__()
 
     def write_log(self, content, counter=1):
-        with open_file(self.file_path, "a+") as f:
+        with open_file(self.path, "a+") as f:
             for _ in range(counter):
                 f.write(content)
                 f.flush()
 
 
 class FileConfigStatement(ConfigStatement):
-    def __init__(self, pos_option, options):
-        self.driver_name = "file"
-        self.positional_parameters = [pos_option]
-        self.options = options
-        super(FileConfigStatement, self).__init__(self.driver_name, self.options)
+    def __init__(self, path, options):
+        self.set_path(path)
+        super(FileConfigStatement, self).__init__("file", options)
 
     def get_path(self):
-        return self.positional_parameters[0]
+        return self.path
 
-    def set_path(self, pos_option):
-        self.self.positional_parameters[0] = pos_option
+    def set_path(self, path):
+        self.path = path
 
     def render(self):
-        file_config_repr = "file (\n"
-        file_config_repr += "  '%s'\n" % self.get_path()
+        config_snippet = "file (\n"
+        config_snippet += "  '{}'\n".format(self.get_path())
         for option_name, option_name_value in self.options.items():
-            file_config_repr += "  %s(%s)\n" % (option_name, option_name_value)
-        file_config_repr += ");"
-        return file_config_repr
+            config_snippet += "  {}({})\n".format(option_name, option_name_value)
+        config_snippet += ");"
+        return config_snippet
 
 
 class FileSource(Source):
     def __init__(self, file_name, **options):
-        self.config = FileConfigStatement(file_name, options)
-        self.stats = SourceStats(self.config.driver_name, self.config.get_path())
-        self.entrypoint = FileEntrypoint(self.config.get_path())
-        super(FileSource, self).__init__(self.config, self.stats, self.entrypoint)
+        config = FileConfigStatement(file_name, options)
+        stats = SourceStats(config.driver_name, config.get_path())
+        entrypoint = FileEntrypoint(config.get_path())
+        super(FileSource, self).__init__(config, stats, entrypoint)
