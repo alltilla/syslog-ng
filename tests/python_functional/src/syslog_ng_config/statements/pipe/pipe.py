@@ -20,35 +20,8 @@
 # COPYING for details.
 #
 #############################################################################
-import logging
 
-from pathlib2 import Path
-
-import src.testcase_parameters.testcase_parameters as tc_parameters
-from src.driver_io.file.file_io import FileIO
-from src.syslog_ng_config.statements.sources.source_driver import SourceDriver
-
-logger = logging.getLogger(__name__)
-
-
-class FileSource(SourceDriver):
-    def __init__(self, file_name, **options):
-        self.driver_name = "file"
-        self.set_path(file_name)
-        self.io = FileIO(self.get_path())
-        super(FileSource, self).__init__([self.path], options)
-
-    def get_path(self):
-        return self.path
-
-    def set_path(self, pathname):
-        self.path = Path(tc_parameters.WORKING_DIR, pathname)
-
-    def write_log(self, formatted_log, counter=1):
-        for _ in range(counter):
-            self.io.write(formatted_log)
-        logger.info(
-            "Content has been written to\nresource: {}\n"
-            "number of times: {}\n"
-            "content: {}\n".format(self.get_path(), counter, formatted_log),
-        )
+class Pipe(object):
+    def __init__(self, config, stats):
+        self.config = config
+        self.stats = stats

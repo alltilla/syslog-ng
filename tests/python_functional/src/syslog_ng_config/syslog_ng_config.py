@@ -35,7 +35,7 @@ from src.syslog_ng_config.statements.parsers.db_parser import DBParser
 from src.syslog_ng_config.statements.parsers.parser import Parser
 from src.syslog_ng_config.statements.rewrite.rewrite import SetTag
 from src.syslog_ng_config.statements.sources.example_msg_generator_source import ExampleMsgGeneratorSource
-from src.syslog_ng_config.statements.sources.file_source import FileSource
+from src.pipes.sources.file_source import FileSource
 from src.syslog_ng_config.statements.sources.network_source import NetworkSource
 
 logger = logging.getLogger(__name__)

@@ -20,7 +20,7 @@
 # COPYING for details.
 #
 #############################################################################
-from src.syslog_ng_ctl.driver_stats_handler import DriverStatsHandler
+from src.pipes.interfaces.stats import DestinationStats
 
 
 class DestinationDriver(object):
@@ -33,7 +33,7 @@ class DestinationDriver(object):
         if options is None:
             options = {}
         self.options = options
-        self.stats_handler = DriverStatsHandler(group_type=self.group_type, driver_name=self.driver_name)
+        self.stats_handler = DestinationStats(self.driver_name, "")
 
     def get_stats(self):
         return self.stats_handler.get_stats()

@@ -21,6 +21,8 @@
 #
 #############################################################################
 
+from src.syslog_ng_config.pipe.pipe import Pipe
+
 
 class SourceDriver(object):
     group_type = "source"

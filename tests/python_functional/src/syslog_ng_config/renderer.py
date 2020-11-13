@@ -95,11 +95,14 @@ def render_driver_options(driver_options):
 
 
 def render_statement(statement):
-    config_snippet = ""
-    config_snippet += "    {} (\n".format(statement.driver_name)
-    config_snippet += render_positional_options(statement.positional_parameters)
-    config_snippet += render_driver_options(statement.options)
-    config_snippet += "    )"
+    if hasattr(statement, "config"):
+        return statement.config.render()
+    else:
+        config_snippet = ""
+        config_snippet += "    {} (\n".format(statement.driver_name)
+        config_snippet += render_positional_options(statement.positional_parameters)
+        config_snippet += render_driver_options(statement.options)
+        config_snippet += "    )"
 
     return config_snippet
 
