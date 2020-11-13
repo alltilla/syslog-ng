@@ -28,10 +28,10 @@ from src.pipes.interfaces.io import Entrypoint
 from src.common.operations import open_file
 
 
-class FileEntrypoint(Entrypoint):
+class FileSourceEntrypoint(Entrypoint):
     def __init__(self, path):
         self.path = path
-        super(FileEntrypoint, self).__init__()
+        super(FileSourceEntrypoint, self).__init__()
 
     def write_log(self, content, counter=1):
         with open_file(self.path, "a+") as f:
@@ -40,10 +40,10 @@ class FileEntrypoint(Entrypoint):
                 f.flush()
 
 
-class FileConfigStatement(ConfigStatement):
+class FileSourceConfigStatement(ConfigStatement):
     def __init__(self, path, options):
         self.set_path(path)
-        super(FileConfigStatement, self).__init__("file", options)
+        super(FileSourceConfigStatement, self).__init__("file", options)
 
     def get_path(self):
         return self.path
@@ -62,7 +62,7 @@ class FileConfigStatement(ConfigStatement):
 
 class FileSource(Source):
     def __init__(self, file_name, **options):
-        config = FileConfigStatement(file_name, options)
+        config = FileSourceConfigStatement(file_name, options)
         stats = SourceStats(config.driver_name, config.get_path())
-        entrypoint = FileEntrypoint(config.get_path())
+        entrypoint = FileSourceEntrypoint(config.get_path())
         super(FileSource, self).__init__(config, stats, entrypoint)

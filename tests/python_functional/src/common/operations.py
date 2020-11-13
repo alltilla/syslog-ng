@@ -21,9 +21,11 @@
 #
 #############################################################################
 import shutil
+import logging
 
 from pathlib2 import Path
 
+from src.common.blocking import wait_until_true
 import src.testcase_parameters.testcase_parameters as tc_parameters
 
 
@@ -62,6 +64,16 @@ def create_file(file, content=None):
     if content:
         f.write(content)
     f.close()
+
+
+def wait_for_file_creation(file):
+    logger = logging.getLogger(__name__)
+    file_created = wait_until_true(Path(file).exists())
+    if file_created:
+        logger.debug("File has been created by someone: \n{}".format(self.__file_path))
+    else:
+        logger.debug("File has not been created by anyone: \n{}".format(self.__file_path))
+    return file_created
 
 
 def sanitize(string):

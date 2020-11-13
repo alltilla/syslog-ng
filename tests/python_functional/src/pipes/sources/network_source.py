@@ -13,12 +13,12 @@ import src.testcase_parameters.testcase_parameters as tc_parameters
 
 from pathlib2 import Path
 
-class NetworkEntrypoint(Entrypoint):
+class NetworkSourceEntrypoint(Entrypoint):
     def __init__(self, transport, ip, port):
         self.ip = ip
         self.port = port
         self.transport = transport
-        super(NetworkEntrypoint, self).__init__()
+        super(NetworkSourceEntrypoint, self).__init__()
 
     def write_log(self, content, rate=None):
         loggen_input_file_path = str(Path(tc_parameters.WORKING_DIR, "loggen_input_{}.txt".format(get_unique_id())))
@@ -38,9 +38,9 @@ class NetworkEntrypoint(Entrypoint):
         return mapping[self.transport]
 
 
-class NetworkConfigStatement(ConfigStatement):
+class NetworkSourceConfigStatement(ConfigStatement):
     def __init__(self, options):
-        super(NetworkConfigStatement, self).__init__("network", options)
+        super(NetworkSourceConfigStatement, self).__init__("network", options)
 
     def get_transport_or_default(self):
         transport = self.options["transport"] if "transport" in self.options else "tcp"
@@ -60,7 +60,7 @@ class NetworkConfigStatement(ConfigStatement):
 
 class NetworkSource(Source):
     def __init__(self, **options):
-        config = NetworkConfigStatement(options)
+        config = NetworkSourceConfigStatement(options)
         stats = None
-        entrypoint = NetworkEntrypoint(config.get_transport_or_default(), config.get_ip_or_default(), config.get_port_or_default())
+        entrypoint = NetworkSourceEntrypoint(config.get_transport_or_default(), config.get_ip_or_default(), config.get_port_or_default())
         super(NetworkSource, self).__init__(config, stats, entrypoint)

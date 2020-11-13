@@ -27,7 +27,7 @@ from src.driver_io.file.file_io import FileIO
 from src.syslog_ng_config.renderer import ConfigRenderer
 from src.syslog_ng_config.statement_group import StatementGroup
 from src.syslog_ng_config.statements.destinations.example_destination import ExampleDestination
-from src.syslog_ng_config.statements.destinations.file_destination import FileDestination
+from src.pipes.destinations.file_destination import FileDestination
 from src.syslog_ng_config.statements.destinations.snmp_destination import SnmpDestination
 from src.syslog_ng_config.statements.filters.filter import Filter
 from src.syslog_ng_config.statements.logpath.logpath import LogPath
