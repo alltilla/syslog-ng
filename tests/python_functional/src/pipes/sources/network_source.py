@@ -21,11 +21,16 @@ class NetworkSourceEntrypoint(Entrypoint):
         super(NetworkSourceEntrypoint, self).__init__()
 
     def write_log(self, content, rate=None):
+        self.write_logs([content], rate=rate)
+
+    def write_logs(self, contents, rate=None):
         loggen_input_file_path = str(Path(tc_parameters.WORKING_DIR, "loggen_input_{}.txt".format(get_unique_id())))
         with open_file(loggen_input_file_path, mode="w") as f:
-            f.write(content)
+            for content in contents:
+                f.write(content)
 
         Loggen().start(self.ip, self.port, read_file=str(loggen_input_file_path), dont_parse=True, permanent=True, rate=rate, **self.transport_to_loggen_params())
+
 
     def transport_to_loggen_params(self):
         mapping = {

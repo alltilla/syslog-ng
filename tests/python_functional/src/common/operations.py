@@ -66,15 +66,5 @@ def create_file(file, content=None):
     f.close()
 
 
-def wait_for_file_creation(file):
-    logger = logging.getLogger(__name__)
-    file_created = wait_until_true(Path(file).exists())
-    if file_created:
-        logger.debug("File has been created by someone: \n{}".format(self.__file_path))
-    else:
-        logger.debug("File has not been created by anyone: \n{}".format(self.__file_path))
-    return file_created
-
-
 def sanitize(string):
     return string.replace("_", "-").replace("'", "").replace('"', "").lower()

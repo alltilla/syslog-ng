@@ -1,34 +1,36 @@
 from src.pipes.destinations.destination import Destination
+from src.pipes.interfaces.stats import DestinationStats
 from src.pipes.interfaces.config_statement import ConfigStatement
 from src.pipes.interfaces.io import Endpoint
-from src.common.operations import wait_for_file_creation
-from src.common.operations import open_file
+from src.driver_io.file.file import File
+from src.common.blocking import wait_until_true
+
+import src.testcase_parameters.testcase_parameters as tc_parameters
+from pathlib2 import Path
 
 
 class FileDestinationEndpoint(Endpoint):
     def __init__(self, path):
-        self.path = path
-        self.file = None
+        self.file = File(path)
         super(FileDestinationEndpoint, self).__init__()
 
-    def __del__(self):
-        if self.file:
-            self.file.close()
+    def read_log(self):
+        if not self.file.is_opened():
+            if not self.file.wait_for_creation():
+                raise Exception("File destination's output file was not created in time.")
+            self.file.open("r")
 
-    def open_file(self):
-        if not wait_for_file_creation(self.path)
-            raise Exception("File has not been created in time: {}".format(self.path))
-        self.file = open_file(self.path)
+        return wait_until_true(self.file.read)
 
-    def read_log(self, content, counter=1):
-        if self.file is None:
-            self.open_file()
+    def read_logs(self, counter):
+        content = []
 
-        data = ""
-        with open_file(self.path, "r") as f:
-            for _ in range(counter):
-                data += f.readline()
-        return data
+        while len(content) != counter:
+            buffer = self.read_log()
+            if buffer:
+                content.append(buffer)
+
+        return content
 
 
 class FileDestinationConfigStatement(ConfigStatement):
@@ -40,7 +42,7 @@ class FileDestinationConfigStatement(ConfigStatement):
         return self.path
 
     def set_path(self, path):
-        self.path = path
+        self.path = str(Path(tc_parameters.WORKING_DIR, path))
 
     def render(self):
         config_snippet = "file (\n"

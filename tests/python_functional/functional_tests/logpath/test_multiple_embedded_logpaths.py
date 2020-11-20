@@ -21,13 +21,14 @@
 #
 #############################################################################
 from src.message_builder.log_message import LogMessage
+from pathlib2 import Path
 
 
 def write_msg_with_fields(file_source, bsd_formatter, hostname, program):
     log_message = LogMessage().hostname(hostname).program(program)
     input_message = bsd_formatter.format_message(log_message)
     expected_message = bsd_formatter.format_message(log_message.remove_priority())
-    file_source.write_log(input_message)
+    file_source.entrypoint.write_log(input_message)
     return expected_message
 
 
@@ -74,17 +75,17 @@ def test_multiple_embedded_logpaths(config, syslog_ng, bsd_formatter):
 
     syslog_ng.start(config)
 
-    dest1_logs = file_destination1.read_logs(counter=2)
+    dest1_logs = file_destination1.endpoint.read_logs(counter=2)
     # host("host-A") matches on first and second messages
     assert expected_message1 in dest1_logs
     assert expected_message2 in dest1_logs
 
-    dest2_logs = file_destination2.read_logs(counter=2)
+    dest2_logs = file_destination2.endpoint.read_logs(counter=2)
     # program("app-A") matches on first and third messages
     assert expected_message1 in dest2_logs
     assert expected_message3 in dest2_logs
 
-    dest3_logs = file_destination3.read_logs(counter=4)
+    dest3_logs = file_destination3.endpoint.read_logs(counter=4)
     # every message should arrived into destination3
     # there is no filter() on this logpath
     assert expected_message1 in dest3_logs
@@ -94,4 +95,4 @@ def test_multiple_embedded_logpaths(config, syslog_ng, bsd_formatter):
 
     # no messages should arrived into destination4,
     # no source() or flags(catch-all) is added
-    assert file_destination4.get_path().exists() is False
+    assert Path(file_destination4.config.get_path()).exists() is False

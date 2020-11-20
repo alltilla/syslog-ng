@@ -23,9 +23,11 @@
 from src.common.operations import copy_shared_file
 
 TEMPLATE = r'"${PROXIED_SRCIP} ${PROXIED_DSTIP} ${PROXIED_SRCPORT} ${PROXIED_DSTPORT} ${PROXIED_IP_VERSION} ${MESSAGE}\n"'
-INPUT_MESSAGES = "PROXY TCP4 1.1.1.1 2.2.2.2 3333 4444\r\n" \
-                 "message 0"
-EXPECTED_MESSAGES = "1.1.1.1 2.2.2.2 3333 4444 4 message 0\n"
+INPUT_MESSAGES = [
+    "PROXY TCP4 1.1.1.1 2.2.2.2 3333 4444\r\n",
+    "message 0\n",
+]
+EXPECTED_MESSAGE = "1.1.1.1 2.2.2.2 3333 4444 4 message 0\n"
 
 
 def test_pp_tls(config, syslog_ng, port_allocator, loggen, testcase_parameters):
@@ -48,6 +50,6 @@ def test_pp_tls(config, syslog_ng, port_allocator, loggen, testcase_parameters):
 
     syslog_ng.start(config)
 
-    network_source.entrypoint.write_log(INPUT_MESSAGES)
+    network_source.entrypoint.write_logs(INPUT_MESSAGES)
 
-    assert file_destination.read_log() == EXPECTED_MESSAGES
+    assert file_destination.endpoint.read_log() == EXPECTED_MESSAGE

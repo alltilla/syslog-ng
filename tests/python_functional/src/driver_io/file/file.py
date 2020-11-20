@@ -25,30 +25,53 @@ import logging
 from src.common.blocking import wait_until_true
 from src.common.operations import open_file
 
+from pathlib2 import Path
+
 logger = logging.getLogger(__name__)
 
 
 class File(object):
     def __init__(self, file_path):
-        self.__file_path = file_path
+        self.__file_path = Path(file_path)
         self.__opened_file = None
 
     def __del__(self):
-        if self.__opened_file:
-            self.__opened_file.close()
-            self.__opened_file = None
-
-    def __is_file_exist(self):
-        return self.__file_path.exists()
+        if self.is_opened():
+            self.close()
 
     def wait_for_creation(self):
-        file_created = wait_until_true(self.__is_file_exist)
+        file_created = wait_until_true(self.__file_path.exists)
         if file_created:
             logger.debug("File has been created:\n{}".format(self.__file_path))
         else:
             logger.debug("File not created:\n{}".format(self.__file_path))
         return file_created
 
-    def open_file(self, mode):
+    def open(self, mode):
         self.__opened_file = open_file(self.__file_path, mode)
         return self.__opened_file
+
+    def close(self):
+        self.__opened_file.close()
+        self.__opened_file = None
+
+    def is_opened(self):
+        return self.__opened_file is not None
+
+    def read(self):
+        if not self.is_opened():
+            raise Exception("File was not opened before trying to read from it.")
+        return self.__opened_file.readline()
+
+    def read_all(self):
+        content = ""
+        while True:
+            buffer = self.read()
+            if buffer == "":
+                break
+            content += buffer
+        return content
+
+    def write(self, content):
+        self.__opened_file.write(content)
+        self.__opened_file.flush()

@@ -29,9 +29,9 @@ from src.driver_io.file.file import File
 logger = logging.getLogger(__name__)
 
 
-def prepare_std_outputs(file_ref, stdout_path, stderr_path):
-    stdout = file_ref(stdout_path)
-    stderr = file_ref(stderr_path)
+def prepare_std_outputs(stdout_path, stderr_path):
+    stdout = File(stdout_path)
+    stderr = File(stderr_path)
     return stdout, stderr
 
 
@@ -51,15 +51,14 @@ def prepare_executable_command(command):
 
 class CommandExecutor(object):
     def __init__(self):
-        self.__file_ref = File
         self.__start_timeout = 10
 
     def run(self, command, stdout_path, stderr_path):
         printable_command = prepare_printable_command(command)
         executable_command = prepare_executable_command(command)
-        stdout, stderr = prepare_std_outputs(self.__file_ref, stdout_path, stderr_path)
+        stdout, stderr = prepare_std_outputs(stdout_path, stderr_path)
         logger.debug("The following command will be executed:\n{}\n".format(printable_command))
-        cmd = psutil.Popen(executable_command, stdout=stdout.open_file(mode="w"), stderr=stderr.open_file(mode="w"))
+        cmd = psutil.Popen(executable_command, stdout=stdout.open(mode="w"), stderr=stderr.open(mode="w"))
         exit_code = cmd.wait(timeout=self.__start_timeout)
 
         stdout_content, stderr_content = self.__process_std_outputs(stdout, stderr)
@@ -67,8 +66,8 @@ class CommandExecutor(object):
         return {"exit_code": exit_code, "stdout": stdout_content, "stderr": stderr_content}
 
     def __process_std_outputs(self, stdout, stderr):
-        stdout_content = stdout.open_file("r").read()
-        stderr_content = stderr.open_file("r").read()
+        stdout_content = stdout.open("r").read()
+        stderr_content = stderr.open("r").read()
         return stdout_content, stderr_content
 
     def __process_exit_code(self, command, exit_code, stdout, stderr):

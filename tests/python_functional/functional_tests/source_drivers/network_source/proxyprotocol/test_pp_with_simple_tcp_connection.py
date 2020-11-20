@@ -21,6 +21,7 @@
 #
 #############################################################################
 from src.common.blocking import wait_until_true
+from pathlib2 import Path
 
 NUMBER_OF_MESSAGES = 10
 
@@ -36,4 +37,4 @@ def test_pp_with_simple_tcp_connection(config, port_allocator, syslog_ng, loggen
     wait_until_true(lambda: loggen.get_sent_message_count() == NUMBER_OF_MESSAGES)
 
     # We could check the source side stats, too, but it is not yet implemented
-    assert not file_destination.get_path().exists()
+    assert not Path(file_destination.config.get_path()).exists()

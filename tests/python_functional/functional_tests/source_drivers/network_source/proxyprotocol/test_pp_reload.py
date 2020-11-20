@@ -22,10 +22,12 @@
 #############################################################################
 
 TEMPLATE = r'"${PROXIED_SRCIP} ${PROXIED_DSTIP} ${PROXIED_SRCPORT} ${PROXIED_DSTPORT} ${PROXIED_IP_VERSION} ${MESSAGE}\n"'
-INPUT_MESSAGES = "PROXY TCP4 1.1.1.1 2.2.2.2 3333 4444\r\n" \
-                 "message 0\n" \
-                 "message 1\n" \
-                 "message 2"
+INPUT_MESSAGES = [
+    "PROXY TCP4 1.1.1.1 2.2.2.2 3333 4444\r\n",
+    "message 0\n",
+    "message 1\n",
+    "message 2\n",
+]
 EXPECTED_MESSAGE0 = "1.1.1.1 2.2.2.2 3333 4444 4 message 0\n"
 EXPECTED_MESSAGE1 = "1.1.1.1 2.2.2.2 3333 4444 4 message 1\n"
 EXPECTED_MESSAGE2 = "1.1.1.1 2.2.2.2 3333 4444 4 message 2\n"
@@ -38,7 +40,7 @@ def test_pp_reload(config, syslog_ng, loggen, port_allocator):
 
     syslog_ng.start(config)
 
-    network_source.entrypoint.write_log(INPUT_MESSAGES, rate=1)
+    network_source.entrypoint.write_logs(INPUT_MESSAGES, rate=1)
 
     # With the current loggen implementation there is no way to properly timing messages.
     # Here I made an assumption that with rate=1, there will be messages which will arrive
@@ -49,9 +51,9 @@ def test_pp_reload(config, syslog_ng, loggen, port_allocator):
     # not fill it's purpose, and do not test if the headers are reserved between reloads.
     # But at least the test wont be flaky, it will pass in this corner case too.
 
-    assert file_destination.read_log() == EXPECTED_MESSAGE0
+    assert file_destination.endpoint.read_log() == EXPECTED_MESSAGE0
 
     syslog_ng.reload(config)
 
-    assert file_destination.read_log() == EXPECTED_MESSAGE1
-    assert file_destination.read_log() == EXPECTED_MESSAGE2
+    assert file_destination.endpoint.read_log() == EXPECTED_MESSAGE1
+    assert file_destination.endpoint.read_log() == EXPECTED_MESSAGE2

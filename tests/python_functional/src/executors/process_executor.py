@@ -34,15 +34,14 @@ logger = logging.getLogger(__name__)
 
 class ProcessExecutor(object):
     def __init__(self):
-        self.__file_ref = File
         self.process = None
 
     def start(self, command, stdout_path, stderr_path):
         printable_command = prepare_printable_command(command)
         executable_command = prepare_executable_command(command)
-        stdout, stderr = prepare_std_outputs(self.__file_ref, stdout_path, stderr_path)
+        stdout, stderr = prepare_std_outputs(stdout_path, stderr_path)
         logger.info("Following process will be started:\n{}\n".format(printable_command))
         self.process = psutil.Popen(
-            executable_command, stdout=stdout.open_file(mode="a"), stderr=stderr.open_file(mode="a"),
+            executable_command, stdout=stdout.open(mode="a"), stderr=stderr.open(mode="a"),
         )
         return self.process

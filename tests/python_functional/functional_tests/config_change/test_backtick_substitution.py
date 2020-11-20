@@ -21,7 +21,6 @@
 #
 #############################################################################
 
-
 def test_backtick_substitution(config, syslog_ng):
     raw_config = """
 @define disable none

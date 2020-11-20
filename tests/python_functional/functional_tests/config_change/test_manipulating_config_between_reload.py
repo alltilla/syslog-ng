@@ -32,10 +32,10 @@ def test_manipulating_config_between_reload(config, syslog_ng):
     syslog_ng.start(config)
 
     # update positional value of file source
-    file_source.set_path("updated_input.log")
+    file_source.config.set_path("updated_input.log")
 
     # add new option to file source
-    file_source.options["log_iw_size"] = "100"
+    file_source.config.options["log_iw_size"] = "100"
 
     # create new file source and add to separate source group
     file_source2 = config.create_file_source(file_name="input2.log")
@@ -51,7 +51,7 @@ def test_manipulating_config_between_reload(config, syslog_ng):
     syslog_ng.reload(config)
 
     # remove option from file source
-    file_source.options.pop("log_iw_size")
+    file_source.config.options.pop("log_iw_size")
 
     # remove file destination from destination group
     destination_group.remove(file_destination2)

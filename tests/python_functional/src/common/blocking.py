@@ -22,8 +22,8 @@
 #############################################################################
 import time
 
-DEFAULT_TIMEOUT = 20  # 20 sec
-POLL_FREQ = 0.001  # 1 millisecond
+DEFAULT_TIMEOUT = 2  # 20 sec
+POLL_FREQ = 0.00  # 1 millisecond
 
 
 def wait_until_true(func, *args):

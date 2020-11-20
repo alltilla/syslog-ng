@@ -25,20 +25,19 @@ from src.pipes.interfaces.config_statement import ConfigStatement
 from src.pipes.interfaces.stats import SourceStats
 from src.pipes.interfaces.io import Entrypoint
 
-from src.common.operations import open_file
+from src.driver_io.file.file import File
+from pathlib2 import Path
+import src.testcase_parameters.testcase_parameters as tc_parameters
 
 
 class FileSourceEntrypoint(Entrypoint):
     def __init__(self, path):
-        self.path = path
+        self.file = File(path)
+        self.file.open("a+")
         super(FileSourceEntrypoint, self).__init__()
 
-    def write_log(self, content, counter=1):
-        with open_file(self.path, "a+") as f:
-            for _ in range(counter):
-                f.write(content)
-                f.flush()
-
+    def write_log(self, content):
+        self.file.write(content)
 
 class FileSourceConfigStatement(ConfigStatement):
     def __init__(self, path, options):
@@ -49,7 +48,7 @@ class FileSourceConfigStatement(ConfigStatement):
         return self.path
 
     def set_path(self, path):
-        self.path = path
+        self.path = str(Path(tc_parameters.WORKING_DIR, path))
 
     def render(self):
         config_snippet = "file (\n"

@@ -23,21 +23,25 @@
 
 TEMPLATE = r'"${PROXIED_SRCIP} ${PROXIED_DSTIP} ${PROXIED_SRCPORT} ${PROXIED_DSTPORT} ${PROXIED_IP_VERSION} ${MESSAGE}\n"'
 
-CLIENT_A_INPUT = "PROXY TCP4 1.1.1.1 2.2.2.2 3333 4444\r\n" \
-                 "message A 0\n" \
-                 "message A 1"
-CLIENT_B_INPUT = "PROXY TCP4 5.5.5.5 6.6.6.6 7777 8888\r\n" \
-                 "message B 0\n" \
-                 "message B 1"
+CLIENT_A_INPUT = [
+    "PROXY TCP4 1.1.1.1 2.2.2.2 3333 4444\r\n",
+    "message A 0\n",
+    "message A 1\n",
+]
+CLIENT_B_INPUT = [
+    "PROXY TCP4 5.5.5.5 6.6.6.6 7777 8888\r\n",
+    "message B 0\n",
+    "message B 1\n",
+]
 
-CLIENT_A_EXPECTED = (
+CLIENT_A_EXPECTED = [
     "1.1.1.1 2.2.2.2 3333 4444 4 message A 0\n",
     "1.1.1.1 2.2.2.2 3333 4444 4 message A 1\n",
-)
-CLIENT_B_EXPECTED = (
+]
+CLIENT_B_EXPECTED = [
     "5.5.5.5 6.6.6.6 7777 8888 4 message B 0\n",
     "5.5.5.5 6.6.6.6 7777 8888 4 message B 1\n",
-)
+]
 
 
 def test_pp_with_multiple_clients(config, port_allocator, syslog_ng):
@@ -48,8 +52,8 @@ def test_pp_with_multiple_clients(config, port_allocator, syslog_ng):
     syslog_ng.start(config)
 
     # These 2 run simultaneously
-    network_source.entrypoint.write_log(CLIENT_A_INPUT, rate=1)
-    network_source.entrypoint.write_log(CLIENT_B_INPUT, rate=1)
+    network_source.entrypoint.write_logs(CLIENT_A_INPUT, rate=1)
+    network_source.entrypoint.write_logs(CLIENT_B_INPUT, rate=1)
 
-    output_messages = file_destination.read_logs(counter=4)
+    output_messages = file_destination.endpoint.read_logs(counter=4)
     assert sorted(output_messages) == sorted(CLIENT_A_EXPECTED + CLIENT_B_EXPECTED)
