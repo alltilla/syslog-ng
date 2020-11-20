@@ -1,11 +1,16 @@
 from src.pipes.pipe import Pipe
+from abc import abstractmethod
 
 
 class Source(Pipe):
-    def __init__(self, config, stats, entrypoint):
+    def __init__(self):
         self.group_type = "source"
-        self.entrypoint = entrypoint
-        super(Source, self).__init__(config, stats)
+        super(Source, self).__init__()
+
+    @property
+    @abstractmethod
+    def entrypoint(self):
+        pass
 
     def copy_entrypoint(self):
         pass

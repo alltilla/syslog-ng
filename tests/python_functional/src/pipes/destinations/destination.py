@@ -1,11 +1,15 @@
 from src.pipes.pipe import Pipe
-
+from abc import abstractmethod
 
 class Destination(Pipe):
-    def __init__(self, config, stats, endpoint):
+    def __init__(self):
         self.group_type = "destination"
-        self.endpoint = endpoint
-        super(Destination, self).__init__(config, stats)
+        super(Destination, self).__init__()
+
+    @property
+    @abstractmethod
+    def endpoint(self):
+        pass
 
     def copy_endpoint(self):
         pass

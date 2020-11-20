@@ -39,6 +39,10 @@ class FileSourceEntrypoint(Entrypoint):
     def write_log(self, content):
         self.file.write(content)
 
+    def write_logs(self, contents):
+        for content in contents:
+            self.write_log(content)
+
 class FileSourceConfigStatement(ConfigStatement):
     def __init__(self, path, options):
         self.set_path(path)
@@ -61,7 +65,19 @@ class FileSourceConfigStatement(ConfigStatement):
 
 class FileSource(Source):
     def __init__(self, file_name, **options):
-        config = FileSourceConfigStatement(file_name, options)
-        stats = SourceStats(config.driver_name, config.get_path())
-        entrypoint = FileSourceEntrypoint(config.get_path())
-        super(FileSource, self).__init__(config, stats, entrypoint)
+        self.__config = FileSourceConfigStatement(file_name, options)
+        self.__stats = SourceStats(self.__config.driver_name, self.__config.get_path())
+        self.__entrypoint = FileSourceEntrypoint(self.__config.get_path())
+        super(FileSource, self).__init__()
+
+    @property
+    def config(self):
+        return self.__config
+
+    @property
+    def stats(self):
+        raise self.__stats
+
+    @property
+    def entrypoint(self):
+        return self.__entrypoint

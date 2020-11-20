@@ -5,9 +5,9 @@ class Entrypoint(ABC):
     def write_log(self, content):
         pass
 
+    @abstractmethod
     def write_logs(self, contents):
-        for content in contents:
-            self.write_log(content)
+        pass
 
 
 class Endpoint(ABC):

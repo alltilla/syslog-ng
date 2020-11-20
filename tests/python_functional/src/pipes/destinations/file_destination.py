@@ -55,7 +55,19 @@ class FileDestinationConfigStatement(ConfigStatement):
 
 class FileDestination(Destination):
     def __init__(self, file_name, **options):
-        config = FileDestinationConfigStatement(file_name, options)
-        stats = DestinationStats(config.driver_name, config.get_path())
-        endpoint = FileDestinationEndpoint(config.get_path())
-        super(FileDestination, self).__init__(config, stats, endpoint)
+        self.__config = FileDestinationConfigStatement(file_name, options)
+        self.__stats = DestinationStats(self.__config.driver_name, self.__config.get_path())
+        self.__endpoint = FileDestinationEndpoint(self.__config.get_path())
+        super(FileDestination, self).__init__()
+
+    @property
+    def config(self):
+        return self.__config
+
+    @property
+    def stats(self):
+        return self.__stats
+
+    @property
+    def endpoint(self):
+        return self.__endpoint

@@ -1,4 +1,13 @@
-class Pipe(object):
-    def __init__(self, config, stats):
-        self.config = config
-        self.stats = stats
+from abc import ABC, abstractmethod
+
+
+class Pipe(ABC):
+    @property
+    @abstractmethod
+    def config(self):
+        pass
+
+    @property
+    @abstractmethod
+    def stats(self):
+        pass

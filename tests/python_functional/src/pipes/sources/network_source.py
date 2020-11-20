@@ -65,7 +65,18 @@ class NetworkSourceConfigStatement(ConfigStatement):
 
 class NetworkSource(Source):
     def __init__(self, **options):
-        config = NetworkSourceConfigStatement(options)
-        stats = None
-        entrypoint = NetworkSourceEntrypoint(config.get_transport_or_default(), config.get_ip_or_default(), config.get_port_or_default())
-        super(NetworkSource, self).__init__(config, stats, entrypoint)
+        self.__config = NetworkSourceConfigStatement(options)
+        self.__entrypoint = NetworkSourceEntrypoint(self.__config.get_transport_or_default(), self.__config.get_ip_or_default(), self.__config.get_port_or_default())
+        super(NetworkSource, self).__init__()
+
+    @property
+    def config(self):
+        return self.__config
+
+    @property
+    def stats(self):
+        raise NotImplementedError
+
+    @property
+    def entrypoint(self):
+        return self.__entrypoint
