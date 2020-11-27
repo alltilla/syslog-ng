@@ -57,19 +57,10 @@ class ConsoleLogReader(object):
         return self.wait_for_messages_in_console_log(self, [expected_message])
 
     def wait_for_messages_in_console_log(self, expected_messages):
-        def find_in_logs(expected_messages, log_file):
-            line = log_file.read()
-            for msg in expected_messages:
-                if msg in line:
-                    expected_messages.remove(msg)
-                    break
-            return expected_messages == []
-
         if not self.__stderr_file.wait_for_creation():
             raise Exception("syslog-ng stderr was not created in time")
         self.__stderr_file.open("r")
-
-        return wait_until_true(find_in_logs, expected_messages, self.__stderr_file)
+        return self.__stderr_file.wait_for_lines(expected_messages, timeout=5, poll_freq=0)
 
     def check_for_unexpected_messages(self, unexpected_messages=None):
         unexpected_patterns = ["Plugin module not found", "assertion"]

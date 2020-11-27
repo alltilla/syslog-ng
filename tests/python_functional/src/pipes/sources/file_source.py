@@ -76,7 +76,7 @@ class FileSource(Source):
 
     @property
     def stats(self):
-        raise self.__stats
+        return self.__stats
 
     @property
     def entrypoint(self):

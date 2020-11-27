@@ -18,3 +18,22 @@ class Endpoint(ABC):
     @abstractmethod
     def read_logs(self, counter):
         pass
+
+
+class ServerEndpoint(Endpoint):
+    def __del__(self):
+        if self.is_running:
+            self.stop()
+
+    @abstractmethod
+    def start(self):
+        pass
+
+    @abstractmethod
+    def stop(self):
+        pass
+
+    @property
+    @abstractmethod
+    def is_running(self):
+        pass

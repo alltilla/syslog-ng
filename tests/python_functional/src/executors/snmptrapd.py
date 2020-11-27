@@ -34,19 +34,18 @@ from src.executors.process_executor import ProcessExecutor
 from src.syslog_ng_config.statements.destinations.destination_reader import DestinationReader
 
 
+
 class SNMPtrapd(object):
+    DEFAULT_TIMEOUT = 5
     TRAP_LOG_PREFIX = 'LIGHT_TEST_SNMP_TRAP_RECEIVED:'
 
     def __init__(self, port):
         self.snmptrapd_proc = None
         self.port = port
 
-        self.snmptrapd_log = Path(tc_parameters.WORKING_DIR, "snmptrapd_log")
+        self.snmptrapd_log = File(Path(tc_parameters.WORKING_DIR, "snmptrapd_log"))
         self.snmptrapd_stdout_path = Path(tc_parameters.WORKING_DIR, "snmptrapd_stdout")
         self.snmptrapd_stderr_path = Path(tc_parameters.WORKING_DIR, "snmptrapd_stderr")
-
-    def wait_for_snmptrapd_log_creation(self):
-        return self.snmptrapd_log.exists()
 
     def wait_for_snmptrapd_startup(self):
         return "NET-SNMP version" in self.snmptrapd_log.read_text()
@@ -68,54 +67,46 @@ class SNMPtrapd(object):
                 "--authCommunity=log public",
                 self.port,
                 "-d",
-                "-Lf", os.path.relpath(str(self.snmptrapd_log)),
+                "-Lf", os.path.relpath(str(self.snmptrapd_log.path)),
                 "-F", "{}%v\n".format(self.TRAP_LOG_PREFIX),
             ],
             self.snmptrapd_stdout_path,
             self.snmptrapd_stderr_path,
         )
-        wait_until_true(self.wait_for_snmptrapd_log_creation)
-        wait_until_true(self.wait_for_snmptrapd_startup)
+        self.snmptrapd_log.wait_for_creation()
+        self.snmptrapd_log.open("r")
+        self.snmptrapd_log.wait_for_lines(["NET-SNMP version"], timeout=5, poll_freq=0)
         return self.snmptrapd_proc.is_running()
 
     def stop(self):
-        if self.snmptrapd_proc is None:
+        print(vars(self.snmptrapd_proc))
+        if self.snmptrapd_proc is None or not self.snmptrapd_proc.is_running():
             return
+
+        self.snmptrapd_log.close()
 
         self.snmptrapd_proc.terminate()
         try:
             self.snmptrapd_proc.wait(4)
         except TimeoutExpired:
             self.snmptrapd_proc.kill()
+            raise Exception("Could not stop snmptrapd gracefully. Process killed.")
 
         self.snmptrapd_proc = None
 
     def get_port(self):
         return self.port
 
-    def get_traps(self):
-        logs = self.get_raw_traps()
+    def get_traps(self, counter, timeout=DEFAULT_TIMEOUT):
+        logs = self.snmptrapd_log.wait_for_lines([self.TRAP_LOG_PREFIX] * counter, timeout=5, poll_freq=0)
+
         trap_list = []
         for log_line in logs:
             res = re.match('({})(.*)'.format(self.TRAP_LOG_PREFIX), log_line)
             if (res):
                 trap_list += res.group(2).rstrip().split("\t")
+
         return sorted(trap_list)
-
-    def get_raw_traps(self):
-        snmptrapd_output_file = File(self.snmptrapd_log)
-        snmptrapd_output_file.open("r")
-        raw_traps = snmptrapd_output_file.read_all()
-        snmptrapd_output_file.close()
-        return raw_traps
-
-
-@pytest.fixture
-def snmptrapd(port_allocator):
-    server = SNMPtrapd(port_allocator())
-    server.start()
-    yield server
-    server.stop()
 
 
 class SNMPTestParams(object):
