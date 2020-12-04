@@ -23,9 +23,8 @@
 from pathlib2 import Path
 
 import src.testcase_parameters.testcase_parameters as tc_parameters
-from src.message_reader.message_reader import MessageReader
-from src.message_reader.single_line_parser import SingleLineParser
 from src.syslog_ng_config.statements.destinations.destination_driver import DestinationDriver
+from src.common.file import File
 
 
 class ExampleDestination(DestinationDriver):
@@ -35,12 +34,11 @@ class ExampleDestination(DestinationDriver):
         super(ExampleDestination, self).__init__(None, dict({"filename": self.path.resolve()}, **options))
 
     def wait_file_content(self, content):
-        with self.path.open() as f:
-            message_reader = MessageReader(f.readline, SingleLineParser())
+        f = File(self.path)
+        f.open("r")
 
-            while True:
-                msg = message_reader.pop_messages(1)[0]
-                if content in msg:
-                    return True
+        f.wait_for_lines([content])
 
-            return False
+        f.close()
+
+        return True
