@@ -26,7 +26,7 @@ from pathlib2 import Path
 
 import src.testcase_parameters.testcase_parameters as tc_parameters
 from src.common.random_id import get_unique_id
-from src.driver_io.file.file import File
+from src.common.file import File
 from src.helpers.loggen.loggen import Loggen
 
 
