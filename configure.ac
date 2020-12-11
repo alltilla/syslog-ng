@@ -206,6 +206,11 @@ AC_ARG_ENABLE(gprof,
 AC_ARG_ENABLE(memtrace,
               [  --enable-memtrace   Enable alternative leak debugging code.])
 
+AC_ARG_WITH(sanitizer,
+              [  --with-sanitizer=[address/undefined/etc...]
+                                         Enables compiler sanitizer supports (default: no)]
+              ,,with_sanitizer="no")
+
 AC_ARG_ENABLE(dynamic-linking,
               [  --enable-dynamic-linking        Link everything dynamically.],,enable_dynamic_linking="auto")
 
@@ -345,6 +350,7 @@ AC_ARG_WITH(docbook,
             ,,with_docbook="auto")
 
 AC_ARG_ENABLE(manpages, AC_HELP_STRING([ --enable-manpages], [ Enable generation of manpages (default: no)]), , [enable_manpages="no"; XSL_STYLESHEET=""])
+AC_ARG_ENABLE(manpages-install, AC_HELP_STRING([ --enable-manpages-install], [ Enable installation of manpages (default: auto)]), , [enable_manpages_install="auto"])
 
 AC_ARG_ENABLE(java, [ --enable-java  Enable java destination (default: auto)],, enable_java="auto")
 
@@ -1500,6 +1506,15 @@ if test "x$enable_manpages" != "xno"; then
     fi
 fi
 
+if test "x$enable_manpages_install" = "xauto"; then
+    dnl do we have the generated manpages (part of the tarball but not in git)
+    if test -f doc/man/syslog-ng.8 -o "x$enable_manpages" = "xyes"; then
+        enable_manpages_install=yes
+    else
+        enable_manpages_install=no
+    fi
+fi
+
 dnl ***************************************************************************
 dnl java headers/libraries
 dnl ***************************************************************************
@@ -1702,6 +1717,14 @@ dnl ***************************************************************************
 AC_CHECK_FUNCS([fmemopen])
 
 dnl ***************************************************************************
+dnl sanitizer
+dnl ***************************************************************************
+
+if  test "x$with_sanitizer" != "xno"; then
+   CFLAGS="$CFLAGS -O1 -fsanitize=$with_sanitizer -fno-omit-frame-pointer"
+fi
+
+dnl ***************************************************************************
 dnl default modules to be loaded
 dnl ***************************************************************************
 
@@ -1899,9 +1922,11 @@ AM_CONDITIONAL(ENABLE_JAVA, [test "$enable_java" = "yes"])
 AM_CONDITIONAL(ENABLE_JAVA_MODULES, [test "$enable_java_modules" = "yes"])
 AM_CONDITIONAL(ENABLE_AFSNMP, [test "$enable_afsnmp" = "yes"])
 AM_CONDITIONAL(ENABLE_MANPAGES, [test "$enable_manpages" != "no"])
+AM_CONDITIONAL(ENABLE_MANPAGES_INSTALL, [test "$enable_manpages_install" != "no"])
 AM_CONDITIONAL(ENABLE_NATIVE, [test "$enable_native" != "no"])
 AM_CONDITIONAL(ENABLE_EXTRA_WARNINGS, [test "$enable_extra_warnings" = "yes"])
 AM_CONDITIONAL(ENABLE_TESTING, [test "$enable_tests" != "no"])
+AM_CONDITIONAL(ENABLE_SANITIZER, [test "$with_sanitizer" != "no"])
 AM_CONDITIONAL(ENABLE_DEBUG, [test "$enable_debug" != "no"])
 AM_CONDITIONAL([HAVE_INOTIFY], [test x$ac_cv_func_inotify_init = xyes])
 AM_CONDITIONAL([HAVE_GETRANDOM], [test x$ac_cv_func_getrandom = xyes])
@@ -2010,6 +2035,9 @@ echo "  Linux capability support    : ${has_linux_caps:=no}"
 echo "  Env wrapper support         : ${enable_env_wrapper:=no}"
 echo "  systemd support             : ${enable_systemd:=no} (unit dir: ${systemdsystemunitdir:=none})"
 echo "  systemd-journal support     : ${with_systemd_journal:=no}"
+echo " Build options:"
+echo "  Generate manual pages       : ${enable_manpages:=no}"
+echo "  Install manual pages        : ${enable_manpages_install:=no}"
 echo " Modules:"
 echo "  Module search path          : ${module_path}"
 echo "  Sun STREAMS support (module): ${enable_sun_streams:=no}"

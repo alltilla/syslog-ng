@@ -1,6 +1,7 @@
-#!/usr/bin/env python
+#!/bin/sh
 #############################################################################
-# Copyright (c) 2015-2019 Balabit
+# Copyright (c) 2020 Balabit
+# Copyright (c) 2020 Kokan <kokaipeter@gmail.com>
 #
 # This program is free software; you can redistribute it and/or modify it
 # under the terms of the GNU General Public License version 2 as published
@@ -20,22 +21,21 @@
 # COPYING for details.
 #
 #############################################################################
-import logging
-logger = logging.getLogger(__name__)
 
+$1 > $1.result 2>&1
+exit_status=$?
+# Put error messages into test-suite.log (as automake does)
+# on passed cases, output is not redirected into test-suite.log
+cat $1.result
 
-class SourceWriter(object):
-    def __init__(self, IOClass):
-        self.__IOClass = IOClass
-        self.__writer = None
+if egrep -q 'ERROR: (LeakSanitizer|AddressSanitizer)' $1.result; then
+   echo "SAN report detected"
+   exit 1
+fi
 
-    def __construct_writer(self, path):
-        if not self.__writer:
-            self.__writer = self.__IOClass(path)
+# keep only result file if test failed
+if test $exit_status -eq 0 ; then
+  rm -f -- $1.result
+fi
 
-    def write_log(self, path, formatted_log, counter):
-        self.__construct_writer(path)
-        for __i in range(0, counter):
-            self.__writer.write(formatted_log)
-        written_description = "Content has been written to\nresource: {}\nnumber of times: {}\ncontent: {}\n".format(path, counter, formatted_log)
-        logger.info(written_description)
+exit $exit_status
