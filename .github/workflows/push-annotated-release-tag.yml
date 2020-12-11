@@ -1,0 +1,34 @@
+##########################################################################################
+#
+# This job pushes an annotated git tag, when a release is published on the GitHub releases
+# page. It is needed, because GitHub only pushes a lightweight tag, when a release is
+# released, so we need to push it ourselves, if we want an annotated one.
+#
+##########################################################################################
+
+name: Push annotated release tag
+
+on:
+  release:
+    types: [released]
+
+jobs:
+  push-annotated-release-tag:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout syslog-ng source
+        uses: actions/checkout@v2
+
+      - name: Configure git user
+        run: |
+          git config user.name "github-actions"
+          git config user.email "github-actions@github.com"
+
+      - name: Push annotated release tag
+        run: |
+          TAG=${GITHUB_REF}
+          TAG_COMMIT=${GITHUB_SHA}
+          MESSAGE="$(echo ${GITHUB_REF} | sed "s/syslog-ng-/syslog-ng /") release"
+
+          git tag --force --annotate ${TAG} --message "${MESSAGE}" ${TAG_COMMIT}
+          git push --force origin ${TAG}
