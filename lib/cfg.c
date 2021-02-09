@@ -477,7 +477,7 @@ cfg_register_builtin_plugins(GlobalConfig *self)
 GlobalConfig *
 cfg_new(gint version)
 {
-  GlobalConfig *self = g_new0(GlobalConfig, 1);
+  GlobalConfig *self = NULL;
 
   self->module_config = g_hash_table_new_full(g_str_hash, g_str_equal, g_free, (GDestroyNotify) module_config_free);
   self->globals = cfg_args_new();
