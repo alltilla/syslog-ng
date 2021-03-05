@@ -120,6 +120,7 @@ testcase_replace(const gchar *log, const gchar *re, gchar *replacement, const gc
   log_template_unref(r);
   log_matcher_unref(m);
   log_msg_unref(msg);
+  cr_assert(FALSE);
 }
 
 
