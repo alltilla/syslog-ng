@@ -25,9 +25,37 @@ from psutil import TimeoutExpired
 
 import src.testcase_parameters.testcase_parameters as tc_parameters
 from src.executors.process_executor import ProcessExecutor
+from src.executors.params_builder import build_args_for_executor, ParamMode
 
 
 class Loggen(object):
+
+    AVAILABLE_LOGGEN_PARAMS = {
+        "inet": ("--inet", ParamMode.SET),
+        "unix": ("--unix", ParamMode.SET),
+        "stream": ("--stream", ParamMode.SET),
+        "dgram": ("--dgram", ParamMode.SET),
+        "use_ssl": ("--use-ssl", ParamMode.SET),
+        "dont_parse": ("--dont-parse", ParamMode.SET),
+        "read_file": ("--read-file=", ParamMode.CONCAT),
+        "skip_tokens": ("--skip_tokens=", ParamMode.CONCAT),
+        "loop_reading": ("--loop-reading", ParamMode.SET),
+        "rate": ("--rate=", ParamMode.CONCAT),
+        "interval": ("--interval=", ParamMode.CONCAT),
+        "permanent": ("--permanent", ParamMode.SET),
+        "syslog_proto": ("--syslog-proto", ParamMode.SET),
+        "proxied": ("--proxied", ParamMode.SET),
+        "sdata": ("--sdata", ParamMode.SET),
+        "no_framing": ("--no-framing", ParamMode.SET),
+        "active_connections": ("--active-connections=", ParamMode.CONCAT),
+        "idle_connections": ("--idle-connections=", ParamMode.CONCAT),
+        "ipv6": ("--ipv6", ParamMode.SET),
+        "debug": ("--debug", ParamMode.SET),
+        "number": ("--number=", ParamMode.CONCAT),
+        "csv": ("--csv", ParamMode.SET),
+        "quiet": ("--quiet", ParamMode.CONCAT),
+        "size": ("--size=", ParamMode.CONCAT),
+    }
 
     instanceIndex = -1
     @staticmethod
@@ -39,88 +67,6 @@ class Loggen(object):
         self.loggen_proc = None
         self.loggen_bin_path = tc_parameters.INSTANCE_PATH.get_loggen_bin()
 
-    def __decode_start_parameters(
-        self, inet, unix, stream, dgram, use_ssl, dont_parse, read_file, skip_tokens, loop_reading,
-        rate, interval, permanent, syslog_proto, proxied, sdata, no_framing, active_connections,
-        idle_connections, ipv6, debug, number, csv, quiet, size,
-    ):
-
-        start_parameters = []
-
-        if inet is True:
-            start_parameters.append("--inet")
-
-        if unix is True:
-            start_parameters.append("--unix")
-
-        if stream is True:
-            start_parameters.append("--stream")
-
-        if dgram is True:
-            start_parameters.append("--dgram")
-
-        if use_ssl is True:
-            start_parameters.append("--use-ssl")
-
-        if dont_parse is True:
-            start_parameters.append("--dont-parse")
-
-        if read_file is not None:
-            start_parameters.append("--read-file={}".format(read_file))
-
-        if skip_tokens is not None:
-            start_parameters.append("--skip-tokens={}".format(skip_tokens))
-
-        if loop_reading is True:
-            start_parameters.append("--loop-reading")
-
-        if rate is not None:
-            start_parameters.append("--rate={}".format(rate))
-
-        if interval is not None:
-            start_parameters.append("--interval={}".format(interval))
-
-        if permanent is True:
-            start_parameters.append("--permanent")
-
-        if syslog_proto is True:
-            start_parameters.append("--syslog-proto")
-
-        if proxied is True:
-            start_parameters.append("--proxied")
-
-        if sdata is True:
-            start_parameters.append("--sdata")
-
-        if no_framing is True:
-            start_parameters.append("--no-framing")
-
-        if active_connections is not None:
-            start_parameters.append("--active-connections={}".format(active_connections))
-
-        if idle_connections is not None:
-            start_parameters.append("--idle-connections={}".format(idle_connections))
-
-        if ipv6 is True:
-            start_parameters.append("--ipv6")
-
-        if debug is True:
-            start_parameters.append("--debug")
-
-        if number is not None:
-            start_parameters.append("--number={}".format(number))
-
-        if csv is True:
-            start_parameters.append("--csv")
-
-        if quiet is True:
-            start_parameters.append("--quiet")
-
-        if size is not None:
-            start_parameters.append("--size={}".format(size))
-
-        return start_parameters
-
     def start(
         self, target, port, inet=None, unix=None, stream=None, dgram=None, use_ssl=None, dont_parse=None, read_file=None, skip_tokens=None, loop_reading=None,
         rate=None, interval=None, permanent=None, syslog_proto=None, proxied=None, sdata=None, no_framing=None, active_connections=None,
@@ -130,18 +76,14 @@ class Loggen(object):
         if self.loggen_proc is not None and self.loggen_proc.is_running():
             raise Exception("Loggen is already running, you shouldn't call start")
 
+        loggen_args = build_args_for_executor(Loggen.AVAILABLE_LOGGEN_PARAMS, ["self", "target", "port"], **locals())
+
         instanceIndex = Loggen.__get_new_instance_index()
         self.loggen_stdout_path = Path(tc_parameters.WORKING_DIR, "loggen_stdout_{}".format(instanceIndex))
         self.loggen_stderr_path = Path(tc_parameters.WORKING_DIR, "loggen_stderr_{}".format(instanceIndex))
 
-        self.parameters = self.__decode_start_parameters(
-            inet, unix, stream, dgram, use_ssl, dont_parse, read_file, skip_tokens, loop_reading,
-            rate, interval, permanent, syslog_proto, proxied, sdata, no_framing, active_connections,
-            idle_connections, ipv6, debug, number, csv, quiet, size,
-        )
-
         self.loggen_proc = ProcessExecutor().start(
-            [self.loggen_bin_path] + self.parameters + [target, port],
+            [self.loggen_bin_path] + loggen_args + [target, port],
             self.loggen_stdout_path,
             self.loggen_stderr_path,
         )
