@@ -38,8 +38,10 @@ jobs:
           CC="${{ matrix.cc }}"
           SYSLOG_NG_INSTALL_DIR=${HOME}/install/syslog-ng
           CONFIGURE_FLAGS="
+            CFLAGS=-Werror
             --prefix=${SYSLOG_NG_INSTALL_DIR}
             --enable-debug
+            --enable-extra-warnings
             --enable-all-modules
             --disable-java
             --disable-java-modules
@@ -48,6 +50,7 @@ jobs:
           "
           CMAKE_FLAGS="
             -DCMAKE_BUILD_TYPE=Debug
+            -DENABLE_EXTRA_WARNINGS=ON
             -DCMAKE_C_FLAGS=-Werror
             -DCMAKE_INSTALL_PREFIX=${HOME}/install/syslog-ng
             -DPYTHON_VERSION=3
