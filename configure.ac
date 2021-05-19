@@ -1172,7 +1172,7 @@ dnl ***************************************************************************
 IVYKIS_INTERNAL_SOURCE_EXISTS="test -f $srcdir/lib/ivykis/src/iv_main_posix.c"
 
 if $IVYKIS_INTERNAL_SOURCE_EXISTS; then
-	AC_CONFIG_SUBDIRS([lib/ivykis])
+	AX_SUBDIRS_CONFIGURE([lib/ivykis],,,,[CFLAGS=-Werror])
 	IVYKIS_SUBDIRS=lib/ivykis
 fi
 
@@ -1215,7 +1215,7 @@ enable_json="no"
 JSON_INTERNAL_SOURCE_EXISTS="test -f $srcdir/lib/jsonc/json.h"
 
 if $JSON_INTERNAL_SOURCE_EXISTS; then
-  AC_CONFIG_SUBDIRS([lib/jsonc])
+  AX_SUBDIRS_CONFIGURE([lib/jsonc],,,,[CFLAGS=-Werror])
   JSON_SUBDIRS="lib/jsonc"
 fi
 

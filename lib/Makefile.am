@@ -59,7 +59,7 @@ if IVYKIS_INTERNAL
 lib_libsyslog_ng_la_DEPENDENCIES	+= lib/ivykis/src/libivykis.la
 
 lib/ivykis/src/libivykis.la:
-	${MAKE} CFLAGS="${CFLAGS} -Wno-error" -C lib/ivykis
+	${MAKE} CFLAGS="`echo ${CFLAGS} -Wno-error | sed 's/-Werror//g'`" -C lib/ivykis
 
 CLEAN_SUBDIRS				+= @IVYKIS_SUBDIRS@
 
@@ -87,7 +87,7 @@ endif
 
 if JSON_INTERNAL
 lib/jsonc/libjson-c.la:
-	${MAKE} CFLAGS="${CFLAGS} -Wno-error" -C lib/jsonc
+	${MAKE} CFLAGS="`echo ${CFLAGS} -Wno-error | sed 's/-Werror//g'`" -C lib/jsonc
 
 CLEAN_SUBDIRS				+= @JSON_SUBDIRS@
 endif
