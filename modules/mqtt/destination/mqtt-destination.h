@@ -23,6 +23,20 @@
 #ifndef MQTT_DESTINATION_H_INCLUDED
 #define MQTT_DESTINATION_H_INCLUDED
 
+#include "driver.h"
+#include "logthrdest/logthrdestdrv.h"
+#include <mosquitto.h>
+
+typedef struct
+{
+  LogThreadedDestDriver super;
+  struct mosquitto *mosq;
+  GString *host;
+  gint *port;
+  GString *topic;
+  gboolean *clean_session;
+  gint *keepalive;
+} MQTTDestinationDriver;
 
 
 #endif /* MQTT_DESTINATION_H_INCLUDED */
