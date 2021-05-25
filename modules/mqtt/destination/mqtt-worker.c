@@ -82,7 +82,8 @@ _connect(LogThreadedDestWorker *s)
   MQTTDestinationWorker *self = (MQTTDestinationWorker *)s;
   MQTTDestinationDriver *owner = (MQTTDestinationDriver *) s->owner;
 
-  // TODO
+  g_string_assign(self->topic, owner->topic->str);
+
   self->mosq = mosquitto_new(NULL, owner->clean_session, NULL);
   mosquitto_connect(self->mosq, owner->host->str, owner->port, owner->keepalive);
   mosquitto_subscribe(self->mosq, NULL, owner->topic->str, 1);
