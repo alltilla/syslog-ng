@@ -101,5 +101,15 @@ _dw_free(LogThreadedDestWorker *s)
 LogThreadedDestWorker *
 mqtt_destination_dw_new(LogThreadedDestDriver *o, gint worker_index)
 {
-    // TODO
+  MQTTDestinationWorker *self = g_new0(MQTTDestinationWorker, 1);
+
+  log_threaded_dest_worker_init_instance(&self->super, o, worker_index);
+  self->super.thread_init = _thread_init;
+  self->super.thread_deinit = _thread_deinit;
+  self->super.insert = _dw_insert;
+  self->super.free_fn = _dw_free;
+  self->super.connect = _connect;
+  self->super.disconnect = _disconnect;
+
+  return &self->super;
 }
