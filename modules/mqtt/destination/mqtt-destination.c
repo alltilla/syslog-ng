@@ -107,14 +107,22 @@ _format_stats_instance(LogThreadedDestDriver *d)
   static gchar persist_name[1024];
 
   g_snprintf(persist_name, sizeof(persist_name),
-             "mqtt-destination,%s,%s", self->host, self->topic);
+             "mqtt-destination,%s.%d.%s", self->host->str, self->port, self->topic->str);
   return persist_name;
 }
 
 static const gchar *
 _format_persist_name(const LogPipe *d)
 {
-    // TODO
+  MQTTDestinationDriver *self = (MQTTDestinationDriver *)d;
+  static gchar persist_name[1024];
+
+  if (d->persist_name)
+    g_snprintf(persist_name, sizeof(persist_name), "mqtt-destination.%s", d->persist_name);
+  else
+    g_snprintf(persist_name, sizeof(persist_name), "mqtt-destination.%s.%d.%s", self->host->str, self->port, self->topic->str);
+
+  return persist_name;
 }
 
 
