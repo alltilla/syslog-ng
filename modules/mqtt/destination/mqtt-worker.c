@@ -37,7 +37,7 @@ _get_host_name(LogThreadedDestDriver *d)
 }
 
 static const gchar *
-_get_topic(LogThreadedDestDriver *d)
+_get_topic_driver(LogThreadedDestDriver *d)
 {
   MQTTDestinationDriver *self = (MQTTDestinationDriver *)d;
   static gchar topic[1024];
@@ -47,12 +47,56 @@ _get_topic(LogThreadedDestDriver *d)
   return topic;
 }
 
+static const gchar *
+_get_topic_worker(LogThreadedDestDriver *d)
+{
+  MQTTDestinationDriver *self = (MQTTDestinationDriver *)d;
+  static gchar topic[1024];
+
+  g_snprintf(topic, sizeof(topic),
+             "%s", self->topic);
+  return topic;
+}
+
+static int
+_mqtt_send(MQTTDestinationWorker *self, char *msg)
+{ 
+  return mosquitto_publish(self->mosq, NULL, _get_topic_worker(self), strlen(msg), msg, 1, 0);
+}
+
 static LogThreadedResult
 _dw_insert(LogThreadedDestWorker *s, LogMessage *msg)
 {
   MQTTDestinationWorker *self = (MQTTDestinationWorker *)s;
 
-  // TODO
+  GString *string_to_write = g_string_new("");
+  g_string_printf(string_to_write, "thread_id=%lu message=%s\n",
+                  self->thread_id, log_msg_get_value(msg, LM_V_MESSAGE, NULL));
+
+  int retval = _mqtt_send(self, string_to_write->str);
+
+  if (retval != MOSQ_ERR_SUCCESS)
+    {
+      switch(retval)
+        {
+          case MOSQ_ERR_INVAL:
+          case MOSQ_ERR_NOMEM:
+          case MOSQ_ERR_NO_CONN:
+          case MOSQ_ERR_PROTOCOL:
+          case MOSQ_ERR_PAYLOAD_SIZE:
+          case MOSQ_ERR_MALFORMED_UTF8:
+          case MOSQ_ERR_QOS_NOT_SUPPORTED:
+          case MOSQ_ERR_OVERSIZE_PACKET:
+            {
+              msg_error("Error while sending message");
+              return LTR_ERROR;
+              break;
+            }
+          
+        }
+    }
+
+  g_string_free(string_to_write, TRUE);
 
   return LTR_SUCCESS;
   /*
@@ -74,7 +118,7 @@ _connect(LogThreadedDestWorker *s)
   // TODO
   self->mosq = mosquitto_new(NULL, owner->clean_session, NULL);
   mosquitto_connect(self->mosq, _get_host_name(owner), owner->port, owner->keepalive);
-  mosquitto_subscribe(self->mosq, NULL, _get_topic(owner), 1);
+  mosquitto_subscribe(self->mosq, NULL, _get_topic_driver(owner), 1);
 }
 
 static void
