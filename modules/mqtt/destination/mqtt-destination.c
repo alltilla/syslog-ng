@@ -36,10 +36,13 @@
 #ifndef DEFAULT_MQTT_VALUE_INCLUDED
 #define DEFAULT_HOST "localhost"
 #define DEFAULT_PORT 1833
-#define DEFAULT_CLEAN_SESSION true
+#define DEFAULT_CLEAN_SESSION TRUE
 #define DEFAULT_KEEPALIVE 60
 #endif /* DEFAULT_MQTT_VALUE_INCLUDED */
 
+gboolean is_port_setted          = FALSE;
+gboolean is_clean_session_setted = FALSE;
+gboolean is_keepalive_setted     = FALSE;
 /*
  * Configuration
  */
@@ -56,6 +59,7 @@ mqtt_destination_dd_set_port (LogDriver *d, const glong port)
 {
   MQTTDestinationDriver *self = (MQTTDestinationDriver *)d;
   self->port = (gint)port;
+  is_port_setted = TRUE;
 }
 
 void
@@ -70,6 +74,7 @@ mqtt_destination_dd_set_clean_session (LogDriver *d, const gboolean clean_sessio
 {
   MQTTDestinationDriver *self = (MQTTDestinationDriver *)d;
   self->clean_session = clean_session;
+  is_clean_session_setted = TRUE;
 }
 
 void
@@ -77,6 +82,7 @@ mqtt_destination_dd_set_keepalive (LogDriver *d, const glong keepalive)
 {
   MQTTDestinationDriver *self = (MQTTDestinationDriver *)d;
   self->keepalive = (gint)keepalive;
+  is_keepalive_setted = TRUE;
 }
 
 /*
@@ -107,6 +113,21 @@ _format_persist_name(const LogPipe *d)
   return persist_name;
 }
 
+static void
+_set_default_value(MQTTDestinationDriver *self)
+{
+  if (self->host->len == 0)
+    g_string_assign(self->host, DEFAULT_HOST);
+
+  if (!is_port_setted)
+    self->port = DEFAULT_PORT;
+
+  if (!is_clean_session_setted)
+    self->clean_session = DEFAULT_CLEAN_SESSION;
+
+  if (!is_keepalive_setted)
+    self->keepalive = DEFAULT_KEEPALIVE;
+}
 
 static gboolean
 _dd_init(LogPipe *d)
@@ -115,6 +136,11 @@ _dd_init(LogPipe *d)
 
   if (!log_threaded_dest_driver_init_method(d))
     return FALSE;
+
+  if (self->topic->len == 0)
+    return FALSE;
+
+  _set_default_value(self);
 
   return TRUE;
 }
