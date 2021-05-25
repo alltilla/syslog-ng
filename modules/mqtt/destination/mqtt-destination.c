@@ -33,6 +33,13 @@
 #include "plugin-types.h"
 #include "logthrdest/logthrdestdrv.h"
 
+#ifndef DEFAULT_MQTT_VALUE_INCLUDED
+#define DEFAULT_HOST "localhost"
+#define DEFAULT_PORT 1833
+#define DEFAULT_CLEAN_SESSION true
+#define DEFAULT_KEEPALIVE 60
+#endif /* DEFAULT_MQTT_VALUE_INCLUDED */
+
 /*
  * Configuration
  */
