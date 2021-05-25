@@ -86,7 +86,14 @@ _format_persist_name(const LogPipe *d)
 static gboolean
 _dd_init(LogPipe *d)
 {
-    // TODO
+  MQTTDestinationDriver *self = (MQTTDestinationDriver *)d;
+
+  // TODO: init mosq
+
+  if (!log_threaded_dest_driver_init_method(d))
+    return FALSE;
+
+  return TRUE;
 }
 
 gboolean
