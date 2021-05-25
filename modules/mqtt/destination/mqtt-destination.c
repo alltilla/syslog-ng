@@ -125,6 +125,9 @@ _dd_free(LogPipe *d)
 {
   MQTTDestinationDriver *self = (MQTTDestinationDriver *)d;
 
+  g_string_free(self->host, TRUE);
+  g_string_free(self->topic, TRUE);
+
   log_threaded_dest_driver_free(d);
 }
 
@@ -132,6 +135,8 @@ LogDriver *
 mqtt_destination_dd_new(GlobalConfig *cfg)
 {
   MQTTDestinationDriver *self = g_new0(MQTTDestinationDriver, 1);
+  self->host = g_string_new("");
+  self->topic = g_string_new("");
 
   log_threaded_dest_driver_init_instance(&self->super, cfg);
   self->super.super.super.super.init = _dd_init;
