@@ -38,24 +38,24 @@
  */
 
 void
-mqtt_destination_dd_set_host (LogDriver *d, const gchar host)
+mqtt_destination_dd_set_host (LogDriver *d, const gchar *host)
 {
   MQTTDestinationDriver *self = (MQTTDestinationDriver *)d;
-  g_string_assign(&(self->host), host);
+  g_string_assign(self->host, host);
 }
 
 void
-mqtt_destination_dd_set_port (LogDriver *d, const gint port)
+mqtt_destination_dd_set_port (LogDriver *d, const glong port)
 {
   MQTTDestinationDriver *self = (MQTTDestinationDriver *)d;
-  self->port = port;
+  self->port = (gint)port;
 }
 
 void
-mqtt_destination_dd_set_topic(LogDriver *d, const gchar topic)
+mqtt_destination_dd_set_topic(LogDriver *d, const gchar *topic)
 {
   MQTTDestinationDriver *self = (MQTTDestinationDriver *)d;
-  g_string_assign(&(self->topic), topic);
+  g_string_assign(self->topic, topic);
 }
 
 void
@@ -66,10 +66,10 @@ mqtt_destination_dd_set_clean_session (LogDriver *d, const gboolean clean_sessio
 }
 
 void
-mqtt_destination_dd_set_keepalive (LogDriver *d, const gint keepalive)
+mqtt_destination_dd_set_keepalive (LogDriver *d, const glong keepalive)
 {
   MQTTDestinationDriver *self = (MQTTDestinationDriver *)d;
-  self->keepalive = keepalive;
+  self->keepalive = (gint)keepalive;
 }
 
 /*
