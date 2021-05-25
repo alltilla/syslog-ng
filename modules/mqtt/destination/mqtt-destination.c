@@ -74,7 +74,12 @@ mqtt_destination_dd_set_keepalive (LogDriver *d, const gint keepalive)
 static const gchar *
 _format_stats_instance(LogThreadedDestDriver *d)
 {
-    // TODO
+  MQTTDestinationDriver *self = (MQTTDestinationDriver *)d;
+  static gchar persist_name[1024];
+
+  g_snprintf(persist_name, sizeof(persist_name),
+             "mqtt-destination,%s,%s", self->host, self->topic);
+  return persist_name;
 }
 
 static const gchar *
