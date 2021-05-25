@@ -38,5 +38,13 @@ typedef struct
   gint *keepalive;
 } MQTTDestinationDriver;
 
+LogDriver *mqtt_destination_dd_new(GlobalConfig *cfg);
+
+void mqtt_destination_dd_set_host (LogDriver *d, const gchar *host);
+void mqtt_destination_dd_set_port (LogDriver *d, const gint  *port);
+void mqtt_destination_dd_set_topic(LogDriver *d, const gchar *topic);
+void mqtt_destination_dd_set_clean_session (LogDriver *d, const gboolean  *clean_session);
+void mqtt_destination_dd_set_keepalive (LogDriver *d, const gint  *keepalive);
+
 
 #endif /* MQTT_DESTINATION_H_INCLUDED */
