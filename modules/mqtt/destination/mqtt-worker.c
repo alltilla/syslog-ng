@@ -25,43 +25,10 @@
 
 #include <stdio.h>
 
-static const gchar *
-_get_host_name(LogThreadedDestDriver *d)
-{
-  MQTTDestinationDriver *self = (MQTTDestinationDriver *)d;
-  static gchar host[1024];
-
-  g_snprintf(host, sizeof(host),
-             "%s", self->host);
-  return host;
-}
-
-static const gchar *
-_get_topic_driver(LogThreadedDestDriver *d)
-{
-  MQTTDestinationDriver *self = (MQTTDestinationDriver *)d;
-  static gchar topic[1024];
-
-  g_snprintf(topic, sizeof(topic),
-             "%s", self->topic);
-  return topic;
-}
-
-static const gchar *
-_get_topic_worker(LogThreadedDestDriver *d)
-{
-  MQTTDestinationDriver *self = (MQTTDestinationDriver *)d;
-  static gchar topic[1024];
-
-  g_snprintf(topic, sizeof(topic),
-             "%s", self->topic);
-  return topic;
-}
-
 static int
 _mqtt_send(MQTTDestinationWorker *self, char *msg)
 { 
-  return mosquitto_publish(self->mosq, NULL, _get_topic_worker(self), strlen(msg), msg, 1, 0);
+  return mosquitto_publish(self->mosq, NULL, self->topic->str, strlen(msg), msg, 1, 0);
 }
 
 static LogThreadedResult
@@ -117,8 +84,8 @@ _connect(LogThreadedDestWorker *s)
 
   // TODO
   self->mosq = mosquitto_new(NULL, owner->clean_session, NULL);
-  mosquitto_connect(self->mosq, _get_host_name(owner), owner->port, owner->keepalive);
-  mosquitto_subscribe(self->mosq, NULL, _get_topic_driver(owner), 1);
+  mosquitto_connect(self->mosq, owner->host->str, owner->port, owner->keepalive);
+  mosquitto_subscribe(self->mosq, NULL, owner->topic->str, 1);
 }
 
 static void

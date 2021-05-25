@@ -31,7 +31,7 @@ typedef struct _MQTTDestinationWorker
 {
   LogThreadedDestWorker super;
   struct mosquitto *mosq;
-  GString topic;
+  GString *topic;
   ThreadId thread_id;
 } MQTTDestinationWorker;
 
