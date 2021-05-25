@@ -25,6 +25,27 @@
 
 #include <stdio.h>
 
+static const gchar *
+_get_host_name(LogThreadedDestDriver *d)
+{
+  MQTTDestinationDriver *self = (MQTTDestinationDriver *)d;
+  static gchar host[1024];
+
+  g_snprintf(host, sizeof(host),
+             "%s", self->host);
+  return host;
+}
+
+static const gchar *
+_get_topic(LogThreadedDestDriver *d)
+{
+  MQTTDestinationDriver *self = (MQTTDestinationDriver *)d;
+  static gchar topic[1024];
+
+  g_snprintf(topic, sizeof(topic),
+             "%s", self->topic);
+  return topic;
+}
 
 static LogThreadedResult
 _dw_insert(LogThreadedDestWorker *s, LogMessage *msg)
@@ -51,6 +72,9 @@ _connect(LogThreadedDestWorker *s)
   MQTTDestinationDriver *owner = (MQTTDestinationDriver *) s->owner;
 
   // TODO
+  self->mosq = mosquitto_new(NULL, owner->clean_session, NULL);
+  mosquitto_connect(self->mosq, _get_host_name(owner), owner->port, owner->keepalive);
+  mosquitto_subscribe(self->mosq, NULL, _get_topic(owner), 1);
 }
 
 static void
@@ -58,7 +82,7 @@ _disconnect(LogThreadedDestWorker *s)
 {
   MQTTDestinationWorker *self = (MQTTDestinationWorker *)s;
 
-  // TODO
+  mosquitto_destroy(self->mosq);
 }
 
 static gboolean
@@ -94,6 +118,7 @@ _dw_free(LogThreadedDestWorker *s)
     you need to free them here.
   */
 
+  mosquitto_lib_cleanup();
   log_threaded_dest_worker_free_method(s);
 }
 
@@ -103,6 +128,7 @@ mqtt_destination_dw_new(LogThreadedDestDriver *o, gint worker_index)
 {
   MQTTDestinationWorker *self = g_new0(MQTTDestinationWorker, 1);
 
+  mosquitto_lib_init();
   log_threaded_dest_worker_init_instance(&self->super, o, worker_index);
   self->super.thread_init = _thread_init;
   self->super.thread_deinit = _thread_deinit;
