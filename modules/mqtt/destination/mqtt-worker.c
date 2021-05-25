@@ -125,10 +125,12 @@ _thread_deinit(LogThreadedDestWorker *s)
 static void
 _dw_free(LogThreadedDestWorker *s)
 {
+  MQTTDestinationWorker *self = (MQTTDestinationWorker *)s;
   /*
     If you created resources during new,
     you need to free them here.
   */
+ g_string_free(self->topic, TRUE);
 
   mosquitto_lib_cleanup();
   log_threaded_dest_worker_free_method(s);
@@ -139,6 +141,7 @@ LogThreadedDestWorker *
 mqtt_destination_dw_new(LogThreadedDestDriver *o, gint worker_index)
 {
   MQTTDestinationWorker *self = g_new0(MQTTDestinationWorker, 1);
+  self->topic = g_string_new("");
 
   mosquitto_lib_init();
   log_threaded_dest_worker_init_instance(&self->super, o, worker_index);
