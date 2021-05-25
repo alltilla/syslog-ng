@@ -32,3 +32,77 @@
 #include "driver.h"
 #include "plugin-types.h"
 #include "logthrdest/logthrdestdrv.h"
+
+/*
+ * Configuration
+ */
+
+void
+mqtt_destination_dd_set_host (LogDriver *d, const gchar *host)
+{
+    // TODO    
+}
+
+void
+mqtt_destination_dd_set_port (LogDriver *d, const gint  *port)
+{
+    // TODO    
+}
+
+void
+mqtt_destination_dd_set_topic(LogDriver *d, const gchar *topic)
+{
+    // TODO    
+}
+
+void
+mqtt_destination_dd_set_clean_session (LogDriver *d, const gboolean  *clean_session)
+{
+    // TODO    
+}
+
+void
+mqtt_destination_dd_set_keepalive (LogDriver *d, const gint  *keepalive)
+{
+    // TODO    
+}
+
+/*
+ * Utilities
+ */
+
+static const gchar *
+_format_stats_instance(LogThreadedDestDriver *d)
+{
+    // TODO
+}
+
+static const gchar *
+_format_persist_name(const LogPipe *d)
+{
+    // TODO
+}
+
+static gboolean
+_dd_init(LogPipe *d)
+{
+    // TODO
+}
+
+gboolean
+_dd_deinit(LogPipe *s)
+{
+    // TODO
+}
+
+static void
+_dd_free(LogPipe *d)
+{
+    // TODO
+}
+
+LogDriver *
+mqtt_destination_dd_new(GlobalConfig *cfg)
+{
+    // TODO
+}
