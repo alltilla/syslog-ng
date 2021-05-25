@@ -92,7 +92,7 @@ _dd_init(LogPipe *d)
 gboolean
 _dd_deinit(LogPipe *s)
 {
-    // TODO
+  return log_threaded_dest_driver_deinit_method(s);
 }
 
 static void
