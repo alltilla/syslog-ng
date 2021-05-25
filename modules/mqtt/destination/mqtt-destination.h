@@ -30,7 +30,6 @@
 typedef struct
 {
   LogThreadedDestDriver super;
-  struct mosquitto *mosq;
   GString host;
   gint port;
   GString topic;

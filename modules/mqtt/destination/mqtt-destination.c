@@ -117,21 +117,11 @@ _format_persist_name(const LogPipe *d)
     // TODO
 }
 
-static void
-_init_mosq(MQTTDestinationDriver *self)
-{
-
-  self->mosq = mosquitto_new(NULL, self->clean_session, NULL);
-  mosquitto_connect(self->mosq, _get_host_name(self), self->port, self->keepalive);
-  mosquitto_subscribe(self->mosq, NULL, _get_topic(self), 1);
-}
 
 static gboolean
 _dd_init(LogPipe *d)
 {
   MQTTDestinationDriver *self = (MQTTDestinationDriver *)d;
-
-  _init_mosq(self);
 
   if (!log_threaded_dest_driver_init_method(d))
     return FALSE;
@@ -143,7 +133,6 @@ gboolean
 _dd_deinit(LogPipe *s)
 {
   MQTTDestinationDriver *self = (MQTTDestinationDriver *)s;
-  mosquitto_destroy(self->mosq);
 
   return log_threaded_dest_driver_deinit_method(s);
 }
@@ -153,7 +142,6 @@ _dd_free(LogPipe *d)
 {
   MQTTDestinationDriver *self = (MQTTDestinationDriver *)d;
 
-  mosquitto_lib_cleanup();
   log_threaded_dest_driver_free(d);
 }
 
@@ -161,7 +149,6 @@ LogDriver *
 mqtt_destination_dd_new(GlobalConfig *cfg)
 {
   MQTTDestinationDriver *self = g_new0(MQTTDestinationDriver, 1);
-  mosquitto_lib_init();
 
   log_threaded_dest_driver_init_instance(&self->super, cfg);
   self->super.super.super.super.init = _dd_init;
