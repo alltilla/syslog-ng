@@ -75,31 +75,6 @@ mqtt_destination_dd_set_keepalive (LogDriver *d, const glong keepalive)
 /*
  * Utilities
  */
-
-
-
-static const gchar *
-_get_host_name(LogThreadedDestDriver *d)
-{
-  MQTTDestinationDriver *self = (MQTTDestinationDriver *)d;
-  static gchar host[1024];
-
-  g_snprintf(host, sizeof(host),
-             "%s", self->host);
-  return host;
-}
-
-static const gchar *
-_get_topic(LogThreadedDestDriver *d)
-{
-  MQTTDestinationDriver *self = (MQTTDestinationDriver *)d;
-  static gchar topic[1024];
-
-  g_snprintf(topic, sizeof(topic),
-             "%s", self->topic);
-  return topic;
-}
-
 static const gchar *
 _format_stats_instance(LogThreadedDestDriver *d)
 {
