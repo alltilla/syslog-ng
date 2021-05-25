@@ -98,7 +98,9 @@ _dd_deinit(LogPipe *s)
 static void
 _dd_free(LogPipe *d)
 {
-    // TODO
+  MQTTDestinationDriver *self = (MQTTDestinationDriver *)d;
+
+  log_threaded_dest_driver_free(d);
 }
 
 LogDriver *
