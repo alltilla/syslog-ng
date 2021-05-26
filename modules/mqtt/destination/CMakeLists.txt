@@ -3,6 +3,8 @@ set(MQTT_SOURCES
     mqtt-destination.h
     mqtt-parser.c
     mqtt-parser.h
+    mqtt-callback.c
+    mqtt-callback.h
     mqtt-plugin.c
     mqtt-worker.c
     mqtt-worker.h

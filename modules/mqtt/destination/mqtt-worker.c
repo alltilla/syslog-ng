@@ -23,6 +23,7 @@
 #include "mqtt-destination.h"
 #include "thread-utils.h"
 #include "apphook.h"
+#include "mqtt-callback.h"
 
 #include <stdio.h>
 
@@ -77,6 +78,17 @@ _dw_insert(LogThreadedDestWorker *s, LogMessage *msg)
   */
 }
 
+static void
+_set_mosquitto_callback(struct mosquitto *mosq)
+{
+  mosquitto_connect_callback_set(mosq, mqtt_connect_callback);
+  mosquitto_disconnect_callback_set(mosq, mqtt_disconnect_callback);
+  mosquitto_message_callback_set(mosq, mqtt_message_callback);
+  mosquitto_subscribe_callback_set(mosq, mqtt_subscribe_callback);
+  mosquitto_unsubscribe_callback_set(mosq, mqtt_unsubscribe_callback);
+  mosquitto_log_callback_set(mosq, mqtt_log_callback);
+}
+
 static gboolean
 _connect(LogThreadedDestWorker *s)
 {
@@ -95,6 +107,8 @@ _connect(LogThreadedDestWorker *s)
       msg_error("Could not create mosquitto", evt_tag_error("error"));
       return FALSE;
     }
+
+  _set_mosquitto_callback(self->mosq);
 
   mosquitto_threaded_set(self->mosq, TRUE);
 

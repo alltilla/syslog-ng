@@ -3,6 +3,8 @@ modules_mqtt_destination_libmqtt_destination_la_SOURCES = \
   modules/mqtt/destination/mqtt-grammar.y       \
   modules/mqtt/destination/mqtt-parser.c        \
   modules/mqtt/destination/mqtt-parser.h        \
+  modules/mqtt/destination/mqtt-callback.c      \
+  modules/mqtt/destination/mqtt-callback.h      \
   modules/mqtt/destination/mqtt-plugin.c        \
   modules/mqtt/destination/mqtt-worker.h        \
   modules/mqtt/destination/mqtt-worker.c        \
