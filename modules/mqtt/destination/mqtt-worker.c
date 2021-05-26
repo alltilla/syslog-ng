@@ -80,6 +80,9 @@ _dw_insert(LogThreadedDestWorker *s, LogMessage *msg)
 static gboolean
 _connect(LogThreadedDestWorker *s)
 {
+  int loop;
+  int isConnected;
+
   MQTTDestinationWorker *self = (MQTTDestinationWorker *)s;
   MQTTDestinationDriver *owner = (MQTTDestinationDriver *) s->owner;
 
@@ -89,14 +92,26 @@ _connect(LogThreadedDestWorker *s)
 
   if(self->mosq == NULL)
     {
-
+      msg_error("Could not create mosquitto", evt_tag_error("error"));
       return FALSE;
     }
 
   mosquitto_threaded_set(self->mosq, TRUE);
 
-  mosquitto_connect(self->mosq, owner->host->str, owner->port, owner->keepalive);
-  mosquitto_subscribe(self->mosq, NULL, owner->topic->str, 1);
+  isConnected = mosquitto_connect(self->mosq, owner->host->str, owner->port, owner->keepalive);
+
+  if (isConnected)
+    {
+      msg_error("Could not connect mosquitto", evt_tag_error("error"));
+      return FALSE;
+    }
+
+  loop = mosquitto_loop_start(self->mosq);
+  if (loop != MOSQ_ERR_SUCCESS)
+    {
+      msg_error("Unable to start loop", evt_tag_error("error"));
+      return FALSE;
+    }
 
   return TRUE;
 }
@@ -180,7 +195,7 @@ mqtt_destination_dw_new(LogThreadedDestDriver *o, gint worker_index)
   self->topic = g_string_new("");
 
   mqtt_global_initializers();
-  
+
   log_threaded_dest_worker_init_instance(&self->super, o, worker_index);
   self->super.thread_init = _thread_init;
   self->super.thread_deinit = _thread_deinit;
