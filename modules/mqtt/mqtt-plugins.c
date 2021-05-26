@@ -33,20 +33,14 @@ extern CfgParser threaded_random_generator_parser;
 
 extern CfgParser threaded_diskq_source_parser;
 
-extern CfgParser http_test_slots_parser;
 
 extern CfgParser mqtt_destination_parser;
 
 static Plugin mqtt_plugins[] =
 {
   {
-    .type = LL_CONTEXT_INNER_DEST,
-    .name = "http_test_slots",
-    .parser = &http_test_slots_parser
-  },
-  {
     .type = LL_CONTEXT_DESTINATION,
-    .name = "mqtt_destination",
+    .name = "mqtt",
     .parser = &mqtt_destination_parser
   }
 };

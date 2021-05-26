@@ -25,6 +25,6 @@ modules_mqtt_destination_libmqtt_destination_la_CPPFLAGS  =     \
   -I$(top_srcdir)/modules/mqtt/destination/  \
   -I$(top_builddir)/modules/mqtt/destination/
 
-modules_mqtt_destination_libmqtt_destination_la_LIBADD  = $(MODULE_DEPS_LIBS)
+modules_mqtt_destination_libmqtt_destination_la_LIBADD  = $(MODULE_DEPS_LIBS) -lmosquitto
 modules_mqtt_destination_libmqtt_destination_la_LDFLAGS = $(MODULE_LDFLAGS)
 modules_mqtt_destination_libmqtt_destination_la_DEPENDENCIES= $(MODULE_DEPS_LIBS)

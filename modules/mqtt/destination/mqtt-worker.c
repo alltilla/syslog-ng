@@ -43,7 +43,7 @@ _dw_insert(LogThreadedDestWorker *s, LogMessage *msg)
                   self->thread_id, log_msg_get_value(msg, LM_V_MESSAGE, NULL));
 
   int retval = _mqtt_send(self, string_to_write->str);
-
+  msg_error("asd");
   if (retval != MOSQ_ERR_SUCCESS)
     {
       switch(retval)
@@ -108,9 +108,9 @@ _connect(LogThreadedDestWorker *s)
       return FALSE;
     }
 
-  _set_mosquitto_callback(self->mosq);
+  // _set_mosquitto_callback(self->mosq);
 
-  mosquitto_threaded_set(self->mosq, TRUE);
+  // mosquitto_threaded_set(self->mosq, true); // ezt megnézzni
 
   isConnected = mosquitto_connect(self->mosq, owner->host->str, owner->port, owner->keepalive);
 
@@ -123,7 +123,7 @@ _connect(LogThreadedDestWorker *s)
   loop = mosquitto_loop_start(self->mosq);
   if (loop != MOSQ_ERR_SUCCESS)
     {
-      msg_error("Unable to start loop", evt_tag_error("error"));
+      msg_error("Unable to start loop", evt_tag_error("error"), evt_tag_int("loop ", loop));
       return FALSE;
     }
 
@@ -180,6 +180,7 @@ static void
 mqtt_global_init(void)
 {
   mosquitto_lib_init();
+  msg_error("init lefut");
 }
 
 static void

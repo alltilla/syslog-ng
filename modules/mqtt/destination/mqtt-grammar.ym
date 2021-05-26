@@ -56,7 +56,7 @@ start
           {
             last_driver = *instance = mqtt_destination_dd_new(configuration);
           }
-          '(' mqtt_destination_option ')' { YYACCEPT; }
+          '(' mqtt_destination_options ')' { YYACCEPT; }
 ;
 
 mqtt_destination_options
