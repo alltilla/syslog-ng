@@ -85,8 +85,19 @@ _connect(LogThreadedDestWorker *s)
   g_string_assign(self->topic, owner->topic->str);
 
   self->mosq = mosquitto_new(NULL, owner->clean_session, NULL);
+
+  if(self->mosq == NULL)
+    {
+
+      return FALSE;
+    }
+
+  mosquitto_threaded_set(self->mosq, TRUE);
+
   mosquitto_connect(self->mosq, owner->host->str, owner->port, owner->keepalive);
   mosquitto_subscribe(self->mosq, NULL, owner->topic->str, 1);
+
+  return TRUE;
 }
 
 static void
