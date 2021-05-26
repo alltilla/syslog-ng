@@ -22,6 +22,7 @@
 #include "mqtt-worker.h"
 #include "mqtt-destination.h"
 #include "thread-utils.h"
+#include "apphook.h"
 
 #include <stdio.h>
 
@@ -143,8 +144,32 @@ _dw_free(LogThreadedDestWorker *s)
   */
  g_string_free(self->topic, TRUE);
 
-  mosquitto_lib_cleanup();
   log_threaded_dest_worker_free_method(s);
+}
+
+static void
+mqtt_global_init(void)
+{
+  mosquitto_lib_init();
+}
+
+static void
+mqtt_global_deinit(void)
+{
+  mosquitto_lib_cleanup();
+}
+
+static void
+mqtt_global_initializers(void) 
+{
+  static gboolean initialized = FALSE;
+
+  if (!initialized)
+    {
+      register_application_hook(AH_STARTUP, (ApplicationHookFunc) mqtt_global_init, NULL, AHM_RUN_ONCE);
+      register_application_hook(AH_SHUTDOWN, (ApplicationHookFunc) mqtt_global_deinit, NULL, AHM_RUN_ONCE);
+      initialized = TRUE;
+    }
 }
 
 
@@ -154,7 +179,8 @@ mqtt_destination_dw_new(LogThreadedDestDriver *o, gint worker_index)
   MQTTDestinationWorker *self = g_new0(MQTTDestinationWorker, 1);
   self->topic = g_string_new("");
 
-  mosquitto_lib_init();
+  mqtt_global_initializers();
+  
   log_threaded_dest_worker_init_instance(&self->super, o, worker_index);
   self->super.thread_init = _thread_init;
   self->super.thread_deinit = _thread_deinit;
