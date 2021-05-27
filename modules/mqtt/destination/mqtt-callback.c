@@ -20,47 +20,61 @@
  *
  */
 
+
+#include "mqtt-worker.h"
+#include "mqtt-destination.h"
+#include "thread-utils.h"
+#include "apphook.h"
 #include "mqtt-callback.h"
+
+#include <stdio.h>
 
 void 
 mqtt_connect_callback(struct mosquitto *mosq, void *obj, int rc)
 {
     // TODO
+    msg_error("connect callback");
 }
 
 void 
 mqtt_disconnect_callback(struct mosquitto *mosq, void *obj, int rc)
 {
     // TODO
+    msg_error("disconnect callback");
 }
 
 void 
 mqtt_publish_callback(struct mosquitto *mosq, void *obj, int mid)
 {
     // TODO
+    msg_error("publish callback");
 }
 
 void 
 mqtt_message_callback(struct mosquitto *mosq, void *obj, const struct mosquitto_message * message)
 {
     // TODO
+    msg_error("message callback");
 }
 
 void 
 mqtt_subscribe_callback(struct mosquitto *mosq, void *obj, int mid, int qos_count, const int* grabted_qos)
 {
     // TODO
+    msg_error("subscribe callback");
 }
 
 void 
 mqtt_unsubscribe_callback(struct mosquitto *mosq, void *obj, int mid)
 {
     // TODO
+    msg_error("unscribe callback");
 }
 
 void 
 mqtt_log_callback(struct mosquitto *mosq, void *obj, int level, const char *str)
 {
     // TODO
+    msg_error("log callback", evt_tag_int("level", level), evt_tag_str("str", str));
 }
 

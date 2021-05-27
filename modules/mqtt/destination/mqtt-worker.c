@@ -29,8 +29,14 @@
 
 static int
 _mqtt_send(MQTTDestinationWorker *self, char *msg)
-{ 
-  return mosquitto_publish(self->mosq, NULL, self->topic->str, strlen(msg), msg, 1, 0);
+{
+  int publish_result;
+  int loop_result;
+  publish_result = mosquitto_publish(self->mosq, NULL, self->topic->str, strlen(msg), msg, 1, 0);
+  loop_result = mosquitto_loop(self->mosq, 1000, 1);
+  msg_error("send", evt_tag_int("loop_result", loop_result));
+  
+  return publish_result;
 }
 
 static LogThreadedResult
@@ -43,7 +49,7 @@ _dw_insert(LogThreadedDestWorker *s, LogMessage *msg)
                   self->thread_id, log_msg_get_value(msg, LM_V_MESSAGE, NULL));
 
   int retval = _mqtt_send(self, string_to_write->str);
-  msg_error("asd");
+  msg_error("insert", evt_tag_int("retval", retval));
   if (retval != MOSQ_ERR_SUCCESS)
     {
       switch(retval)
@@ -98,6 +104,47 @@ _connect(LogThreadedDestWorker *s)
   MQTTDestinationWorker *self = (MQTTDestinationWorker *)s;
   MQTTDestinationDriver *owner = (MQTTDestinationDriver *) s->owner;
 
+
+  isConnected = mosquitto_connect(self->mosq, owner->host->str, owner->port, owner->keepalive);
+
+  if (isConnected)
+    {
+      msg_error("Could not connect mosquitto", evt_tag_error("error"));
+      return FALSE;
+    }
+
+  // loop = mosquitto_loop_start(self->mosq);
+  // if (loop != MOSQ_ERR_SUCCESS)
+  //   {
+  //     msg_error("Unable to start loop", evt_tag_error("error"), evt_tag_int("loop ", loop));
+  //     return FALSE;
+  //   }
+  msg_error("connect");
+  return TRUE;
+}
+
+static void
+_disconnect(LogThreadedDestWorker *s)
+{
+  MQTTDestinationWorker *self = (MQTTDestinationWorker *)s;
+  mosquitto_disconnect(self->mosq);
+  msg_error("disconnect");
+}
+
+static gboolean
+_thread_init(LogThreadedDestWorker *s)
+{
+  MQTTDestinationWorker *self = (MQTTDestinationWorker *)s;
+  MQTTDestinationDriver *owner = (MQTTDestinationDriver *) s->owner;
+
+  msg_error("thread init");
+  /*
+    You can create thread specific resources here. In this example, we
+    store the thread id.
+  */
+  self->thread_id = get_thread_id();
+
+
   g_string_assign(self->topic, owner->topic->str);
 
   self->mosq = mosquitto_new(NULL, owner->clean_session, NULL);
@@ -108,46 +155,10 @@ _connect(LogThreadedDestWorker *s)
       return FALSE;
     }
 
-  // _set_mosquitto_callback(self->mosq);
+  _set_mosquitto_callback(self->mosq);
 
-  // mosquitto_threaded_set(self->mosq, true); // ezt megnézzni
+  mosquitto_threaded_set(self->mosq, true); // ezt megnézzni
 
-  isConnected = mosquitto_connect(self->mosq, owner->host->str, owner->port, owner->keepalive);
-
-  if (isConnected)
-    {
-      msg_error("Could not connect mosquitto", evt_tag_error("error"));
-      return FALSE;
-    }
-
-  loop = mosquitto_loop_start(self->mosq);
-  if (loop != MOSQ_ERR_SUCCESS)
-    {
-      msg_error("Unable to start loop", evt_tag_error("error"), evt_tag_int("loop ", loop));
-      return FALSE;
-    }
-
-  return TRUE;
-}
-
-static void
-_disconnect(LogThreadedDestWorker *s)
-{
-  MQTTDestinationWorker *self = (MQTTDestinationWorker *)s;
-
-  mosquitto_destroy(self->mosq);
-}
-
-static gboolean
-_thread_init(LogThreadedDestWorker *s)
-{
-  MQTTDestinationWorker *self = (MQTTDestinationWorker *)s;
-
-  /*
-    You can create thread specific resources here. In this example, we
-    store the thread id.
-  */
-  self->thread_id = get_thread_id();
 
   return log_threaded_dest_worker_init_method(s);
 }
@@ -155,11 +166,13 @@ _thread_init(LogThreadedDestWorker *s)
 static void
 _thread_deinit(LogThreadedDestWorker *s)
 {
+  MQTTDestinationWorker *self = (MQTTDestinationWorker *)s;
   /*
     If you created resources during _thread_init,
     you need to free them here
   */
 
+  mosquitto_destroy(self->mosq);
   log_threaded_dest_worker_deinit_method(s);
 }
 
@@ -208,7 +221,7 @@ mqtt_destination_dw_new(LogThreadedDestDriver *o, gint worker_index)
 {
   MQTTDestinationWorker *self = g_new0(MQTTDestinationWorker, 1);
   self->topic = g_string_new("");
-
+  msg_error("new");
   mqtt_global_initializers();
 
   log_threaded_dest_worker_init_instance(&self->super, o, worker_index);
