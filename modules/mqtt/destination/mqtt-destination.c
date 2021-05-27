@@ -33,7 +33,7 @@
 #include "plugin-types.h"
 #include "logthrdest/logthrdestdrv.h"
 
-#ifndef DEFAULT_MQTT_VALUE_INCLUDED
+#ifndef DEFAULT_MQTT_VALUE_INCLUDED // ez honnan jon?
 #define DEFAULT_HOST "localhost"
 #define DEFAULT_PORT 1833
 #define DEFAULT_CLEAN_SESSION TRUE
@@ -58,7 +58,7 @@ void
 mqtt_destination_dd_set_port (LogDriver *d, const glong port)
 {
   MQTTDestinationDriver *self = (MQTTDestinationDriver *)d;
-  self->port = (gint)port;
+  self->port = (gint)port; // kerd be gint-ben
   is_port_setted = TRUE;
 }
 
@@ -70,7 +70,7 @@ mqtt_destination_dd_set_topic(LogDriver *d, const gchar *topic)
 }
 
 void
-mqtt_destination_dd_set_clean_session (LogDriver *d, const gboolean clean_session)
+mqtt_destination_dd_set_clean_session (LogDriver *d, const gboolean clean_session) // biztos, hogy user altal allithatonak kell lennie?
 {
   MQTTDestinationDriver *self = (MQTTDestinationDriver *)d;
   self->clean_session = clean_session;
@@ -81,7 +81,7 @@ void
 mqtt_destination_dd_set_keepalive (LogDriver *d, const glong keepalive)
 {
   MQTTDestinationDriver *self = (MQTTDestinationDriver *)d;
-  self->keepalive = (gint)keepalive;
+  self->keepalive = (gint)keepalive; // vagy tarold glong-ban, vagy kerd be gint-ben
   is_keepalive_setted = TRUE;
 }
 
@@ -94,8 +94,10 @@ _format_stats_instance(LogThreadedDestDriver *d)
   MQTTDestinationDriver *self = (MQTTDestinationDriver *)d;
   static gchar persist_name[1024];
 
+  // itt is meg kellene nezni, hogy a persist_name be van-e allitva a user altal, es ha igen, akkor azt hasznalni
+
   g_snprintf(persist_name, sizeof(persist_name),
-             "mqtt-destination,%s.%d.%s", self->host->str, self->port, self->topic->str);
+             "mqtt-destination,%s.%d.%s", self->host->str, self->port, self->topic->str); // hasznalj vesszoket
   return persist_name;
 }
 
@@ -108,7 +110,7 @@ _format_persist_name(const LogPipe *d)
   if (d->persist_name)
     g_snprintf(persist_name, sizeof(persist_name), "mqtt-destination.%s", d->persist_name);
   else
-    g_snprintf(persist_name, sizeof(persist_name), "mqtt-destination.%s.%d.%s", self->host->str, self->port, self->topic->str);
+    g_snprintf(persist_name, sizeof(persist_name), "mqtt-destination.%s.%d.%s", self->host->str, self->port, self->topic->str); // valtozok a formazasnal zarojelben, vesszovel elvalasztva szoktak lenni
 
   return persist_name;
 }
@@ -120,13 +122,13 @@ _set_default_value(MQTTDestinationDriver *self)
     g_string_assign(self->host, DEFAULT_HOST);
 
   if (!is_port_setted)
-    self->port = DEFAULT_PORT;
+    self->port = DEFAULT_PORT; // new-ban allitsd -1-re, es az lesz arra if-elj itt
 
   if (!is_clean_session_setted)
-    self->clean_session = DEFAULT_CLEAN_SESSION;
+    self->clean_session = DEFAULT_CLEAN_SESSION; // new-ban allitsd -1-re, es az lesz arra if-elj itt
 
   if (!is_keepalive_setted)
-    self->keepalive = DEFAULT_KEEPALIVE;
+    self->keepalive = DEFAULT_KEEPALIVE; // new-ban allitsd -1-re, es az lesz arra if-elj itt
 }
 
 static gboolean
@@ -138,6 +140,7 @@ _dd_init(LogPipe *d)
     return FALSE;
 
   if (self->topic->len == 0)
+    // error msg jo lenne ide
     return FALSE;
 
   _set_default_value(self);

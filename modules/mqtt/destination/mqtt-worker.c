@@ -30,8 +30,8 @@
 static int
 _mqtt_send(MQTTDestinationWorker *self, char *msg)
 {
-  int publish_result;
-  int loop_result;
+  int publish_result; // gint, nem kell kulon definialni
+  int loop_result;    //            -||-
   publish_result = mosquitto_publish(self->mosq, NULL, self->topic->str, strlen(msg), msg, 1, 0);
   loop_result = mosquitto_loop(self->mosq, 1000, 1);
   msg_error("send", evt_tag_int("loop_result", loop_result));
@@ -44,15 +44,15 @@ _dw_insert(LogThreadedDestWorker *s, LogMessage *msg)
 {
   MQTTDestinationWorker *self = (MQTTDestinationWorker *)s;
 
-  GString *string_to_write = g_string_new("");
+  GString *string_to_write = g_string_new(""); // koltseges muvelet, erdmes inkabb 1 GStringet tarolni a workerben, es azt ujrahasznalni minden insert-ben
   g_string_printf(string_to_write, "thread_id=%lu message=%s\n",
-                  self->thread_id, log_msg_get_value(msg, LM_V_MESSAGE, NULL));
+                  self->thread_id, log_msg_get_value(msg, LM_V_MESSAGE, NULL)); // configban template() opcio + log_template_format(), de errol inkabb szemelyesen beszeljunk
 
   int retval = _mqtt_send(self, string_to_write->str);
   msg_error("insert", evt_tag_int("retval", retval));
   if (retval != MOSQ_ERR_SUCCESS)
     {
-      switch(retval)
+      switch(retval) // a mapolast alaposabban at kellene nezni, allitsuk be jol a threaded dest-et!
         {
           case MOSQ_ERR_INVAL:
           case MOSQ_ERR_NOMEM:
@@ -85,7 +85,7 @@ _dw_insert(LogThreadedDestWorker *s, LogMessage *msg)
 }
 
 static void
-_set_mosquitto_callback(struct mosquitto *mosq)
+_set_mosquitto_callback(struct mosquitto *mosq) // megnezzuk, hogy ezek kellenek-e
 {
   mosquitto_connect_callback_set(mosq, mqtt_connect_callback);
   mosquitto_disconnect_callback_set(mosq, mqtt_disconnect_callback);
@@ -98,8 +98,8 @@ _set_mosquitto_callback(struct mosquitto *mosq)
 static gboolean
 _connect(LogThreadedDestWorker *s)
 {
-  int loop;
-  int isConnected;
+  int loop; // felesleges valtozo
+  int isConnected; // nyugodtan lehet lejjebb definialni, hasznalj gint-et, hasznalj snake_case-t
 
   MQTTDestinationWorker *self = (MQTTDestinationWorker *)s;
   MQTTDestinationDriver *owner = (MQTTDestinationDriver *) s->owner;
@@ -109,7 +109,8 @@ _connect(LogThreadedDestWorker *s)
 
   if (isConnected)
     {
-      msg_error("Could not connect mosquitto", evt_tag_error("error"));
+      msg_error("Could not connect mosquitto", evt_tag_error("error")); // + evt_tag_str("driver", owner->super.super.super.id)
+      // csak akkor hasznalunk evt_tag_error-t, ha az errno be van setelve, nem az isConnected erteket kellene kiiratni?
       return FALSE;
     }
 
@@ -142,7 +143,7 @@ _thread_init(LogThreadedDestWorker *s)
     You can create thread specific resources here. In this example, we
     store the thread id.
   */
-  self->thread_id = get_thread_id();
+  self->thread_id = get_thread_id(); // erre nincs szukseg
 
 
   g_string_assign(self->topic, owner->topic->str);
@@ -220,7 +221,7 @@ LogThreadedDestWorker *
 mqtt_destination_dw_new(LogThreadedDestDriver *o, gint worker_index)
 {
   MQTTDestinationWorker *self = g_new0(MQTTDestinationWorker, 1);
-  self->topic = g_string_new("");
+  self->topic = g_string_new(""); // hasznalhato az owner-e
   msg_error("new");
   mqtt_global_initializers();
 
