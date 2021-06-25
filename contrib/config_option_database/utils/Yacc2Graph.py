@@ -24,15 +24,16 @@ import xml.etree.ElementTree as xml_parser
 from os import remove
 from subprocess import DEVNULL, Popen
 from tempfile import NamedTemporaryFile
+from dataclasses import dataclass
 
 import networkx
 
 
+@dataclass
 class Rule():
-    def __init__(self, number, parent, symbols):
-        self.number = number
-        self.parent = parent
-        self.symbols = symbols
+    number: int
+    parent: str
+    symbols: list
 
 
 def _run_in_shell(command):
