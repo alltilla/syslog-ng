@@ -75,6 +75,14 @@ def _yacc2graph(yacc):
     return _rules2graph(parse_yacc(yacc))
 
 
+def is_rule(node):
+    try:
+        int(node)
+    except ValueError:
+        return False
+    return True
+
+
 class BisonGraph:
     def __init__(self, yaccfile):
         with open(yaccfile, "r") as f:
@@ -92,7 +100,7 @@ class BisonGraph:
         return [x[1] for x in sorted(children)]
 
     def get_children(self, node):
-        if self.is_rule(node):
+        if is_rule(node):
             return self._children_of_rule_sorted(node)
         else:
             return sorted(self.graph.successors(node))
@@ -103,20 +111,11 @@ class BisonGraph:
     def is_terminal(self, node):
         return len(list(self.graph.successors(node))) == 0
 
-    def is_rule(self, node):
-        if node not in self.get_nodes():
-            raise Exception("Node not in graph: " + node)
-        try:
-            int(node)
-        except ValueError:
-            return False
-        return True
-
     def add_arc(self, from_node, to_node):
-        if self.is_rule(from_node) and not self.is_rule(to_node):
+        if is_rule(from_node) and not is_rule(to_node):
             index = len(self.get_children(from_node))
             self.graph.add_edge(from_node, to_node, index=index)
-        elif not self.is_rule(from_node) and self.is_rule(to_node):
+        elif not is_rule(from_node) and is_rule(to_node):
             self.graph.add_edge(from_node, to_node)
         else:
             raise Exception(
@@ -163,7 +162,7 @@ class BisonGraph:
             return paths
         stack.add(node)
 
-        if self.is_rule(node):
+        if is_rule(node):
             paths = self._gather_tokens_from_rules(node, paths, stack)
         else:
             paths = self._gather_tokens_from_nonterminals(node, paths, stack)
