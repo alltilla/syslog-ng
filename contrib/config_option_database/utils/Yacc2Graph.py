@@ -42,23 +42,24 @@ def _run_in_shell(command):
     return proc.returncode == 0
 
 
-def _write_to_file(content):
+def _create_temp_file_with_content(content):
     file = NamedTemporaryFile(mode='w')
     file.write(content)
     file.flush()
-    file.seek(0)
     return file
 
 
 def _yacc2xml(yacc_content):
-    with _write_to_file(yacc_content) as file:
-        xml_filepath = NamedTemporaryFile().name
-        try:
-            if not _run_in_shell(['bison', '--xml=' + xml_filepath, '--output=/dev/null', file.name]):
-                raise Exception('Failed to convert to xml:\n{}\n'.format(yacc_content))
-        except FileNotFoundError:
-            raise Exception('bison executable not found')
-        return xml_filepath
+    temp_yacc_file = _create_temp_file_with_content(yacc_content)
+    xml_filepath = NamedTemporaryFile().name
+
+    try:
+        if not _run_in_shell(['bison', '--xml=' + xml_filepath, '--output=/dev/null', temp_yacc_file.name]):
+            raise Exception('Failed to convert to xml:\n{}\n'.format(yacc_content))
+    except FileNotFoundError:
+        raise Exception('bison executable not found')
+
+    return xml_filepath
 
 
 def _xml2rules(filename):
@@ -73,9 +74,9 @@ def _xml2rules(filename):
 
 
 def _yacc2rules(yacc):
-    xml = _yacc2xml(yacc)
-    rules = _xml2rules(xml)
-    remove(xml)
+    xml_filepath = _yacc2xml(yacc)
+    rules = _xml2rules(xml_filepath)
+    remove(xml_filepath)
     return rules
 
 
