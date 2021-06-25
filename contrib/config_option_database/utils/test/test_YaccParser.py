@@ -64,18 +64,18 @@ def test_failed_yacc2xml():
 
 def test_parse_yacc():
     expected = [
-        (0, "$accept", ["start", "$end"]),
-        (1, "start", ["test"]),
-        (2, "test", ["test1", "test1next", "test1next"]),
-        (3, "test", ["test2", "test2next", "test"]),
-        (4, "test", ["KW_TEST", "'('", "test_opts", "')'"]),
-        (5, "test", []),
-        (6, "test_opts", ["number"]),
-        (7, "test_opts", ["string"]),
+        ("$accept", ["start", "$end"]),
+        ("start", ["test"]),
+        ("test", ["test1", "test1next", "test1next"]),
+        ("test", ["test2", "test2next", "test"]),
+        ("test", ["KW_TEST", "'('", "test_opts", "')'"]),
+        ("test", []),
+        ("test_opts", ["number"]),
+        ("test_opts", ["string"]),
     ]
 
     rules = parse_yacc(test_string)
     assert len(rules) == len(expected)
-    for number, parent, symbols in expected:
-        rule = rules[number]
-        assert rule.number == number and rule.parent == parent and rule.symbols == symbols
+    for rule_id, expected_rule in enumerate(expected):
+        rule = rules[rule_id]
+        assert rule.expandable_symbol == expected_rule[0] and rule.expansion == expected_rule[1]

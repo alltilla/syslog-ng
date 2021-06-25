@@ -28,9 +28,8 @@ from dataclasses import dataclass
 
 @dataclass
 class Rule():
-    number: int
-    parent: str
-    symbols: list
+    expandable_symbol: str
+    expansion: list
 
 
 def _run_in_shell(command):
@@ -59,10 +58,9 @@ def _xml2rules(filename):
     rules = []
     root = xml_parser.parse(filename).getroot()
     for rule in root.iter('rule'):
-        number = int(rule.get('number'))
-        parent = rule.find('lhs').text
-        symbols = [symbol.text for symbol in rule.find('rhs') if symbol.tag != 'empty']
-        rules.append(Rule(number, parent, symbols))
+        expandable_symbol = rule.find('lhs').text
+        expansion = [symbol.text for symbol in rule.find('rhs') if symbol.tag != 'empty']
+        rules.append(Rule(expandable_symbol, expansion))
     return rules
 
 

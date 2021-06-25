@@ -64,11 +64,10 @@ from utils.YaccParser import parse_yacc
 # (See the unit tests for more examples)
 def _rules2graph(rules):
     graph = networkx.MultiDiGraph()
-    for rule in rules:
-        rule_node = str(rule.number)
-        graph.add_edge(rule.parent, rule_node)
-        for index, symbol in enumerate(rule.symbols):
-            graph.add_edge(rule_node, symbol, index=index)
+    for rule_id, rule in enumerate(rules):
+        graph.add_edge(rule.expandable_symbol, str(rule_id))
+        for index, symbol in enumerate(rule.expansion):
+            graph.add_edge(str(rule_id), symbol, index=index)
     return graph
 
 
