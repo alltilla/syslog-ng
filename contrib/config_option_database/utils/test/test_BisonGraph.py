@@ -23,12 +23,9 @@
 import pytest
 from tempfile import NamedTemporaryFile
 
-from utils.BisonGraph import BisonGraph
+from utils.BisonGraph import BisonGraph, _yacc2graph
 
-
-@pytest.fixture
-def graph():
-    test_string = r"""
+test_string = r"""
 %token test1
 %token test1next
 %token test2
@@ -56,12 +53,47 @@ test_opts
     ;
 %%
 """
+@pytest.fixture
+def graph():
     with NamedTemporaryFile(mode='w') as f:
         f.write(test_string)
         f.flush()
         f.seek(0)
         graph = BisonGraph(f.name)
     return graph
+
+
+def test_yacc2graph():
+    expected = [
+        ('$accept', {'0': {0: {}}}),
+        ('0', {'start': {0: {'index': 0}}, '$end': {0: {'index': 1}}}),
+        ('start', {'1': {0: {}}}),
+        ('1', {'test': {0: {'index': 0}}}),
+        ('test', {'2': {0: {}}, '3': {0: {}}, '4': {0: {}}, '5': {0: {}}}),
+        ('2', {'test1': {0: {'index': 0}}, 'test1next': {0: {'index': 1}, 1: {'index': 2}}}),
+        ('3', {'test2': {0: {'index': 0}}, 'test2next': {0: {'index': 1}}, 'test': {0: {'index': 2}}}),
+        ('4', {'KW_TEST': {0: {'index': 0}}, "'('": {0: {'index': 1}}, 'test_opts': {0: {'index': 2}}, "')'": {0: {'index': 3}}}),
+        ('test_opts', {'6': {0: {}}, '7': {0: {}}}),
+        ('6', {'number': {0: {'index': 0}}}),
+        ('7', {'string': {0: {'index': 0}}}),
+        ('$end', {}),
+        ('test1', {}),
+        ('test1next', {}),
+        ('test2', {}),
+        ('test2next', {}),
+        ('KW_TEST', {}),
+        ("'('", {}),
+        ("')'", {}),
+        ("number", {}),
+        ("string", {}),
+        ('5', {})
+    ]
+
+    graph = _yacc2graph(test_string)
+    assert sorted(graph.nodes) == sorted([x[0] for x in expected])
+    for node, children in expected:
+        assert graph[node] == children
+
 
 
 def test_get_node(graph):

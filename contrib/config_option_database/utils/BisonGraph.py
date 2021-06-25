@@ -20,14 +20,67 @@
 #
 #############################################################################
 
-from utils.Yacc2Graph import yacc2graph
+import networkx
+from utils.YaccParser import parse_yacc
+
+# _rules2graph:
+# The structure of the graph is the following:
+#  * The graph is directed
+#  * A node can either be a symbol (terminal/nonterminal) or a rule number
+#  * The edges connect the parent nodes to its children nodes
+#  * Rule numbers always have symbols as children
+#  * Symbols always have rule numbers as children
+#  * Edges can be indexed
+#  * When we are traversing through the graph, if a node's edges
+#    are indexed, the edges must be traversed in ascending order,
+#    if they are not indexed, the order does not matter
+#  * Rule numbers' edges to their children are indexed
+#  * Symbols' edges to their children are not indexed
+#
+# In simple words, take the following yacc syntax:
+# %token test1
+# %token test1next
+# %token test2
+# %token test2next
+# %%
+# start
+#     : test                      # rule number 0
+#     ;
+# test
+#     : test1 test1next test1next # rule number 1
+#     | test2 test2next test      # rule number 2
+#     ;
+#
+# * 'start' and 'test' are nonterminal symbols
+# * test1, test1next, test2, test2next are terminal symbols
+# * Every line, starting with a ':' or a '|' are rules, and they are numbered
+#
+# * The child of 'start' is 'rule number 0', and it is not indexed
+# * The child of 'rule number 0' is 'test', and it is indexed
+# * The children of 'test' are 'rule number 0' and 'rule number 1', and they are not indexed
+# * The children of 'rule number 1' are 'test1', 'test1next' and 'test1next' and they are indexed
+# * The children of 'rule number 2' are 'test2', 'test2next' and 'test', and they are indexed
+#
+# (See the unit tests for more examples)
+def _rules2graph(rules):
+    graph = networkx.MultiDiGraph()
+    for rule in rules:
+        rule_node = str(rule.number)
+        graph.add_edge(rule.parent, rule_node)
+        for index, symbol in enumerate(rule.symbols):
+            graph.add_edge(rule_node, symbol, index=index)
+    return graph
 
 
-class BisonGraph():
+def _yacc2graph(yacc):
+    return _rules2graph(parse_yacc(yacc))
+
+
+class BisonGraph:
     def __init__(self, yaccfile):
-        with open(yaccfile, 'r') as f:
+        with open(yaccfile, "r") as f:
             yacc = f.read()
-            self.graph = yacc2graph(yacc)
+            self.graph = _yacc2graph(yacc)
 
     def get_nodes(self):
         return list(self.graph.nodes)
@@ -36,7 +89,7 @@ class BisonGraph():
         children = []
         for child, arcs in self.graph[node].items():
             for _, arc in arcs.items():
-                children.append((arc['index'], child))
+                children.append((arc["index"], child))
         return [x[1] for x in sorted(children)]
 
     def get_children(self, node):
@@ -53,7 +106,7 @@ class BisonGraph():
 
     def is_rule(self, node):
         if node not in self.get_nodes():
-            raise Exception('Node not in graph: ' + node)
+            raise Exception("Node not in graph: " + node)
         try:
             int(node)
         except ValueError:
@@ -67,7 +120,12 @@ class BisonGraph():
         elif not self.is_rule(from_node) and self.is_rule(to_node):
             self.graph.add_edge(from_node, to_node)
         else:
-            raise Exception('Arc must be added from non-rule to rule or rule to non-rule: ' + from_node + '->' + to_node)
+            raise Exception(
+                "Arc must be added from non-rule to rule or rule to non-rule: "
+                + from_node
+                + "->"
+                + to_node
+            )
 
     def make_terminal(self, node):
         children = self.get_children(node)
@@ -81,7 +139,7 @@ class BisonGraph():
         paths = paths.copy()
         for child in self.get_children(node):
             if self.is_terminal(child):
-                if child == '$end':
+                if child == "$end":
                     break
                 for i in range(len(paths)):
                     paths[i] += (child,)
@@ -96,7 +154,7 @@ class BisonGraph():
             new_paths.extend(new_path)
         return new_paths
 
-    def get_paths(self, node='$accept', paths=None, stack=None):
+    def get_paths(self, node="$accept", paths=None, stack=None):
         if stack is None:
             stack = set()
         if paths is None:
