@@ -21,7 +21,7 @@
 #############################################################################
 
 import networkx
-from utils.YaccParser import parse_yacc
+from utils.YaccParser import parse_yacc, Rule
 
 # _rules2graph:
 # The structure of the graph is the following:
@@ -62,81 +62,106 @@ from utils.YaccParser import parse_yacc
 # * The children of 'rule number 2' are 'test2', 'test2next' and 'test', and they are indexed
 #
 # (See the unit tests for more examples)
-def _rules2graph(rules):
-    graph = networkx.MultiDiGraph()
-    for rule_id, rule in enumerate(rules):
-        graph.add_edge(rule.expandable_symbol, str(rule_id))
-        for index, symbol in enumerate(rule.expansion):
-            graph.add_edge(str(rule_id), symbol, index=index)
-    return graph
 
 
-def _yacc2graph(yacc):
-    return _rules2graph(parse_yacc(yacc))
-
-
-def is_rule(node):
-    try:
-        int(node)
-    except ValueError:
-        return False
-    return True
+def is_rule_node(node):
+    return isinstance(node, int)
 
 
 class BisonGraph:
     def __init__(self, yaccfile):
+        self.__next_rule_id = 0
+        self.graph = networkx.MultiDiGraph()
         with open(yaccfile, "r") as f:
             yacc = f.read()
-            self.graph = _yacc2graph(yacc)
+            for rule in parse_yacc(yacc):
+                self.add_rule(rule)
 
-    def get_nodes(self):
-        return list(self.graph.nodes)
+    # Rule manipulation
 
-    def _children_of_rule_sorted(self, node):
-        children = []
-        for child, arcs in self.graph[node].items():
+    def get_all_rules(self):
+        rules = []
+        for rule_node in filter(is_rule_node, list(self.graph.nodes)):
+            rules.append(self.__create_rule_from_rule_node(rule_node))
+        return rules
+
+    def get_rules_containing(self, symbol):
+        assert not is_rule_node(symbol)
+
+        rules = []
+        rule_nodes_related_to_symbol = set(self.graph.predecessors(symbol)) | set(
+            self.graph.successors(symbol)
+        )
+        for rule_node in rule_nodes_related_to_symbol:
+            rules.append(self.__create_rule_from_rule_node(rule_node))
+        return rules
+
+    def add_rule(self, rule):
+        rule_id = self.__get_next_rule_id()
+        self.graph.add_edge(rule.expandable_symbol, rule_id)
+        for index, symbol in enumerate(rule.expansion):
+            self.graph.add_edge(rule_id, symbol, index=index)
+
+    def remove_rule(self, rule):
+        possible_rule_nodes = list(self.graph.successors(rule.expandable_symbol))
+        for rule_node in possible_rule_nodes:
+            if self.__get_expansion_from_rule_node(rule_node) == rule.expansion:
+                self.graph.remove_node(rule_node)
+
+    # Symbol manipulation
+
+    def get_all_symbols(self):
+        return list(filter(lambda x: not is_rule_node(x), self.graph.nodes))
+
+    def make_terminal(self, symbol):
+        assert not is_rule_node(symbol)
+
+        for rule_node in list(self.graph.successors(symbol)):
+            self.graph.remove_node(rule_node)
+
+    def remove_symbol(self, symbol):
+        assert not is_rule_node(symbol)
+
+        self.make_terminal(symbol)
+        self.graph.remove_node(symbol)
+
+    # Private functions
+
+    def __get_next_rule_id(self):
+        next_rule_id = self.__next_rule_id
+        self.__next_rule_id += 1
+        return next_rule_id
+
+    def __create_rule_from_rule_node(self, rule_node):
+        assert is_rule_node(rule_node)
+
+        expandable_symbols = list(self.graph.predecessors(rule_node))
+        assert len(expandable_symbols) == 1
+        return Rule(
+            expandable_symbols[0], self.__get_expansion_from_rule_node(rule_node)
+        )
+
+    def __get_expansion_from_rule_node(self, rule_node):
+        assert is_rule_node(rule_node)
+
+        indexed_expansion_symbols = []
+        for expansion_symbol, arcs in self.graph[rule_node].items():
             for _, arc in arcs.items():
-                children.append((arc["index"], child))
-        return [x[1] for x in sorted(children)]
+                indexed_expansion_symbols.append((arc["index"], expansion_symbol))
+        expansion = [x[1] for x in sorted(indexed_expansion_symbols)]
+        return expansion
 
-    def get_children(self, node):
-        if is_rule(node):
-            return self._children_of_rule_sorted(node)
-        else:
-            return sorted(self.graph.successors(node))
 
-    def get_parents(self, node):
-        return sorted(self.graph.predecessors(node))
 
-    def is_terminal(self, node):
+    # TODO refactor these, and add optimization of unreachable things, etc...
+
+    def __is_terminal(self, node):
         return len(list(self.graph.successors(node))) == 0
 
-    def add_arc(self, from_node, to_node):
-        if is_rule(from_node) and not is_rule(to_node):
-            index = len(self.get_children(from_node))
-            self.graph.add_edge(from_node, to_node, index=index)
-        elif not is_rule(from_node) and is_rule(to_node):
-            self.graph.add_edge(from_node, to_node)
-        else:
-            raise Exception(
-                "Arc must be added from non-rule to rule or rule to non-rule: "
-                + from_node
-                + "->"
-                + to_node
-            )
-
-    def make_terminal(self, node):
-        children = self.get_children(node)
-        for child in children:
-            self.graph.remove_edge(node, child)
-
-    def remove(self, node):
-        self.graph.remove_node(node)
-
-    def _gather_tokens_from_rules(self, node, paths, stack):
+    def __gather_tokens_from_rules(self, node, paths, stack):
         paths = paths.copy()
-        for child in self.get_children(node):
-            if self.is_terminal(child):
+        for child in self.__get_expansion_from_rule_node(node):
+            if self.__is_terminal(child):
                 if child == "$end":
                     break
                 for i in range(len(paths)):
@@ -145,9 +170,9 @@ class BisonGraph:
                 paths = self.get_paths(child, paths, stack)
         return paths
 
-    def _gather_tokens_from_nonterminals(self, node, paths, stack):
+    def __gather_tokens_from_nonterminals(self, node, paths, stack):
         new_paths = []
-        for child in self.get_children(node):
+        for child in sorted(self.graph.successors(node)):
             new_path = self.get_paths(child, paths, stack)
             new_paths.extend(new_path)
         return new_paths
@@ -162,10 +187,10 @@ class BisonGraph:
             return paths
         stack.add(node)
 
-        if is_rule(node):
-            paths = self._gather_tokens_from_rules(node, paths, stack)
+        if is_rule_node(node):
+            paths = self.__gather_tokens_from_rules(node, paths, stack)
         else:
-            paths = self._gather_tokens_from_nonterminals(node, paths, stack)
+            paths = self.__gather_tokens_from_nonterminals(node, paths, stack)
 
         stack.remove(node)
         return paths

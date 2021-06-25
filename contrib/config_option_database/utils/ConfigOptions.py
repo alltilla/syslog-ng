@@ -22,7 +22,7 @@
 
 from tempfile import NamedTemporaryFile
 
-from utils.BisonGraph import BisonGraph
+from utils.BisonGraph import BisonGraph, Rule
 from utils.MergeYm import merge_grammars
 from utils.OptionParser import path_to_options
 
@@ -58,21 +58,21 @@ def _process_helpers(graph):
     for node in helpers:
         graph.make_terminal(node)
     for from_node, to_node in connections:
-        for parent in graph.get_parents(to_node):
-            graph.add_arc(from_node, parent)
-        graph.remove(to_node)
+        for rule in graph.get_rules_containing(to_node):
+            if rule.expansion[0] == to_node:
+                graph.add_rule(Rule(from_node, rule.expansion[1:]))
+        graph.remove_symbol(to_node)
 
 
 def _remove_code_blocks(graph):
-    for node in filter(lambda x: x.startswith('$@'), graph.get_nodes()):
-        graph.remove(node)
+    for node in filter(lambda x: x.startswith('$@'), graph.get_all_symbols()):
+        graph.remove_symbol(node)
 
 
 def _remove_ifdef(graph):
     nodes = ['KW_IFDEF', 'KW_ENDIF']
     for node in nodes:
-        for parent in graph.get_parents(node):
-            graph.remove(parent)
+        graph.remove_symbol(node)
 
 
 def get_driver_options():

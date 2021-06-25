@@ -26,7 +26,7 @@ from tempfile import NamedTemporaryFile
 from dataclasses import dataclass
 
 
-@dataclass
+@dataclass(eq=True, order=True)
 class Rule():
     expandable_symbol: str
     expansion: list

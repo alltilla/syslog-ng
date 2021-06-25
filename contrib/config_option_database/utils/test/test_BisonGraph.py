@@ -23,7 +23,7 @@
 import pytest
 from tempfile import NamedTemporaryFile
 
-from utils.BisonGraph import BisonGraph, _yacc2graph
+from utils.BisonGraph import BisonGraph, Rule
 
 test_string = r"""
 %token test1
@@ -53,9 +53,11 @@ test_opts
     ;
 %%
 """
+
+
 @pytest.fixture
 def graph():
-    with NamedTemporaryFile(mode='w') as f:
+    with NamedTemporaryFile(mode="w") as f:
         f.write(test_string)
         f.flush()
         f.seek(0)
@@ -63,132 +65,180 @@ def graph():
     return graph
 
 
-def test_yacc2graph():
+def test_get_all_symbols(graph):
     expected = [
-        ('$accept', {'0': {0: {}}}),
-        ('0', {'start': {0: {'index': 0}}, '$end': {0: {'index': 1}}}),
-        ('start', {'1': {0: {}}}),
-        ('1', {'test': {0: {'index': 0}}}),
-        ('test', {'2': {0: {}}, '3': {0: {}}, '4': {0: {}}, '5': {0: {}}}),
-        ('2', {'test1': {0: {'index': 0}}, 'test1next': {0: {'index': 1}, 1: {'index': 2}}}),
-        ('3', {'test2': {0: {'index': 0}}, 'test2next': {0: {'index': 1}}, 'test': {0: {'index': 2}}}),
-        ('4', {'KW_TEST': {0: {'index': 0}}, "'('": {0: {'index': 1}}, 'test_opts': {0: {'index': 2}}, "')'": {0: {'index': 3}}}),
-        ('test_opts', {'6': {0: {}}, '7': {0: {}}}),
-        ('6', {'number': {0: {'index': 0}}}),
-        ('7', {'string': {0: {'index': 0}}}),
-        ('$end', {}),
-        ('test1', {}),
-        ('test1next', {}),
-        ('test2', {}),
-        ('test2next', {}),
-        ('KW_TEST', {}),
-        ("'('", {}),
-        ("')'", {}),
-        ("number", {}),
-        ("string", {}),
-        ('5', {})
+        "$accept",
+        "start",
+        "test",
+        "test_opts",
+        "$end",
+        "test1",
+        "test1next",
+        "test2",
+        "test2next",
+        "KW_TEST",
+        "'('",
+        "')'",
+        "number",
+        "string",
     ]
-
-    graph = _yacc2graph(test_string)
-    assert sorted(graph.nodes) == sorted([x[0] for x in expected])
-    for node, children in expected:
-        assert graph[node] == children
+    assert sorted(graph.get_all_symbols()) == sorted(expected)
 
 
-
-def test_get_node(graph):
+def test_get_all_rules(graph):
     expected = [
-        '$accept', '0', 'start', '1', 'test', '2', '3', '4', 'test_opts',
-        '6', '7', '$end', 'test1', 'test1next', 'test2', 'test2next',
-        'KW_TEST', "'('", "')'", 'number', 'string', '5'
+        Rule("$accept", ["start", "$end"]),
+        Rule("start", ["test"]),
+        Rule("test", ["test1", "test1next", "test1next"]),
+        Rule("test", ["test2", "test2next", "test"]),
+        Rule("test", ["KW_TEST", "'('", "test_opts", "')'"]),
+        Rule("test", []),
+        Rule("test_opts", ["number"]),
+        Rule("test_opts", ["string"]),
     ]
-    assert sorted(graph.get_nodes()) == sorted(expected)
+    assert sorted(graph.get_all_rules()) == sorted(expected)
 
 
-@pytest.mark.parametrize(
-    'node,children,parents,is_rule,is_terminal',
-    [
-        ('$accept', ['0'], [], False, False),
-        ('0', ['start', '$end'], ['$accept'], True, False),
-        ('start', ['1'], ['0'], False, False),
-        ('1', ['test'], ['start'], True, False),
-        ('test', ['2', '3', '4', '5'], ['1', '3'], False, False),
-        ('2', ['test1', 'test1next', 'test1next'], ['test'], True, False),
-        ('3', ['test2', 'test2next', 'test'], ['test'], True, False),
-        ('4', ['KW_TEST', "'('", 'test_opts', "')'"], ['test'], True, False),
-        ('test_opts', ['6', '7'], ['4'], False, False),
-        ('6', ['number'], ['test_opts'], True, False),
-        ('7', ['string'], ['test_opts'], True, False),
-        ('$end', [], ['0'], False, True),
-        ('test1', [], ['2'], False, True),
-        ('test1next', [], ['2'], False, True),
-        ('test2', [], ['3'], False, True),
-        ('test2next', [], ['3'], False, True),
-        ('KW_TEST', [], ['4'], False, True),
-        ("'('", [], ['4'], False, True),
-        ("')'", [], ['4'], False, True),
-        ('number', [], ['6'], False, True),
-        ('string', [], ['7'], False, True),
-        ('5', [], ['test'], True, True),
+def test_get_rules_containing(graph):
+    expected = [
+        Rule("start", ["test"]),
+        Rule("test", ["test1", "test1next", "test1next"]),
+        Rule("test", ["test2", "test2next", "test"]),
+        Rule("test", ["KW_TEST", "'('", "test_opts", "')'"]),
+        Rule("test", []),
     ]
-)
-def test_children_junction_terminal(node, children, parents, is_rule, is_terminal, graph):
-    assert graph.get_children(node) == children
-    assert graph.get_parents(node) == parents
-    assert graph.is_rule(node) == is_rule
-    assert graph.is_terminal(node) == is_terminal
+    assert sorted(graph.get_rules_containing("test")) == sorted(expected)
 
 
-def test_is_rule_node_not_in_graph(graph):
-    with pytest.raises(Exception) as e:
-        graph.is_rule('invalid_node')
-    assert 'Node not in graph:' in str(e.value)
+def test_add_rule(graph):
+    Rule("test", ["foo"])
+    graph.add_rule(Rule("test", ["foo"]))
+
+    assert Rule("test", ["foo"]) in graph.get_all_rules()
+
+def test_remove_rule(graph):
+    expected = [
+        Rule("$accept", ["start", "$end"]),
+        Rule("start", ["test"]),
+        Rule("test", ["test1", "test1next", "test1next"]),
+        Rule("test", ["test2", "test2next", "test"]),
+        Rule("test", []),
+        Rule("test_opts", ["number"]),
+        Rule("test_opts", ["string"]),
+    ]
+
+    graph.remove_rule(Rule("test", ["KW_TEST", "'('", "test_opts", "')'"]))
+
+    assert sorted(graph.get_all_rules()) == sorted(expected)
+
+
+def test_remove_symbol(graph):
+    expected_symbols = [
+        "$accept",
+        "start",
+        "test",
+        "$end",
+        "test1",
+        "test1next",
+        "test2",
+        "test2next",
+        "KW_TEST",
+        "'('",
+        "')'",
+        "number",
+        "string",
+    ]
+    expected_rules = [
+        Rule("$accept", ["start", "$end"]),
+        Rule("start", ["test"]),
+        Rule("test", ["test1", "test1next", "test1next"]),
+        Rule("test", ["test2", "test2next", "test"]),
+        Rule("test", ["KW_TEST", "'('", "')'"]),
+        Rule("test", []),
+    ]
+
+    graph.remove_symbol("test_opts")
+
+    assert sorted(graph.get_all_symbols()) == sorted(expected_symbols)
+    assert sorted(graph.get_all_rules()) == sorted(expected_rules)
 
 
 def test_make_terminal(graph):
-    assert graph.get_children('test_opts') != []
-    graph.make_terminal('test_opts')
-    assert graph.get_children('test_opts') == []
-
-
-def test_remove(graph):
-    assert 'KW_TEST' in graph.get_nodes() and '2' in graph.get_nodes()
-    graph.remove('KW_TEST')
-    graph.remove('2')
-    assert 'KW_TEST' not in graph.get_nodes() and '2' not in graph.get_nodes()
-
-
-def test_get_paths(graph):
-    expected = [
-        ('test1', 'test1next', 'test1next'),
-        ('test2', 'test2next'),
-        ('KW_TEST', "'('", 'number', "')'"),
-        ('KW_TEST', "'('", 'string', "')'"),
-        ()
+    expected_symbols = [
+        "$accept",
+        "start",
+        "test",
+        "test_opts",
+        "$end",
+        "test1",
+        "test1next",
+        "test2",
+        "test2next",
+        "KW_TEST",
+        "'('",
+        "')'",
+        "number",
+        "string",
     ]
-    assert graph.get_paths() == expected
-
-
-@pytest.mark.parametrize(
-    'from_node,to_node',
-    [
-        ('3', 'test1'),
-        ('test2', '4')
+    expected_rules = [
+        Rule("$accept", ["start", "$end"]),
+        Rule("start", ["test"]),
+        Rule("test_opts", ["number"]),
+        Rule("test_opts", ["string"]),
     ]
-)
-def test_add_arc(graph, from_node, to_node):
-    graph.add_arc(from_node, to_node)
-    assert to_node in graph.get_children(from_node)
+
+    graph.make_terminal("test")
+
+    assert sorted(graph.get_all_symbols()) == sorted(expected_symbols)
+    assert sorted(graph.get_all_rules()) == sorted(expected_rules)
+
+# def test_is_rule_node_not_in_graph(graph):
+#     with pytest.raises(Exception) as e:
+#         graph.is_rule('invalid_node')
+#     assert 'Node not in graph:' in str(e.value)
 
 
-@pytest.mark.parametrize(
-    'from_node,to_node',
-    [
-        ('3', '4'),
-        ('test1', 'test2')
-    ]
-)
-def test_invalid_add_arc(graph, from_node, to_node):
-    with pytest.raises(Exception) as e:
-        graph.add_arc('3', '4')
-    assert 'Arc must be added from non-rule to rule or rule to non-rule:' in str(e.value)
+
+
+
+# def test_remove(graph):
+#     assert 'KW_TEST' in graph.get_nodes() and '2' in graph.get_nodes()
+#     graph.remove('KW_TEST')
+#     graph.remove('2')
+#     assert 'KW_TEST' not in graph.get_nodes() and '2' not in graph.get_nodes()
+
+
+# def test_get_paths(graph):
+#     expected = [
+#         ('test1', 'test1next', 'test1next'),
+#         ('test2', 'test2next'),
+#         ('KW_TEST', "'('", 'number', "')'"),
+#         ('KW_TEST', "'('", 'string', "')'"),
+#         ()
+#     ]
+#     assert graph.get_paths() == expected
+
+
+# @pytest.mark.parametrize(
+#     'from_node,to_node',
+#     [
+#         ('3', 'test1'),
+#         ('test2', '4')
+#     ]
+# )
+# def test_add_arc(graph, from_node, to_node):
+#     graph.add_arc(from_node, to_node)
+#     assert to_node in graph.get_children(from_node)
+
+
+# @pytest.mark.parametrize(
+#     'from_node,to_node',
+#     [
+#         ('3', '4'),
+#         ('test1', 'test2')
+#     ]
+# )
+# def test_invalid_add_arc(graph, from_node, to_node):
+#     with pytest.raises(Exception) as e:
+#         graph.add_arc('3', '4')
+#     assert 'Arc must be added from non-rule to rule or rule to non-rule:' in str(e.value)
