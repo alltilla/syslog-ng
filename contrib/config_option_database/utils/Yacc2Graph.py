@@ -21,7 +21,6 @@
 #############################################################################
 
 import xml.etree.ElementTree as xml_parser
-from os import remove
 from subprocess import DEVNULL, Popen
 from tempfile import NamedTemporaryFile
 from dataclasses import dataclass
@@ -49,17 +48,13 @@ def _create_temp_file_with_content(content):
     return file
 
 
-def _yacc2xml(yacc_content):
+def _yacc2xml(yacc_content, xml_output_path):
     temp_yacc_file = _create_temp_file_with_content(yacc_content)
-    xml_filepath = NamedTemporaryFile().name
-
     try:
-        if not _run_in_shell(['bison', '--xml=' + xml_filepath, '--output=/dev/null', temp_yacc_file.name]):
+        if not _run_in_shell(['bison', '--xml=' + xml_output_path, '--output=/dev/null', temp_yacc_file.name]):
             raise Exception('Failed to convert to xml:\n{}\n'.format(yacc_content))
     except FileNotFoundError:
         raise Exception('bison executable not found')
-
-    return xml_filepath
 
 
 def _xml2rules(filename):
@@ -73,11 +68,10 @@ def _xml2rules(filename):
     return rules
 
 
-def _yacc2rules(yacc):
-    xml_filepath = _yacc2xml(yacc)
-    rules = _xml2rules(xml_filepath)
-    remove(xml_filepath)
-    return rules
+def _yacc2rules(yacc_content):
+    xml_output = NamedTemporaryFile()
+    _yacc2xml(yacc_content, xml_output.name)
+    return _xml2rules(xml_output.name)
 
 
 def _rules2graph(rules):

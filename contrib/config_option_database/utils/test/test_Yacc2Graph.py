@@ -20,6 +20,7 @@
 #
 #############################################################################
 
+from tempfile import NamedTemporaryFile
 import pytest
 
 from utils.Yacc2Graph import _yacc2rules, _yacc2xml, yacc2graph
@@ -54,59 +55,79 @@ test_opts
 """
 
 
-def test_yacc2xml():
-    assert _yacc2xml(test_string)
-
-
 def test_failed_yacc2xml():
+    xml_output = NamedTemporaryFile()
     with pytest.raises(Exception) as e:
-        _yacc2xml('invalid yacc string')
-    assert 'Failed to convert to xml:' in str(e.value)
+        _yacc2xml("invalid yacc string", xml_output.name)
+    assert "Failed to convert to xml:" in str(e.value)
 
 
 def test_yacc2rules():
     expected = [
-        (0, '$accept', ['start', '$end']),
-        (1, 'start', ['test']),
-        (2, 'test', ['test1', 'test1next', 'test1next']),
-        (3, 'test', ['test2', 'test2next', 'test']),
-        (4, 'test', ['KW_TEST', "'('", 'test_opts', "')'"]),
-        (5, 'test', []),
-        (6, 'test_opts', ['number']),
-        (7, 'test_opts', ['string'])
+        (0, "$accept", ["start", "$end"]),
+        (1, "start", ["test"]),
+        (2, "test", ["test1", "test1next", "test1next"]),
+        (3, "test", ["test2", "test2next", "test"]),
+        (4, "test", ["KW_TEST", "'('", "test_opts", "')'"]),
+        (5, "test", []),
+        (6, "test_opts", ["number"]),
+        (7, "test_opts", ["string"]),
     ]
 
     rules = _yacc2rules(test_string)
     assert len(rules) == len(expected)
     for number, parent, symbols in expected:
         rule = rules[number]
-        assert rule.number == number and rule.parent == parent and rule.symbols == symbols
+        assert (
+            rule.number == number and rule.parent == parent and rule.symbols == symbols
+        )
 
 
 def test_yacc2graph():
     expected = [
-        ('$accept', {'0': {0: {}}}),
-        ('0', {'start': {0: {'index': 0}}, '$end': {0: {'index': 1}}}),
-        ('start', {'1': {0: {}}}),
-        ('1', {'test': {0: {'index': 0}}}),
-        ('test', {'2': {0: {}}, '3': {0: {}}, '4': {0: {}}, '5': {0: {}}}),
-        ('2', {'test1': {0: {'index': 0}}, 'test1next': {0: {'index': 1}, 1: {'index': 2}}}),
-        ('3', {'test2': {0: {'index': 0}}, 'test2next': {0: {'index': 1}}, 'test': {0: {'index': 2}}}),
-        ('4', {'KW_TEST': {0: {'index': 0}}, "'('": {0: {'index': 1}}, 'test_opts': {0: {'index': 2}}, "')'": {0: {'index': 3}}}),
-        ('test_opts', {'6': {0: {}}, '7': {0: {}}}),
-        ('6', {'number': {0: {'index': 0}}}),
-        ('7', {'string': {0: {'index': 0}}}),
-        ('$end', {}),
-        ('test1', {}),
-        ('test1next', {}),
-        ('test2', {}),
-        ('test2next', {}),
-        ('KW_TEST', {}),
+        ("$accept", {"0": {0: {}}}),
+        ("0", {"start": {0: {"index": 0}}, "$end": {0: {"index": 1}}}),
+        ("start", {"1": {0: {}}}),
+        ("1", {"test": {0: {"index": 0}}}),
+        ("test", {"2": {0: {}}, "3": {0: {}}, "4": {0: {}}, "5": {0: {}}}),
+        (
+            "2",
+            {
+                "test1": {0: {"index": 0}},
+                "test1next": {0: {"index": 1}, 1: {"index": 2}},
+            },
+        ),
+        (
+            "3",
+            {
+                "test2": {0: {"index": 0}},
+                "test2next": {0: {"index": 1}},
+                "test": {0: {"index": 2}},
+            },
+        ),
+        (
+            "4",
+            {
+                "KW_TEST": {0: {"index": 0}},
+                "'('": {0: {"index": 1}},
+                "test_opts": {0: {"index": 2}},
+                "')'": {0: {"index": 3}},
+            },
+        ),
+        ("test_opts", {"6": {0: {}}, "7": {0: {}}}),
+        ("6", {"number": {0: {"index": 0}}}),
+        ("7", {"string": {0: {"index": 0}}}),
+        ("$end", {}),
+        ("test1", {}),
+        ("test1next", {}),
+        ("test2", {}),
+        ("test2next", {}),
+        ("KW_TEST", {}),
         ("'('", {}),
         ("')'", {}),
         ("number", {}),
         ("string", {}),
-        ('5', {})
+        ("5", {}),
     ]
 
     graph = yacc2graph(test_string)
