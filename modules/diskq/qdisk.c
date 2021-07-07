@@ -102,7 +102,7 @@ pwrite_strict(gint fd, const void *buf, size_t count, off_t offset)
 static gboolean
 _is_position_eof(QDisk *self, gint64 position)
 {
-  return position >= self->file_size;
+  return position >= self->options->disk_buf_size;
 }
 
 static guint64
