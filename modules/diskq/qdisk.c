@@ -953,9 +953,9 @@ qdisk_start(QDisk *self, const gchar *filename, GQueue *qout, GQueue *qbacklog, 
 
       self->hdr->read_head = QDISK_RESERVED_SPACE;
       self->hdr->write_head = QDISK_RESERVED_SPACE;
-      self->hdr->backlog_head = self->hdr->read_head;
+      self->hdr->backlog_head = QDISK_RESERVED_SPACE;
       self->hdr->length = 0;
-      self->file_size = self->hdr->write_head;
+      self->file_size = QDISK_RESERVED_SPACE;
 
       if (!qdisk_save_state(self, qout, qbacklog, qoverflow))
         {
