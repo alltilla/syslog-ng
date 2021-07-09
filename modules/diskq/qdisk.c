@@ -115,6 +115,23 @@ _correct_position_if_eof(QDisk *self, gint64 *position)
   return *position;
 }
 
+static gboolean
+_get_real_file_size(QDisk *self, gint64 *real_file_size)
+{
+  struct stat st;
+  if (fstat(self->fd, &st) < 0)
+    {
+      msg_error("Cannot fstat disk-buffer file",
+                evt_tag_int("fd", self->fd),
+                evt_tag_str("filename", self->filename),
+                evt_tag_error("error"));
+      return FALSE;
+    }
+
+  *real_file_size = (gint64) st.st_size;
+  return TRUE;
+}
+
 static gchar *
 _next_filename(QDisk *self)
 {
@@ -230,15 +247,7 @@ _truncate_file(QDisk *self, gint64 expected_size)
       return;
     }
 
-  struct stat st;
-  if (fstat(self->fd, &st) < 0)
-    {
-      msg_error("truncate file: cannot stat", evt_tag_error("error"));
-    }
-  else
-    {
-      self->file_size = (gint64) st.st_size;
-    }
+  _get_real_file_size(self, &self->file_size);
 
   msg_error("Error truncating disk-queue file",
             evt_tag_error("error"),
@@ -658,9 +667,7 @@ _load_state(QDisk *self, GQueue *qout, GQueue *qbacklog, GQueue *qoverflow)
     }
   else
     {
-      struct stat st;
-      fstat(self->fd, &st);
-      self->file_size = st.st_size;
+      _get_real_file_size(self, &self->file_size);
       msg_info("Reliable disk-buffer state loaded",
                evt_tag_str("filename", self->filename),
                evt_tag_long("number_of_messages", _number_of_messages(self)));
@@ -936,12 +943,10 @@ qdisk_start(QDisk *self, const gchar *filename, GQueue *qout, GQueue *qbacklog, 
     {
       struct stat st;
 
-      if (fstat(self->fd, &st) != 0 || st.st_size == 0)
+      if (!_get_real_file_size(self, &self->file_size))
         {
           msg_error("Error loading disk-queue file",
-                    evt_tag_str("filename", self->filename),
-                    evt_tag_error("fstat error"),
-                    evt_tag_int("size", st.st_size));
+                    evt_tag_str("filename", self->filename));
           munmap((void *)self->hdr, sizeof(QDiskFileHeader));
           self->hdr = NULL;
           close(self->fd);
