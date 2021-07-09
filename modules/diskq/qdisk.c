@@ -823,6 +823,33 @@ _create_path(const gchar *filename)
   return file_perm_options_create_containing_directory(&fpermoptions, filename);
 }
 
+static gboolean
+_is_headers_endianness_same_as_systems(QDisk *self)
+{
+  return (self->hdr->big_endian && G_BYTE_ORDER == G_BIG_ENDIAN) ||
+         (!self->hdr->big_endian && G_BYTE_ORDER == G_LITTLE_ENDIAN);
+}
+
+static void
+_swap_endianness(QDisk *self)
+{
+  self->hdr->read_head = GUINT64_SWAP_LE_BE(self->hdr->read_head);
+  self->hdr->write_head = GUINT64_SWAP_LE_BE(self->hdr->write_head);
+  self->hdr->length = GUINT64_SWAP_LE_BE(self->hdr->length);
+  self->hdr->qout_pos.ofs = GUINT64_SWAP_LE_BE(self->hdr->qout_pos.ofs);
+  self->hdr->qout_pos.len = GUINT32_SWAP_LE_BE(self->hdr->qout_pos.len);
+  self->hdr->qout_pos.count = GUINT32_SWAP_LE_BE(self->hdr->qout_pos.count);
+  self->hdr->qbacklog_pos.ofs = GUINT64_SWAP_LE_BE(self->hdr->qbacklog_pos.ofs);
+  self->hdr->qbacklog_pos.len = GUINT32_SWAP_LE_BE(self->hdr->qbacklog_pos.len);
+  self->hdr->qbacklog_pos.count = GUINT32_SWAP_LE_BE(self->hdr->qbacklog_pos.count);
+  self->hdr->qoverflow_pos.ofs = GUINT64_SWAP_LE_BE(self->hdr->qoverflow_pos.ofs);
+  self->hdr->qoverflow_pos.len = GUINT32_SWAP_LE_BE(self->hdr->qoverflow_pos.len);
+  self->hdr->qoverflow_pos.count = GUINT32_SWAP_LE_BE(self->hdr->qoverflow_pos.count);
+  self->hdr->backlog_head = GUINT64_SWAP_LE_BE(self->hdr->backlog_head);
+  self->hdr->backlog_len = GUINT64_SWAP_LE_BE(self->hdr->backlog_len);
+  self->hdr->big_endian = (G_BYTE_ORDER == G_BIG_ENDIAN);
+}
+
 gboolean
 qdisk_start(QDisk *self, const gchar *filename, GQueue *qout, GQueue *qbacklog, GQueue *qoverflow)
 {
@@ -954,25 +981,16 @@ qdisk_start(QDisk *self, const gchar *filename, GQueue *qout, GQueue *qbacklog, 
       if (self->hdr->version == 0)
         _update_header_with_default_values(self);
 
-      if ((self->hdr->big_endian && G_BYTE_ORDER == G_LITTLE_ENDIAN) ||
-          (!self->hdr->big_endian && G_BYTE_ORDER == G_BIG_ENDIAN))
+      if (!_is_header_version_current(self))
         {
-          self->hdr->read_head = GUINT64_SWAP_LE_BE(self->hdr->read_head);
-          self->hdr->write_head = GUINT64_SWAP_LE_BE(self->hdr->write_head);
-          self->hdr->length = GUINT64_SWAP_LE_BE(self->hdr->length);
-          self->hdr->qout_pos.ofs = GUINT64_SWAP_LE_BE(self->hdr->qout_pos.ofs);
-          self->hdr->qout_pos.len = GUINT32_SWAP_LE_BE(self->hdr->qout_pos.len);
-          self->hdr->qout_pos.count = GUINT32_SWAP_LE_BE(self->hdr->qout_pos.count);
-          self->hdr->qbacklog_pos.ofs = GUINT64_SWAP_LE_BE(self->hdr->qbacklog_pos.ofs);
-          self->hdr->qbacklog_pos.len = GUINT32_SWAP_LE_BE(self->hdr->qbacklog_pos.len);
-          self->hdr->qbacklog_pos.count = GUINT32_SWAP_LE_BE(self->hdr->qbacklog_pos.count);
-          self->hdr->qoverflow_pos.ofs = GUINT64_SWAP_LE_BE(self->hdr->qoverflow_pos.ofs);
-          self->hdr->qoverflow_pos.len = GUINT32_SWAP_LE_BE(self->hdr->qoverflow_pos.len);
-          self->hdr->qoverflow_pos.count = GUINT32_SWAP_LE_BE(self->hdr->qoverflow_pos.count);
-          self->hdr->backlog_head = GUINT64_SWAP_LE_BE(self->hdr->backlog_head);
-          self->hdr->backlog_len = GUINT64_SWAP_LE_BE(self->hdr->backlog_len);
-          self->hdr->big_endian = (G_BYTE_ORDER == G_BIG_ENDIAN);
+          _update_header(self);
         }
+
+      if (!_is_headers_endianness_same_as_systems(self))
+        {
+          _swap_endianness(self);
+        }
+
       if (!_load_state(self, qout, qbacklog, qoverflow))
         {
           munmap((void *)self->hdr, sizeof(QDiskFileHeader));
