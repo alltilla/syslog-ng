@@ -806,21 +806,27 @@ qdisk_save_state(QDisk *self, GQueue *qout, GQueue *qbacklog, GQueue *qoverflow)
   return TRUE;
 }
 
-static void
-_update_header_with_default_values(QDisk *self)
-{
-  self->hdr->big_endian = TRUE;
-  self->hdr->version = 1;
-  self->hdr->backlog_head = self->hdr->read_head;
-  self->hdr->backlog_len = 0;
-}
-
 static gboolean
 _create_path(const gchar *filename)
 {
   FilePermOptions fpermoptions;
   file_perm_options_defaults(&fpermoptions);
   return file_perm_options_create_containing_directory(&fpermoptions, filename);
+}
+
+static gboolean
+_is_header_version_current(QDisk *self)
+{
+  return self->hdr->version == 1;
+}
+
+static void
+_upgrade_header(QDisk *self)
+{
+  self->hdr->big_endian = TRUE;
+  self->hdr->backlog_head = self->hdr->read_head;
+  self->hdr->backlog_len = 0;
+  self->hdr->version = 1;
 }
 
 static gboolean
@@ -978,12 +984,10 @@ qdisk_start(QDisk *self, const gchar *filename, GQueue *qout, GQueue *qbacklog, 
           self->fd = -1;
           return FALSE;
         }
-      if (self->hdr->version == 0)
-        _update_header_with_default_values(self);
 
       if (!_is_header_version_current(self))
         {
-          _update_header(self);
+          _upgrade_header(self);
         }
 
       if (!_is_headers_endianness_same_as_systems(self))
