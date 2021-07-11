@@ -234,7 +234,7 @@ _possible_size_reduction_reaches_truncate_threshold(QDisk *self, gint64 expected
 }
 
 static void
-_truncate_file(QDisk *self, gint64 expected_size)
+_maybe_truncate_file(QDisk *self, gint64 expected_size)
 {
   if (_ftruncate_would_reduce_file(self, expected_size) &&
       !_possible_size_reduction_reaches_truncate_threshold(self, expected_size))
@@ -363,7 +363,7 @@ qdisk_push_tail(QDisk *self, GString *record)
         {
           msg_debug("Unused area ahead of write_head, truncate queue file",
                     evt_tag_long("new size",  self->hdr->write_head));
-          _truncate_file(self, self->hdr->write_head);
+          _maybe_truncate_file(self, self->hdr->write_head);
         }
       else
         {
@@ -642,7 +642,7 @@ _load_state(QDisk *self, GQueue *qout, GQueue *qbacklog, GQueue *qoverflow)
       self->hdr->end_of_messages = _get_end_of_messages_of_nonreliable_diskq_after_queues_loaded(self);
 
       if (!self->options->read_only)
-        _truncate_file(self, self->hdr->end_of_messages);
+        _maybe_truncate_file(self, self->hdr->end_of_messages);
 
       _get_real_file_size(self, &self->file_size);
 
@@ -1097,7 +1097,7 @@ qdisk_reset_file_if_empty(QDisk *self)
   self->hdr->backlog_head = QDISK_RESERVED_SPACE;
   self->hdr->end_of_messages = QDISK_RESERVED_SPACE;
 
-  _truncate_file(self, QDISK_RESERVED_SPACE);
+  _maybe_truncate_file(self, QDISK_RESERVED_SPACE);
 }
 
 DiskQueueOptions *
