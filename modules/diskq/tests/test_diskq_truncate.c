@@ -269,9 +269,9 @@ _assert_cursors_are_at_start(LogQueue *q)
 {
   QDisk *qdisk = ((LogQueueDisk *)q)->qdisk;
 
-  cr_assert_eq(qdisk->hdr->read_head, QDISK_RESERVED_SPACE, "Read head was not reset!");
-  cr_assert_eq(qdisk->hdr->write_head, QDISK_RESERVED_SPACE, "Write head was not reset!");
-  cr_assert_eq(qdisk->hdr->backlog_head, QDISK_RESERVED_SPACE, "Backlog head was not reset!");
+  cr_assert_eq(qdisk_get_reader_head(qdisk), QDISK_RESERVED_SPACE, "Read head was not reset!");
+  cr_assert_eq(qdisk_get_writer_head(qdisk), QDISK_RESERVED_SPACE, "Write head was not reset!");
+  cr_assert_eq(qdisk_get_backlog_head(qdisk), QDISK_RESERVED_SPACE, "Backlog head was not reset!");
 }
 
 Test(diskq_truncate, test_diskq_truncate_size_ratio_default)
@@ -420,14 +420,14 @@ Test(diskq_truncate, test_diskq_no_truncate_wrap)
 
   // 3. feed 1 large msg to make file_size big
   _feed_one_large_message(q);
-  cr_assert(qdisk->hdr->write_head < qdisk->hdr->read_head, "write_head should have wrapped");
+  cr_assert(qdisk_get_writer_head(qdisk) < qdisk_get_reader_head(qdisk), "write_head should have wrapped");
   cr_assert(qdisk->file_size > 110000, "file_size should be bigger than max size");
 
   // 4. send and ack all messages
   send_some_messages(q, just_under_max_size_message_number - some_messages_to_let_write_head_wrap + large_message_number);
   log_queue_ack_backlog(q, just_under_max_size_message_number - some_messages_to_let_write_head_wrap +
                         large_message_number);
-  cr_assert(qdisk->hdr->length == 0, "qdisk len should be 0");
+  cr_assert(qdisk_get_length(qdisk) == 0, "qdisk len should be 0");
 
   // 5. feed to full
   feed_some_messages(q, just_under_max_size_message_number);
@@ -440,14 +440,14 @@ Test(diskq_truncate, test_diskq_no_truncate_wrap)
 
   // 7. feed 2 to wrap write_head and to add one message to the beginning
   feed_some_messages(q, 1);
-  cr_assert(qdisk->hdr->write_head == QDISK_RESERVED_SPACE, "write_head should have wrapped");
+  cr_assert(qdisk_get_writer_head(qdisk) == QDISK_RESERVED_SPACE, "write_head should have wrapped");
   feed_some_messages(q, 1);
 
   // 8. process all messages
   send_some_messages(q, just_under_max_size_message_number - some_messages_to_let_write_head_wrap + 2);
   log_queue_ack_backlog(q, just_under_max_size_message_number - some_messages_to_let_write_head_wrap + 2);
-  cr_assert(qdisk->hdr->length == 0, "qdisk len should be 0");
-  cr_assert(qdisk->hdr->write_head == qdisk->hdr->read_head, "read_head should be at write_head's position");
+  cr_assert(qdisk_get_length(qdisk) == 0, "qdisk len should be 0");
+  cr_assert(qdisk_get_writer_head(qdisk) == qdisk_get_reader_head(qdisk), "read_head should be at write_head's position");
 
   _assert_diskq_actual_file_size_with_stored(q);
 
