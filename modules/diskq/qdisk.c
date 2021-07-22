@@ -529,6 +529,21 @@ qdisk_pop_head(QDisk *self, GString *record)
   return TRUE;
 }
 
+gboolean
+qdisk_skip_head(QDisk *self)
+{
+  if (_is_trying_to_read_from_unwritten_space(self))
+    return FALSE;
+
+  guint32 record_length;
+  if (!_try_reading_record_length(self, &record_length))
+    return FALSE;
+
+  _update_positions_after_read(self, record_length);
+
+  return TRUE;
+}
+
 static FILE *
 _create_stream(QDisk *self, gint64 offset)
 {
