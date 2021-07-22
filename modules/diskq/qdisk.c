@@ -389,6 +389,12 @@ qdisk_push_tail(QDisk *self, GString *record)
   return TRUE;
 }
 
+static gboolean
+_is_trying_to_read_from_unwritten_space(QDisk *self)
+{
+  return self->hdr->read_head == self->hdr->write_head;
+}
+
 static inline gboolean
 _is_record_length_reached_hard_limit(guint32 record_length)
 {
@@ -398,7 +404,7 @@ _is_record_length_reached_hard_limit(guint32 record_length)
 gboolean
 qdisk_pop_head(QDisk *self, GString *record)
 {
-  if (self->hdr->read_head == self->hdr->write_head)
+  if (_is_trying_to_read_from_unwritten_space(self))
     return FALSE;
 
   guint32 record_length;
