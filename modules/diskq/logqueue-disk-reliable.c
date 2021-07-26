@@ -53,11 +53,10 @@ _empty_queue(GQueue *self)
     {
       LogPathOptions path_options = LOG_PATH_OPTIONS_INIT;
 
-      gint64 *temppos = g_queue_pop_head(self);
+      gint64 pos = GPOINTER_TO_INT(g_queue_pop_head(self));
       LogMessage *msg = g_queue_pop_head(self);
       POINTER_TO_LOG_PATH_OPTIONS(g_queue_pop_head(self), &path_options);
 
-      g_free(temppos);
       log_msg_drop(msg, &path_options, AT_PROCESSED);
     }
 }
@@ -78,26 +77,23 @@ _ack_backlog(LogQueueDisk *s, guint num_msg_to_ack)
 
   for (i = 0; i < num_msg_to_ack; i++)
     {
-      gint64 pos;
       if (qdisk_get_backlog_head (self->super.qdisk) == qdisk_get_reader_head (self->super.qdisk))
         {
           goto exit_reliable;
         }
       if (self->qbacklog->length > 0)
         {
-          gint64 *temppos = g_queue_pop_head (self->qbacklog);
-          pos = *temppos;
+          gint64 pos = GPOINTER_TO_INT(g_queue_pop_head(self->qbacklog));
           if (pos == qdisk_get_backlog_head (self->super.qdisk))
             {
               msg = g_queue_pop_head (self->qbacklog);
               POINTER_TO_LOG_PATH_OPTIONS (g_queue_pop_head (self->qbacklog), &path_options);
               log_msg_ack (msg, &path_options, AT_PROCESSED);
               log_msg_unref (msg);
-              g_free (temppos);
             }
           else
             {
-              g_queue_push_head (self->qbacklog, temppos);
+              g_queue_push_head (self->qbacklog, GINT_TO_POINTER(pos));
             }
         }
       guint64 new_backlog = qdisk_get_backlog_head (self->super.qdisk);
@@ -188,8 +184,7 @@ _pop_head(LogQueueDisk *s, LogPathOptions *path_options)
   LogMessage *msg = NULL;
   if (self->qreliable->length > 0)
     {
-      gint64 *temppos = g_queue_pop_head (self->qreliable);
-      gint64 pos = *temppos;
+      gint64 pos = GPOINTER_TO_INT(g_queue_pop_head(self->qreliable));
       if (pos == qdisk_get_reader_head (self->super.qdisk))
         {
           msg = g_queue_pop_head (self->qreliable);
@@ -200,19 +195,15 @@ _pop_head(LogQueueDisk *s, LogPathOptions *path_options)
           if (self->super.super.use_backlog)
             {
               log_msg_ref (msg);
-              g_queue_push_tail (self->qbacklog, temppos);
+              g_queue_push_tail (self->qbacklog, GINT_TO_POINTER(pos));
               g_queue_push_tail (self->qbacklog, msg);
               g_queue_push_tail (self->qbacklog, LOG_PATH_OPTIONS_TO_POINTER (path_options));
-            }
-          else
-            {
-              g_free (temppos);
             }
         }
       else
         {
           /* try to write the message to the disk */
-          g_queue_push_head (self->qreliable, temppos);
+          g_queue_push_head (self->qreliable, GINT_TO_POINTER(pos));
         }
     }
 
@@ -264,9 +255,7 @@ _push_tail(LogQueueDisk *s, LogMessage *msg, LogPathOptions *local_options, cons
       /* we have reached the reserved buffer size, keep the msg in memory
        * the message is written but into the overflow area
        */
-      gint64 *temppos = g_malloc (sizeof(gint64));
-      *temppos = last_wpos;
-      g_queue_push_tail (self->qreliable, temppos);
+      g_queue_push_tail (self->qreliable, GINT_TO_POINTER(last_wpos));
       g_queue_push_tail (self->qreliable, msg);
       g_queue_push_tail (self->qreliable, LOG_PATH_OPTIONS_TO_POINTER(path_options));
       log_msg_ref (msg);
