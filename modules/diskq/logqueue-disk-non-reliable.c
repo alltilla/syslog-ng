@@ -25,6 +25,7 @@
 #include "logpipe.h"
 #include "messages.h"
 #include "syslog-ng.h"
+#include "scratch-buffers.h"
 
 #define ITEM_NUMBER_PER_MESSAGE 2
 
@@ -147,6 +148,10 @@ _move_messages_from_overflow(LogQueueDiskNonReliable *self)
 {
   LogMessage *msg;
   LogPathOptions path_options;
+  ScratchBuffersMarker marker;
+  GString *msg_serialized = scratch_buffers_alloc_and_mark(&marker);
+  DiskQueueOptions *options = qdisk_get_options(self->super.qdisk);
+
   /* move away as much entries from the overflow area as possible */
   while (_has_movable_message(self))
     {
@@ -162,7 +167,11 @@ _move_messages_from_overflow(LogQueueDiskNonReliable *self)
         }
       else
         {
-          if (log_queue_disk_write_message(&self->super, msg))
+
+          g_string_truncate(msg_serialized, 0);
+          logqueue_disk_serialize_msg(msg, options->compaction, msg_serialized); // handle result code
+
+          if (log_queue_disk_write_message(&self->super, msg_serialized))
             {
               log_queue_memory_usage_sub(&self->super.super, log_msg_get_size(msg));
             }
@@ -181,6 +190,7 @@ _move_messages_from_overflow(LogQueueDiskNonReliable *self)
       log_msg_ack (msg, &path_options, AT_PROCESSED);
       log_msg_unref (msg);
     }
+  scratch_buffers_reclaim_marked(marker);
 }
 
 static void
@@ -304,7 +314,7 @@ _push_head (LogQueueDisk *s, LogMessage *msg, const LogPathOptions *path_options
 }
 
 static gboolean
-_push_tail (LogQueueDisk *s, LogMessage *msg, LogPathOptions *local_options, const LogPathOptions *path_options)
+_push_tail (LogQueueDisk *s, LogMessage *msg, GString *msg_serialized, LogPathOptions *local_options, const LogPathOptions *path_options)
 {
   LogQueueDiskNonReliable *self = (LogQueueDiskNonReliable *) s;
 
@@ -321,7 +331,7 @@ _push_tail (LogQueueDisk *s, LogMessage *msg, LogPathOptions *local_options, con
     }
   else
     {
-      if (self->qoverflow->length != 0 || !log_queue_disk_write_message(s, msg))
+      if (self->qoverflow->length != 0 || !log_queue_disk_write_message(s, msg_serialized))
         {
           if (HAS_SPACE_IN_QUEUE(self->qoverflow))
             {

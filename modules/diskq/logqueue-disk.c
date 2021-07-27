@@ -56,21 +56,48 @@ _get_length(LogQueue *s)
   return qdisk_length;
 }
 
+gboolean
+logqueue_disk_serialize_msg(LogMessage *msg, gboolean compaction, GString *msg_serialized)
+{
+  SerializeArchive *sa = serialize_string_archive_new(msg_serialized);
+  serialize_write_uint32(sa, 0);
+  log_msg_serialize(msg, sa, compaction ? LMSF_COMPACTION : 0);
+  serialize_archive_free(sa);
+
+  guint32 record_length = GUINT32_TO_BE(msg_serialized->len - sizeof(guint32));
+  if (record_length == 0)
+    {
+      msg_error("Error writing empty message into the disk-queue file");
+      g_string_truncate(msg_serialized, 0);
+      return FALSE;
+    }
+  g_string_overwrite_len(msg_serialized, 0, (gchar *) &record_length, sizeof(guint32));
+
+  return TRUE;
+}
+
 static void
 _push_tail(LogQueue *s, LogMessage *msg, const LogPathOptions *path_options)
 {
   LogQueueDisk *self = (LogQueueDisk *) s;
   LogPathOptions local_options = *path_options;
+  DiskQueueOptions *options = qdisk_get_options(self->qdisk);
+
+  ScratchBuffersMarker marker;
+  GString *msg_serialized = scratch_buffers_alloc_and_mark(&marker);
+  logqueue_disk_serialize_msg(msg, options->compaction, msg_serialized); // handle result code
+
   g_static_mutex_lock(&self->super.lock);
   if (self->push_tail)
     {
-      if (self->push_tail(self, msg, &local_options, path_options))
+      if (self->push_tail(self, msg, msg_serialized, &local_options, path_options))
         {
           log_queue_push_notify (&self->super);
           log_queue_queued_messages_inc(&self->super);
           log_msg_ack(msg, &local_options, AT_PROCESSED);
           log_msg_unref(msg);
           g_static_mutex_unlock(&self->super.lock);
+          scratch_buffers_reclaim_marked(marker);
           return;
         }
     }
@@ -82,6 +109,7 @@ _push_tail(LogQueue *s, LogMessage *msg, const LogPathOptions *path_options)
     log_msg_drop(msg, path_options, AT_PROCESSED);
 
   g_static_mutex_unlock(&self->super.lock);
+  scratch_buffers_reclaim_marked(marker);
 }
 
 static void
@@ -278,24 +306,13 @@ log_queue_disk_read_message(LogQueueDisk *self, LogPathOptions *path_options)
 }
 
 gboolean
-log_queue_disk_write_message(LogQueueDisk *self, LogMessage *msg)
+log_queue_disk_write_message(LogQueueDisk *self, GString *msg_serialized)
 {
-  GString *write_serialized;
-  SerializeArchive *sa;
-  DiskQueueOptions *options = qdisk_get_options(self->qdisk);
-  gboolean consumed = FALSE;
-  ScratchBuffersMarker marker;
-
   if (qdisk_started(self->qdisk) && qdisk_is_space_avail(self->qdisk, 64))
     {
-      write_serialized = scratch_buffers_alloc_and_mark(&marker);
-      sa = serialize_string_archive_new(write_serialized);
-      log_msg_serialize(msg, sa, options->compaction ? LMSF_COMPACTION : 0);
-      consumed = qdisk_push_tail(self->qdisk, write_serialized);
-      serialize_archive_free(sa);
-      scratch_buffers_reclaim_marked(marker);
+      return qdisk_push_tail(self->qdisk, msg_serialized);
     }
-  return consumed;
+  return FALSE;
 }
 
 static void
