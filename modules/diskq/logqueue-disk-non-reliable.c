@@ -321,6 +321,28 @@ _push_head (LogQueueDisk *s, LogMessage *msg, const LogPathOptions *path_options
 }
 
 static gboolean
+_need_serialized_hint(LogQueueDisk *s)
+{
+  LogQueueDiskNonReliable *self = (LogQueueDiskNonReliable *)s;
+
+  return !(HAS_SPACE_IN_QUEUE(self->qout) && !_has_messages_on_disk(self)) &&
+         self->qoverflow->length == 0;
+}
+
+static inline gboolean
+_ensure_serialized(LogQueueDiskNonReliable *self, LogMessage *msg, GString *serialized)
+{
+  if (serialized->len)
+    return TRUE;
+
+  /*
+   * Slow path: Before calling _push_tail() we thought, we do not need serialized message,
+   * but it seems like we need it. Serialize it now while holding the lock.
+   */
+  return qdisk_serialize_msg(self->super.qdisk, msg, serialized);
+}
+
+static gboolean
 _push_tail(LogQueueDisk *s, LogMessage *msg, GString *serialized, LogPathOptions *local_options,
            const LogPathOptions *path_options)
 {
@@ -339,7 +361,8 @@ _push_tail(LogQueueDisk *s, LogMessage *msg, GString *serialized, LogPathOptions
     }
   else
     {
-      if (self->qoverflow->length != 0 || !log_queue_disk_write_message(s, serialized))
+      if (self->qoverflow->length != 0 ||
+          !_ensure_serialized(self, msg, serialized) || !log_queue_disk_write_message(s, serialized))
         {
           if (HAS_SPACE_IN_QUEUE(self->qoverflow))
             {
@@ -431,6 +454,7 @@ _set_virtual_functions (LogQueueDisk *self)
   self->pop_head = _pop_head;
   self->push_head = _push_head;
   self->push_tail = _push_tail;
+  self->need_serialized_hint = _need_serialized_hint;
   self->start = _start;
   self->free_fn = _freefn;
   self->load_queue = _load_queue;
