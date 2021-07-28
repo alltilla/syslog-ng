@@ -57,6 +57,17 @@ _get_length(LogQueue *s)
 }
 
 static void
+_drop_msg(LogQueueDisk *self, LogMessage *msg, const LogPathOptions *path_options)
+{
+  stats_counter_inc(self->super.dropped_messages);
+
+  if (path_options->flow_control_requested)
+    log_msg_ack(msg, path_options, AT_SUSPENDED);
+  else
+    log_msg_drop(msg, path_options, AT_PROCESSED);
+}
+
+static void
 _push_tail(LogQueue *s, LogMessage *msg, const LogPathOptions *path_options)
 {
   LogQueueDisk *self = (LogQueueDisk *) s;
@@ -76,12 +87,7 @@ _push_tail(LogQueue *s, LogMessage *msg, const LogPathOptions *path_options)
       return;
     }
 
-  stats_counter_inc (self->super.dropped_messages);
-
-  if (path_options->flow_control_requested)
-    log_msg_ack(msg, path_options, AT_SUSPENDED);
-  else
-    log_msg_drop(msg, path_options, AT_PROCESSED);
+  _drop_msg(self, msg, path_options);
 
   g_static_mutex_unlock(&self->super.lock);
 }
