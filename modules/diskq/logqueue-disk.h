@@ -39,6 +39,7 @@ struct _LogQueueDisk
   gboolean (*push_tail)(LogQueueDisk *s, LogMessage *msg, GString *serialized,
                         LogPathOptions *local_options, const LogPathOptions *path_options);
   void (*push_head)(LogQueueDisk *s, LogMessage *msg, const LogPathOptions *path_options);
+  gboolean (*need_serialized_hint)(LogQueueDisk *s);
   LogMessage *(*pop_head)(LogQueueDisk *s, LogPathOptions *path_options);
   void (*ack_backlog)(LogQueueDisk *s, guint num_msg_to_ack);
   void (*rewind_backlog)(LogQueueDisk *s, guint rewind_count);

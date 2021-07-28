@@ -67,6 +67,22 @@ _drop_msg(LogQueueDisk *self, LogMessage *msg, const LogPathOptions *path_option
     log_msg_drop(msg, path_options, AT_PROCESSED);
 }
 
+static gboolean
+_serialize_msg_if_needed(LogQueueDisk *self, LogMessage *msg, GString *serialized)
+{
+  if (!self->need_serialized_hint)
+    return qdisk_serialize_msg(self->qdisk, msg, serialized);
+
+  g_static_mutex_lock(&self->super.lock);
+  gboolean serialize = self->need_serialized_hint(self);
+  g_static_mutex_unlock(&self->super.lock);
+
+  if (!serialize)
+    return TRUE;
+
+  return qdisk_serialize_msg(self->qdisk, msg, serialized);
+}
+
 static void
 _push_tail(LogQueue *s, LogMessage *msg, const LogPathOptions *path_options)
 {
@@ -78,7 +94,7 @@ _push_tail(LogQueue *s, LogMessage *msg, const LogPathOptions *path_options)
   ScratchBuffersMarker marker;
   GString *serialized = scratch_buffers_alloc_and_mark(&marker);
 
-  if (!qdisk_serialize_msg(self->qdisk, msg, serialized))
+  if (!_serialize_msg_if_needed(self, msg, serialized))
     {
       _drop_msg(self, msg, path_options);
       goto exit;
