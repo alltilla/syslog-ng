@@ -342,32 +342,17 @@ qdisk_push_tail(QDisk *self, GString *record)
       self->hdr->write_head = QDISK_RESERVED_SPACE;
     }
 
-  if (!qdisk_is_space_avail(self, record->len))
+  if (!qdisk_is_space_avail(self, record->len - sizeof(guint32)))
     return FALSE;
 
-  guint32 record_length = GUINT32_TO_BE(record->len);
-  if (record_length == 0)
-    {
-      msg_error("Error writing empty message into the disk-queue file");
-      return FALSE;
-    }
-
-  ScratchBuffersMarker marker;
-  GString *msg_buffer;
-  msg_buffer = scratch_buffers_alloc_and_mark(&marker);
-
-  g_string_append_len(msg_buffer, ((gchar *) &record_length), sizeof(record_length));
-  g_string_append_len(msg_buffer, (record->str), record->len);
-  if (!pwrite_strict(self->fd, msg_buffer->str, msg_buffer->len, self->hdr->write_head))
+  if (!pwrite_strict(self->fd, record->str, record->len, self->hdr->write_head))
     {
       msg_error("Error writing disk-queue file",
                 evt_tag_error("error"));
-      scratch_buffers_reclaim_marked(marker);
       return FALSE;
     }
-  scratch_buffers_reclaim_marked(marker);
 
-  self->hdr->write_head = self->hdr->write_head + record->len + sizeof(record_length);
+  self->hdr->write_head = self->hdr->write_head + record->len;
 
 
   /* NOTE: we only wrap around if the read head is before the write,
@@ -570,17 +555,46 @@ qdisk_remove_head(QDisk *self)
   return TRUE;
 }
 
+static gboolean
+_overwrite_with_real_record_length(GString *serialized)
+{
+  guint32 record_length = GUINT32_TO_BE(serialized->len - sizeof(guint32));
+  if (record_length == 0)
+    return FALSE;
+
+  g_string_overwrite_len(serialized, 0, (gchar *) &record_length, sizeof(guint32));
+  return TRUE;
+}
+
 gboolean
 qdisk_serialize_msg(QDisk *self, LogMessage *msg, GString *serialized)
 {
   gboolean result = TRUE;
   SerializeArchive *sa = serialize_string_archive_new(serialized);
 
+  /* Leave space for the real record_length for later */
+  if (!serialize_write_uint32(sa, 0))
+    {
+      result = FALSE;
+      goto exit;
+    }
+
   if (!log_msg_serialize(msg, sa, self->options->compaction ? LMSF_COMPACTION : 0))
     {
-      g_string_truncate(serialized, 0);
       result = FALSE;
+      goto exit;
     }
+
+  if (!_overwrite_with_real_record_length(serialized))
+    {
+      msg_error("Error serializing empty message for the disk-queue file");
+      result = FALSE;
+      goto exit;
+    }
+
+exit:
+  if (!result)
+    g_string_truncate(serialized, 0);
 
   serialize_archive_free(sa);
 
