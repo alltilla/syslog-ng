@@ -75,8 +75,6 @@ _push_tail(LogQueue *s, LogMessage *msg, const LogPathOptions *path_options)
 
   g_assert(self->push_tail);
 
-  g_static_mutex_lock(&self->super.lock);
-
   ScratchBuffersMarker marker;
   GString *serialized = scratch_buffers_alloc_and_mark(&marker);
 
@@ -86,10 +84,12 @@ _push_tail(LogQueue *s, LogMessage *msg, const LogPathOptions *path_options)
       goto exit;
     }
 
+  g_static_mutex_lock(&self->super.lock);
+
   if (!self->push_tail(self, msg, serialized, &local_options, path_options))
     {
       _drop_msg(self, msg, path_options);
-      goto exit;
+      goto exit_locked;
     }
 
   log_queue_push_notify(&self->super);
@@ -97,9 +97,10 @@ _push_tail(LogQueue *s, LogMessage *msg, const LogPathOptions *path_options)
   log_msg_ack(msg, &local_options, AT_PROCESSED);
   log_msg_unref(msg);
 
+exit_locked:
+  g_static_mutex_unlock(&self->super.lock);
 exit:
   scratch_buffers_reclaim_marked(marker);
-  g_static_mutex_unlock(&self->super.lock);
 }
 
 static void
