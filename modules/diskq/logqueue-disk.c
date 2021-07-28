@@ -61,19 +61,21 @@ _push_tail(LogQueue *s, LogMessage *msg, const LogPathOptions *path_options)
 {
   LogQueueDisk *self = (LogQueueDisk *) s;
   LogPathOptions local_options = *path_options;
+
+  g_assert(self->push_tail);
+
   g_static_mutex_lock(&self->super.lock);
-  if (self->push_tail)
+
+  if (self->push_tail(self, msg, &local_options, path_options))
     {
-      if (self->push_tail(self, msg, &local_options, path_options))
-        {
-          log_queue_push_notify (&self->super);
-          log_queue_queued_messages_inc(&self->super);
-          log_msg_ack(msg, &local_options, AT_PROCESSED);
-          log_msg_unref(msg);
-          g_static_mutex_unlock(&self->super.lock);
-          return;
-        }
+      log_queue_push_notify (&self->super);
+      log_queue_queued_messages_inc(&self->super);
+      log_msg_ack(msg, &local_options, AT_PROCESSED);
+      log_msg_unref(msg);
+      g_static_mutex_unlock(&self->super.lock);
+      return;
     }
+
   stats_counter_inc (self->super.dropped_messages);
 
   if (path_options->flow_control_requested)
