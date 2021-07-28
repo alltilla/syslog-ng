@@ -569,6 +569,17 @@ qdisk_remove_head(QDisk *self)
   return TRUE;
 }
 
+gboolean
+qdisk_serialize_msg(QDisk *self, LogMessage *msg, GString *serialized)
+{
+  SerializeArchive *sa = serialize_string_archive_new(serialized);
+
+  gboolean result = log_msg_serialize(msg, sa, self->options->compaction ? LMSF_COMPACTION : 0);
+
+  serialize_archive_free(sa);
+  return result;
+}
+
 static FILE *
 _create_stream(QDisk *self, gint64 offset)
 {
