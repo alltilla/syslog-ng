@@ -570,6 +570,23 @@ qdisk_remove_head(QDisk *self)
   return TRUE;
 }
 
+gboolean
+qdisk_serialize_msg(QDisk *self, LogMessage *msg, GString *serialized)
+{
+  gboolean result = TRUE;
+  SerializeArchive *sa = serialize_string_archive_new(serialized);
+
+  if (!log_msg_serialize(msg, sa, self->options->compaction ? LMSF_COMPACTION : 0))
+    {
+      g_string_truncate(serialized, 0);
+      result = FALSE;
+    }
+
+  serialize_archive_free(sa);
+
+  return result;
+}
+
 static FILE *
 _create_stream(QDisk *self, gint64 offset)
 {
