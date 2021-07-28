@@ -163,7 +163,6 @@ _move_messages_from_overflow(LogQueueDiskNonReliable *self)
         }
       else
         {
-
           ScratchBuffersMarker marker;
           GString *serialized = scratch_buffers_alloc_and_mark(&marker);
 
