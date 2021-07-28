@@ -77,7 +77,16 @@ _push_tail(LogQueue *s, LogMessage *msg, const LogPathOptions *path_options)
 
   g_static_mutex_lock(&self->super.lock);
 
-  if (!self->push_tail(self, msg, &local_options, path_options))
+  ScratchBuffersMarker marker;
+  GString *serialized = scratch_buffers_alloc_and_mark(&marker);
+
+  if (!qdisk_serialize_msg(self->qdisk, msg, serialized))
+    {
+      _drop_msg(self, msg, path_options);
+      goto exit;
+    }
+
+  if (!self->push_tail(self, msg, serialized, &local_options, path_options))
     {
       _drop_msg(self, msg, path_options);
       goto exit;
@@ -89,6 +98,7 @@ _push_tail(LogQueue *s, LogMessage *msg, const LogPathOptions *path_options)
   log_msg_unref(msg);
 
 exit:
+  scratch_buffers_reclaim_marked(marker);
   g_static_mutex_unlock(&self->super.lock);
 }
 
@@ -281,27 +291,12 @@ log_queue_disk_read_message(LogQueueDisk *self, LogPathOptions *path_options)
 }
 
 gboolean
-log_queue_disk_write_message(LogQueueDisk *self, LogMessage *msg)
+log_queue_disk_write_message(LogQueueDisk *self, GString *serialized)
 {
-  gboolean consumed = FALSE;
-
   if (qdisk_started(self->qdisk) && qdisk_is_space_avail(self->qdisk, 64))
-    {
-      ScratchBuffersMarker marker;
-      GString *write_serialized = scratch_buffers_alloc_and_mark(&marker);
+    return qdisk_push_tail(self->qdisk, serialized);
 
-      if (!qdisk_serialize_msg(self->qdisk, msg, write_serialized))
-        {
-          scratch_buffers_reclaim_marked(marker);
-          return FALSE;
-        }
-
-      consumed = qdisk_push_tail(self->qdisk, write_serialized);
-
-      scratch_buffers_reclaim_marked(marker);
-    }
-
-  return consumed;
+  return FALSE;
 }
 
 static void

@@ -25,6 +25,7 @@
 #include "logpipe.h"
 #include "messages.h"
 #include "syslog-ng.h"
+#include "scratch-buffers.h"
 
 #define ITEM_NUMBER_PER_MESSAGE 2
 
@@ -147,6 +148,9 @@ _move_messages_from_overflow(LogQueueDiskNonReliable *self)
 {
   LogMessage *msg;
   LogPathOptions path_options;
+  ScratchBuffersMarker marker;
+  GString *serialized = NULL;
+
   /* move away as much entries from the overflow area as possible */
   while (_has_movable_message(self))
     {
@@ -162,7 +166,12 @@ _move_messages_from_overflow(LogQueueDiskNonReliable *self)
         }
       else
         {
-          if (log_queue_disk_write_message(&self->super, msg))
+          if (!serialized)
+            serialized = scratch_buffers_alloc_and_mark(&marker);
+          g_string_truncate(serialized, 0);
+
+          if (qdisk_serialize_msg(self->super.qdisk, msg, serialized) &&
+              log_queue_disk_write_message(&self->super, serialized))
             {
               log_queue_memory_usage_sub(&self->super.super, log_msg_get_size(msg));
             }
@@ -181,6 +190,9 @@ _move_messages_from_overflow(LogQueueDiskNonReliable *self)
       log_msg_ack (msg, &path_options, AT_PROCESSED);
       log_msg_unref (msg);
     }
+
+  if (serialized)
+    scratch_buffers_reclaim_marked(marker);
 }
 
 static void
@@ -304,7 +316,8 @@ _push_head (LogQueueDisk *s, LogMessage *msg, const LogPathOptions *path_options
 }
 
 static gboolean
-_push_tail (LogQueueDisk *s, LogMessage *msg, LogPathOptions *local_options, const LogPathOptions *path_options)
+_push_tail(LogQueueDisk *s, LogMessage *msg, GString *serialized, LogPathOptions *local_options,
+           const LogPathOptions *path_options)
 {
   LogQueueDiskNonReliable *self = (LogQueueDiskNonReliable *) s;
 
@@ -321,7 +334,7 @@ _push_tail (LogQueueDisk *s, LogMessage *msg, LogPathOptions *local_options, con
     }
   else
     {
-      if (self->qoverflow->length != 0 || !log_queue_disk_write_message(s, msg))
+      if (self->qoverflow->length != 0 || !log_queue_disk_write_message(s, serialized))
         {
           if (HAS_SPACE_IN_QUEUE(self->qoverflow))
             {

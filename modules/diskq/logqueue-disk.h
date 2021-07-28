@@ -36,8 +36,8 @@ struct _LogQueueDisk
   LogQueue super;
   QDisk *qdisk;         /* disk based queue */
   gint64 (*get_length)(LogQueueDisk *s);
-  gboolean (*push_tail)(LogQueueDisk *s, LogMessage *msg, LogPathOptions *local_options,
-                        const LogPathOptions *path_options);
+  gboolean (*push_tail)(LogQueueDisk *s, LogMessage *msg, GString *serialized,
+                        LogPathOptions *local_options, const LogPathOptions *path_options);
   void (*push_head)(LogQueueDisk *s, LogMessage *msg, const LogPathOptions *path_options);
   LogMessage *(*pop_head)(LogQueueDisk *s, LogPathOptions *path_options);
   void (*ack_backlog)(LogQueueDisk *s, guint num_msg_to_ack);
@@ -59,6 +59,6 @@ void log_queue_disk_restart_corrupted(LogQueueDisk *self);
 
 
 LogMessage *log_queue_disk_read_message(LogQueueDisk *self, LogPathOptions *path_options);
-gboolean log_queue_disk_write_message(LogQueueDisk *self, LogMessage *msg);
+gboolean log_queue_disk_write_message(LogQueueDisk *self, GString *serialized);
 
 #endif
