@@ -172,6 +172,11 @@ _move_messages_from_overflow(LogQueueDiskNonReliable *self)
           ScratchBuffersMarker marker;
           GString *serialized = scratch_buffers_alloc_and_mark(&marker);
 
+          /*
+           * We are running in the destination's thread. With this serialization we are doing
+           * and expensive operation while holding the lock, and we might block the source
+           * threads, but it is not a big problem, because the destination thread is the bottleneck.
+           */
           if (!qdisk_serialize_msg(self->super.qdisk, msg, serialized))
             {
               scratch_buffers_reclaim_marked(marker);
