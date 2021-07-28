@@ -87,13 +87,9 @@ static void
 _push_tail(LogQueue *s, LogMessage *msg, const LogPathOptions *path_options)
 {
   LogQueueDisk *self = (LogQueueDisk *) s;
-  LogPathOptions local_options = *path_options;
-
-  g_assert(self->push_tail);
 
   ScratchBuffersMarker marker;
   GString *serialized = scratch_buffers_alloc_and_mark(&marker);
-
   if (!_serialize_msg_if_needed(self, msg, serialized))
     {
       _drop_msg(self, msg, path_options);
@@ -102,6 +98,8 @@ _push_tail(LogQueue *s, LogMessage *msg, const LogPathOptions *path_options)
 
   g_static_mutex_lock(&self->super.lock);
 
+  LogPathOptions local_options = *path_options;
+  g_assert(self->push_tail);
   if (!self->push_tail(self, msg, serialized, &local_options, path_options))
     {
       _drop_msg(self, msg, path_options);
