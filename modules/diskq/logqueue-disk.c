@@ -222,8 +222,6 @@ _free(LogQueue *s)
 static gboolean
 _pop_disk(LogQueueDisk *self, LogMessage **msg)
 {
-  SerializeArchive *sa;
-
   *msg = NULL;
 
   if (!qdisk_started(self->qdisk))
@@ -239,22 +237,8 @@ _pop_disk(LogQueueDisk *self, LogMessage **msg)
       return FALSE;
     }
 
-  sa = serialize_string_archive_new(read_serialized);
-  *msg = log_msg_new_empty();
+  qdisk_deserialize_msg(self->qdisk, read_serialized, msg);
 
-  if (!log_msg_deserialize(*msg, sa))
-    {
-      serialize_archive_free(sa);
-      log_msg_unref(*msg);
-      scratch_buffers_reclaim_marked(marker);
-      *msg = NULL;
-      msg_error("Can't read correct message from disk-queue file",
-                evt_tag_str("filename", qdisk_get_filename(self->qdisk)),
-                evt_tag_long("read_position", qdisk_get_reader_head(self->qdisk)));
-      return TRUE;
-    }
-
-  serialize_archive_free(sa);
   scratch_buffers_reclaim_marked(marker);
 
   return TRUE;

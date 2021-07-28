@@ -587,6 +587,27 @@ qdisk_serialize_msg(QDisk *self, LogMessage *msg, GString *serialized)
   return result;
 }
 
+gboolean
+qdisk_deserialize_msg(QDisk *self, GString *serialized, LogMessage **msg)
+{
+  gboolean result = TRUE;
+  SerializeArchive *sa = serialize_string_archive_new(serialized);
+  *msg = log_msg_new_empty();
+
+  if (!log_msg_deserialize(*msg, sa))
+    {
+      msg_error("Can't read correct message from disk-queue file",
+                evt_tag_str("filename", qdisk_get_filename(self)),
+                evt_tag_long("read_position", qdisk_get_reader_head(self)));
+      log_msg_unref(*msg);
+      *msg = NULL;
+      result = FALSE;
+    }
+
+  serialize_archive_free(sa);
+  return result;
+}
+
 static FILE *
 _create_stream(QDisk *self, gint64 offset)
 {
