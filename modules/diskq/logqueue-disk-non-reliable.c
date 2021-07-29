@@ -92,6 +92,12 @@ _has_messages_on_disk(LogQueueDiskNonReliable *self)
   return qdisk_get_length(self->super.qdisk) > 0;
 }
 
+static inline gboolean
+_has_messages_in_queue(GQueue *queue)
+{
+  return queue->length > 0;
+}
+
 static gint64
 _get_length (LogQueueDisk *s)
 {
@@ -115,7 +121,7 @@ _get_next_message(LogQueueDiskNonReliable *self, LogPathOptions *path_options)
           path_options->ack_needed = FALSE;
         }
     }
-  else if (self->qoverflow->length > 0)
+  else if (_has_messages_in_queue(self->qoverflow))
     {
       result = g_queue_pop_head (self->qoverflow);
       POINTER_TO_LOG_PATH_OPTIONS (g_queue_pop_head (self->qoverflow), path_options);
@@ -144,7 +150,7 @@ _add_message_to_qout(LogQueueDiskNonReliable *self, LogMessage *msg, LogPathOpti
 static inline gboolean
 _has_movable_message(LogQueueDiskNonReliable *self)
 {
-  return self->qoverflow->length > 0
+  return _has_messages_in_queue(self->qoverflow)
          && ((HAS_SPACE_IN_QUEUE(self->qout) && !_has_messages_on_disk(self))
              || qdisk_is_space_avail (self->super.qdisk, 4096));
 }
@@ -223,7 +229,7 @@ _move_disk (LogQueueDiskNonReliable *self)
 
   /* stupid message mover between queues */
 
-  if (self->qout->length == 0 && self->qout_size > 0)
+  if (!_has_messages_in_queue(self->qout) && self->qout_size > 0)
     {
       do
         {
@@ -249,7 +255,7 @@ _ack_backlog (LogQueueDisk *s, guint num_msg_to_ack)
 
   for (i = 0; i < num_msg_to_ack; i++)
     {
-      if (self->qbacklog->length < ITEM_NUMBER_PER_MESSAGE)
+      if (!_has_messages_in_queue(self->qbacklog))
         return;
       msg = g_queue_pop_head (self->qbacklog);
       POINTER_TO_LOG_PATH_OPTIONS (g_queue_pop_head (self->qbacklog), &path_options);
@@ -284,7 +290,7 @@ _pop_head (LogQueueDisk *s, LogPathOptions *path_options)
   LogQueueDiskNonReliable *self = (LogQueueDiskNonReliable *) s;
   LogMessage *msg = NULL;
 
-  if (self->qout->length > 0)
+  if (_has_messages_in_queue(self->qout))
     {
       msg = g_queue_pop_head (self->qout);
       POINTER_TO_LOG_PATH_OPTIONS (g_queue_pop_head (self->qout), path_options);
@@ -300,7 +306,7 @@ _pop_head (LogQueueDisk *s, LogPathOptions *path_options)
     }
   if (msg == NULL)
     {
-      if (self->qoverflow->length > 0 && qdisk_is_read_only (self->super.qdisk))
+      if (_has_messages_in_queue(self->qoverflow) && qdisk_is_read_only (self->super.qdisk))
         {
           msg = g_queue_pop_head (self->qoverflow);
           POINTER_TO_LOG_PATH_OPTIONS (g_queue_pop_head (self->qoverflow), path_options);
@@ -390,7 +396,7 @@ _push_tail(LogQueueDisk *s, LogMessage *msg, GString *serialized, LogPathOptions
         return TRUE;
     }
 
-  if (self->qoverflow->length == 0)
+  if (!_has_messages_in_queue(self->qoverflow))
     {
       if (log_queue_disk_write_message(s, serialized))
         return TRUE;
