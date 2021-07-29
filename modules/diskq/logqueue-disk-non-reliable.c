@@ -358,6 +358,19 @@ _report_message_drop(LogQueueDiskNonReliable *self)
             evt_tag_str  ("persist_name", self->super.super.persist_name));
 }
 
+static inline void
+_push_to_qout_tail(LogQueueDiskNonReliable *self, LogMessage *msg)
+{
+  g_queue_push_tail(self->qout, msg);
+  /* simple push never generates flow-control enabled entries to qout, they only get there
+   * when rewinding the backlog */
+  g_queue_push_tail(self->qout, LOG_PATH_OPTIONS_FOR_BACKLOG);
+
+  log_msg_ref(msg);
+
+  log_queue_memory_usage_add(&self->super.super, log_msg_get_size(msg));
+}
+
 static gboolean
 _push_tail(LogQueueDisk *s, LogMessage *msg, GString *serialized, LogPathOptions *local_options,
            const LogPathOptions *path_options)
@@ -366,14 +379,7 @@ _push_tail(LogQueueDisk *s, LogMessage *msg, GString *serialized, LogPathOptions
 
   if (HAS_SPACE_IN_QUEUE(self->qout) && !_has_messages_on_disk(self))
     {
-      /* simple push never generates flow-control enabled entries to qout, they only get there
-       * when rewinding the backlog */
-
-      g_queue_push_tail (self->qout, msg);
-      g_queue_push_tail (self->qout, LOG_PATH_OPTIONS_FOR_BACKLOG);
-      log_msg_ref (msg);
-
-      log_queue_memory_usage_add(&self->super.super, log_msg_get_size(msg));
+      _push_to_qout_tail(self, msg);
       return TRUE;
     }
 
