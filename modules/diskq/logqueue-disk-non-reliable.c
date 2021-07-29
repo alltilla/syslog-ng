@@ -353,9 +353,9 @@ _push_tail(LogQueueDisk *s, LogMessage *msg, GString *serialized, LogPathOptions
     {
       /* simple push never generates flow-control enabled entries to qout, they only get there
        * when rewinding the backlog */
-
+      LogPathOptions options = LOG_PATH_OPTIONS_INIT_NOACK;
       g_queue_push_tail (self->qout, msg);
-      g_queue_push_tail (self->qout, LOG_PATH_OPTIONS_FOR_BACKLOG);
+      g_queue_push_tail (self->qout, LOG_PATH_OPTIONS_TO_POINTER(&options));
       log_msg_ref (msg);
 
       log_queue_memory_usage_add(&self->super.super, log_msg_get_size(msg));
