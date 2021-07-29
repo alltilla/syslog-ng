@@ -306,30 +306,29 @@ _pop_head (LogQueueDisk *s, LogPathOptions *path_options)
       msg = g_queue_pop_head (self->qout);
       POINTER_TO_LOG_PATH_OPTIONS (g_queue_pop_head (self->qout), path_options);
       log_queue_memory_usage_sub(&self->super.super, log_msg_get_size(msg));
-    }
-  if (msg == NULL)
-    {
-      msg = log_queue_disk_read_message(s, path_options);
-      if (msg)
-        {
-          path_options->ack_needed = FALSE;
-        }
-    }
-  if (msg == NULL)
-    {
-      if (_has_messages_in_queue(self->qoverflow) && qdisk_is_read_only (self->super.qdisk))
-        {
-          msg = g_queue_pop_head (self->qoverflow);
-          POINTER_TO_LOG_PATH_OPTIONS (g_queue_pop_head (self->qoverflow), path_options);
-          log_queue_memory_usage_sub(&self->super.super, log_msg_get_size(msg));
-        }
+      goto success;
     }
 
-  if (msg != NULL)
+  msg = log_queue_disk_read_message(s, path_options);
+  if (msg)
     {
-      _push_to_qbacklog_if_needed(self, msg, path_options);
-      _move_disk (self);
+      path_options->ack_needed = FALSE;
+      goto success;
     }
+
+  if (_has_messages_in_queue(self->qoverflow) && qdisk_is_read_only (self->super.qdisk))
+    {
+      msg = g_queue_pop_head (self->qoverflow);
+      POINTER_TO_LOG_PATH_OPTIONS (g_queue_pop_head (self->qoverflow), path_options);
+      log_queue_memory_usage_sub(&self->super.super, log_msg_get_size(msg));
+      goto success;
+    }
+
+  return NULL;
+
+success:
+  _push_to_qbacklog_if_needed(self, msg, path_options);
+  _move_disk(self);
   return msg;
 }
 
