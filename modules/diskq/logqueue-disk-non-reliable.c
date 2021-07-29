@@ -376,17 +376,16 @@ _push_tail(LogQueueDisk *s, LogMessage *msg, GString *serialized, LogPathOptions
           log_msg_ref (msg);
           local_options->ack_needed = FALSE;
           log_queue_memory_usage_add(&self->super.super, log_msg_get_size(msg));
+          return TRUE;
         }
-      else
-        {
-          msg_debug ("Destination queue full, dropping message",
-                      evt_tag_str  ("filename", qdisk_get_filename (self->super.qdisk)),
-                      evt_tag_long ("queue_len", _get_length(s)),
-                      evt_tag_int  ("mem_buf_length", self->qoverflow_size),
-                      evt_tag_long ("disk_buf_size", qdisk_get_maximum_size (self->super.qdisk)),
-                      evt_tag_str  ("persist_name", self->super.super.persist_name));
-          return FALSE;
-        }
+
+      msg_debug ("Destination queue full, dropping message",
+                  evt_tag_str  ("filename", qdisk_get_filename (self->super.qdisk)),
+                  evt_tag_long ("queue_len", _get_length(s)),
+                  evt_tag_int  ("mem_buf_length", self->qoverflow_size),
+                  evt_tag_long ("disk_buf_size", qdisk_get_maximum_size (self->super.qdisk)),
+                  evt_tag_str  ("persist_name", self->super.super.persist_name));
+      return FALSE;
     }
 
   return TRUE;
