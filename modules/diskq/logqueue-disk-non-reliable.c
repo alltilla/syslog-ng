@@ -107,13 +107,18 @@ _get_length (LogQueueDisk *s)
          + _get_message_number_in_queue(self->qoverflow);
 }
 
-static inline void
+static inline gboolean
 _pop_from_memory_queue_head(LogQueueDiskNonReliable *self, GQueue *queue, LogMessage **msg,
                             LogPathOptions *path_options)
 {
+  if (queue->length == 0)
+    return FALSE;
+
   *msg = g_queue_pop_head(queue);
   POINTER_TO_LOG_PATH_OPTIONS(g_queue_pop_head(queue), path_options);
   log_queue_memory_usage_sub(&self->super.super, log_msg_get_size(*msg));
+
+  return TRUE;
 }
 
 static LogMessage *
@@ -310,11 +315,8 @@ _pop_head (LogQueueDisk *s, LogPathOptions *path_options)
   LogQueueDiskNonReliable *self = (LogQueueDiskNonReliable *) s;
   LogMessage *msg = NULL;
 
-  if (_has_messages_in_queue(self->qout))
-    {
-      _pop_from_memory_queue_head(self, self->qout, &msg, path_options);
-      goto success;
-    }
+  if (_pop_from_memory_queue_head(self, self->qout, &msg, path_options))
+    goto success;
 
   msg = log_queue_disk_read_message(s, path_options);
   if (msg)
@@ -323,10 +325,10 @@ _pop_head (LogQueueDisk *s, LogPathOptions *path_options)
       goto success;
     }
 
-  if (_has_messages_in_queue(self->qoverflow) && qdisk_is_read_only (self->super.qdisk))
+  if (qdisk_is_read_only(self->super.qdisk))
     {
-      _pop_from_memory_queue_head(self, self->qoverflow, &msg, path_options);
-      goto success;
+      if (_pop_from_memory_queue_head(self, self->qoverflow, &msg, path_options))
+        goto success;
     }
 
   return NULL;
