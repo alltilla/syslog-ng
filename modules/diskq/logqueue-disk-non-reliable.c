@@ -390,19 +390,21 @@ _push_tail(LogQueueDisk *s, LogMessage *msg, GString *serialized, LogPathOptions
         return TRUE;
     }
 
-  if (self->qoverflow->length != 0 || !log_queue_disk_write_message(s, serialized))
+  if (self->qoverflow->length == 0)
     {
-      if (_push_to_qoverflow_tail(self, msg, path_options))
-        {
-          local_options->ack_needed = FALSE;
-          return TRUE;
-        }
-
-      _report_message_drop(self);
-      return FALSE;
+      if (log_queue_disk_write_message(s, serialized))
+        return TRUE;
     }
 
-  return TRUE;
+  if (_push_to_qoverflow_tail(self, msg, path_options))
+    {
+      local_options->ack_needed = FALSE;
+      return TRUE;
+    }
+
+  _report_message_drop(self);
+
+  return FALSE;
 }
 
 static void
