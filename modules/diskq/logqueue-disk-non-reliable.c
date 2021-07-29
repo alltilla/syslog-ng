@@ -284,6 +284,17 @@ _rewind_backlog (LogQueueDisk *s, guint rewind_count)
     }
 }
 
+static inline void
+_push_to_qbacklog_if_needed(LogQueueDiskNonReliable *self, LogMessage *msg, LogPathOptions *path_options)
+{
+  if (!self->super.super.use_backlog)
+    return;
+
+  log_msg_ref(msg);
+  g_queue_push_tail(self->qbacklog, msg);
+  g_queue_push_tail(self->qbacklog, LOG_PATH_OPTIONS_TO_POINTER(path_options));
+}
+
 static LogMessage *
 _pop_head (LogQueueDisk *s, LogPathOptions *path_options)
 {
@@ -316,12 +327,7 @@ _pop_head (LogQueueDisk *s, LogPathOptions *path_options)
 
   if (msg != NULL)
     {
-      if (self->super.super.use_backlog)
-        {
-          log_msg_ref (msg);
-          g_queue_push_tail (self->qbacklog, msg);
-          g_queue_push_tail (self->qbacklog, LOG_PATH_OPTIONS_TO_POINTER (path_options));
-        }
+      _push_to_qbacklog_if_needed(self, msg, path_options);
       _move_disk (self);
     }
   return msg;
