@@ -332,6 +332,17 @@ _push_head (LogQueueDisk *s, LogMessage *msg, const LogPathOptions *path_options
   log_queue_memory_usage_add(&self->super.super, log_msg_get_size(msg));
 }
 
+static inline void
+_report_message_drop(LogQueueDiskNonReliable *self)
+{
+  msg_debug("Destination queue full, dropping message",
+            evt_tag_str  ("filename", qdisk_get_filename (self->super.qdisk)),
+            evt_tag_long ("queue_len", _get_length(&self->super)),
+            evt_tag_int  ("mem_buf_length", self->qoverflow_size),
+            evt_tag_long ("disk_buf_size", qdisk_get_maximum_size (self->super.qdisk)),
+            evt_tag_str  ("persist_name", self->super.super.persist_name));
+}
+
 static gboolean
 _push_tail(LogQueueDisk *s, LogMessage *msg, GString *serialized, LogPathOptions *local_options,
            const LogPathOptions *path_options)
@@ -363,12 +374,7 @@ _push_tail(LogQueueDisk *s, LogMessage *msg, GString *serialized, LogPathOptions
           return TRUE;
         }
 
-      msg_debug ("Destination queue full, dropping message",
-                  evt_tag_str  ("filename", qdisk_get_filename (self->super.qdisk)),
-                  evt_tag_long ("queue_len", _get_length(s)),
-                  evt_tag_int  ("mem_buf_length", self->qoverflow_size),
-                  evt_tag_long ("disk_buf_size", qdisk_get_maximum_size (self->super.qdisk)),
-                  evt_tag_str  ("persist_name", self->super.super.persist_name));
+      _report_message_drop(self);
       return FALSE;
     }
 
