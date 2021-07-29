@@ -86,6 +86,12 @@ _get_message_number_in_queue(GQueue *queue)
 
 #define HAS_SPACE_IN_QUEUE(queue) _get_message_number_in_queue(queue) < queue ## _size
 
+static inline gboolean
+_has_messages_on_disk(LogQueueDiskNonReliable *self)
+{
+  return qdisk_get_length(self->super.qdisk) > 0;
+}
+
 static gint64
 _get_length (LogQueueDisk *s)
 {
@@ -100,7 +106,7 @@ _get_next_message(LogQueueDiskNonReliable *self, LogPathOptions *path_options)
 {
   LogMessage *result = NULL;
   path_options->ack_needed = TRUE;
-  if (qdisk_get_length (self->super.qdisk) > 0)
+  if (_has_messages_on_disk(self))
     {
       result = log_queue_disk_read_message(&self->super, path_options);
       if(result)
@@ -139,7 +145,7 @@ static inline gboolean
 _has_movable_message(LogQueueDiskNonReliable *self)
 {
   return self->qoverflow->length > 0
-         && ((HAS_SPACE_IN_QUEUE(self->qout) && qdisk_get_length (self->super.qdisk) == 0)
+         && ((HAS_SPACE_IN_QUEUE(self->qout) && !_has_messages_on_disk(self))
              || qdisk_is_space_avail (self->super.qdisk, 4096));
 }
 
@@ -154,7 +160,7 @@ _move_messages_from_overflow(LogQueueDiskNonReliable *self)
       msg = g_queue_pop_head (self->qoverflow);
       POINTER_TO_LOG_PATH_OPTIONS (g_queue_pop_head (self->qoverflow), &path_options);
 
-      if (qdisk_get_length (self->super.qdisk) == 0 && HAS_SPACE_IN_QUEUE(self->qout))
+      if (!_has_messages_on_disk(self) && HAS_SPACE_IN_QUEUE(self->qout))
         {
           /* we can skip qdisk, go straight to qout */
           g_queue_push_tail (self->qout, msg);
@@ -332,7 +338,7 @@ _push_tail(LogQueueDisk *s, LogMessage *msg, GString *serialized, LogPathOptions
 {
   LogQueueDiskNonReliable *self = (LogQueueDiskNonReliable *) s;
 
-  if (HAS_SPACE_IN_QUEUE(self->qout) && qdisk_get_length (self->super.qdisk) == 0)
+  if (HAS_SPACE_IN_QUEUE(self->qout) && !_has_messages_on_disk(self))
     {
       /* simple push never generates flow-control enabled entries to qout, they only get there
        * when rewinding the backlog */
