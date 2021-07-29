@@ -355,24 +355,45 @@ _push_to_memory_queue_tail(LogQueueDiskNonReliable *self, GQueue *queue, LogMess
   log_queue_memory_usage_add(&self->super.super, log_msg_get_size(msg));
 }
 
+static inline gboolean
+_push_to_qout_tail(LogQueueDiskNonReliable *self, LogMessage *msg)
+{
+  if (!HAS_SPACE_IN_QUEUE(self->qout))
+    return FALSE;
+
+  LogPathOptions path_options = LOG_PATH_OPTIONS_INIT_NOACK;
+  _push_to_memory_queue_tail(self, self->qout, msg, &path_options);
+
+  return TRUE;
+}
+
+static inline gboolean
+_push_to_qoverflow_tail(LogQueueDiskNonReliable *self, LogMessage *msg, const LogPathOptions *path_options)
+{
+  if (!HAS_SPACE_IN_QUEUE(self->qoverflow))
+    return FALSE;
+
+  _push_to_memory_queue_tail(self, self->qoverflow, msg, path_options);
+
+  return TRUE;
+}
+
 static gboolean
 _push_tail(LogQueueDisk *s, LogMessage *msg, GString *serialized, LogPathOptions *local_options,
            const LogPathOptions *path_options)
 {
   LogQueueDiskNonReliable *self = (LogQueueDiskNonReliable *) s;
 
-  if (HAS_SPACE_IN_QUEUE(self->qout) && !_has_messages_on_disk(self))
+  if (!_has_messages_on_disk(self))
     {
-      LogPathOptions options = LOG_PATH_OPTIONS_INIT_NOACK;
-      _push_to_memory_queue_tail(self, self->qout, msg, &options);
-      return TRUE;
+      if (_push_to_qout_tail(self, msg))
+        return TRUE;
     }
 
   if (self->qoverflow->length != 0 || !log_queue_disk_write_message(s, serialized))
     {
-      if (HAS_SPACE_IN_QUEUE(self->qoverflow))
+      if (_push_to_qoverflow_tail(self, msg, path_options))
         {
-          _push_to_memory_queue_tail(self, self->qoverflow, msg, path_options);
           local_options->ack_needed = FALSE;
           return TRUE;
         }
