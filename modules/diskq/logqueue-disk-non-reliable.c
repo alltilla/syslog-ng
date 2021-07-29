@@ -371,6 +371,17 @@ _push_to_qout_tail(LogQueueDiskNonReliable *self, LogMessage *msg)
   log_queue_memory_usage_add(&self->super.super, log_msg_get_size(msg));
 }
 
+static inline void
+_push_to_qoverflow_tail(LogQueueDiskNonReliable *self, LogMessage *msg, const LogPathOptions *path_options)
+{
+  g_queue_push_tail(self->qoverflow, msg);
+  g_queue_push_tail(self->qoverflow, LOG_PATH_OPTIONS_TO_POINTER(path_options));
+
+  log_msg_ref(msg);
+
+  log_queue_memory_usage_add(&self->super.super, log_msg_get_size(msg));
+}
+
 static gboolean
 _push_tail(LogQueueDisk *s, LogMessage *msg, GString *serialized, LogPathOptions *local_options,
            const LogPathOptions *path_options)
@@ -388,11 +399,8 @@ _push_tail(LogQueueDisk *s, LogMessage *msg, GString *serialized, LogPathOptions
     {
       if (HAS_SPACE_IN_QUEUE(self->qoverflow))
         {
-          g_queue_push_tail (self->qoverflow, msg);
-          g_queue_push_tail (self->qoverflow, LOG_PATH_OPTIONS_TO_POINTER (path_options));
-          log_msg_ref (msg);
+          _push_to_qoverflow_tail(self, msg, path_options);
           local_options->ack_needed = FALSE;
-          log_queue_memory_usage_add(&self->super.super, log_msg_get_size(msg));
           return TRUE;
         }
 
