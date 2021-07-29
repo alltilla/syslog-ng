@@ -170,6 +170,14 @@ _move_messages_from_overflow(LogQueueDiskNonReliable *self)
             serialized = scratch_buffers_alloc_and_mark(&marker);
           g_string_truncate(serialized, 0);
 
+          /*
+           * We are running in the destination thread, and doing multiple expensive
+           * serializations while holding the lock.
+           *
+           * Having messages in the overflow queue is probably a rare scenario.
+           * Also, if we released the lock, we would just get more messages from the
+           * source. So it is okay to serialize here.
+           */
           if (qdisk_serialize_msg(self->super.qdisk, msg, serialized) &&
               log_queue_disk_write_message(&self->super, serialized))
             {
