@@ -348,31 +348,31 @@ _push_tail(LogQueueDisk *s, LogMessage *msg, GString *serialized, LogPathOptions
       log_msg_ref (msg);
 
       log_queue_memory_usage_add(&self->super.super, log_msg_get_size(msg));
+      return TRUE;
     }
-  else
+
+  if (self->qoverflow->length != 0 || !log_queue_disk_write_message(s, serialized))
     {
-      if (self->qoverflow->length != 0 || !log_queue_disk_write_message(s, serialized))
+      if (HAS_SPACE_IN_QUEUE(self->qoverflow))
         {
-          if (HAS_SPACE_IN_QUEUE(self->qoverflow))
-            {
-              g_queue_push_tail (self->qoverflow, msg);
-              g_queue_push_tail (self->qoverflow, LOG_PATH_OPTIONS_TO_POINTER (path_options));
-              log_msg_ref (msg);
-              local_options->ack_needed = FALSE;
-              log_queue_memory_usage_add(&self->super.super, log_msg_get_size(msg));
-            }
-          else
-            {
-              msg_debug ("Destination queue full, dropping message",
-                         evt_tag_str  ("filename", qdisk_get_filename (self->super.qdisk)),
-                         evt_tag_long ("queue_len", _get_length(s)),
-                         evt_tag_int  ("mem_buf_length", self->qoverflow_size),
-                         evt_tag_long ("disk_buf_size", qdisk_get_maximum_size (self->super.qdisk)),
-                         evt_tag_str  ("persist_name", self->super.super.persist_name));
-              return FALSE;
-            }
+          g_queue_push_tail (self->qoverflow, msg);
+          g_queue_push_tail (self->qoverflow, LOG_PATH_OPTIONS_TO_POINTER (path_options));
+          log_msg_ref (msg);
+          local_options->ack_needed = FALSE;
+          log_queue_memory_usage_add(&self->super.super, log_msg_get_size(msg));
+        }
+      else
+        {
+          msg_debug ("Destination queue full, dropping message",
+                      evt_tag_str  ("filename", qdisk_get_filename (self->super.qdisk)),
+                      evt_tag_long ("queue_len", _get_length(s)),
+                      evt_tag_int  ("mem_buf_length", self->qoverflow_size),
+                      evt_tag_long ("disk_buf_size", qdisk_get_maximum_size (self->super.qdisk)),
+                      evt_tag_str  ("persist_name", self->super.super.persist_name));
+          return FALSE;
         }
     }
+
   return TRUE;
 }
 
