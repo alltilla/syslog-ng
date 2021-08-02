@@ -256,7 +256,7 @@ _move_disk (LogQueueDiskNonReliable *self)
         }
       while (msg && _could_move_into_qout(self));
     }
-  _move_messages_from_overflow(self);
+  // _move_messages_from_overflow(self);
 }
 
 static void
@@ -325,11 +325,8 @@ _pop_head (LogQueueDisk *s, LogPathOptions *path_options)
       goto success;
     }
 
-  if (qdisk_is_read_only(self->super.qdisk))
-    {
-      if (_pop_from_memory_queue_head(self, self->qoverflow, &msg, path_options))
-        goto success;
-    }
+  if (_pop_from_memory_queue_head(self, self->qoverflow, &msg, path_options))
+    goto success;
 
   return NULL;
 
