@@ -293,7 +293,7 @@ log_queue_disk_read_message(LogQueueDisk *self, LogPathOptions *path_options)
 gboolean
 log_queue_disk_write_message(LogQueueDisk *self, GString *serialized)
 {
-  if (qdisk_started(self->qdisk) && qdisk_is_space_avail(self->qdisk, 64))
+  if (qdisk_started(self->qdisk) && qdisk_is_space_avail(self->qdisk, serialized->len))
     return qdisk_push_tail(self->qdisk, serialized);
 
   return FALSE;
