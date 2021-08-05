@@ -254,6 +254,8 @@ _pop_disk(LogQueueDisk *self, LogMessage **msg)
       return FALSE;
     }
 
+  g_static_mutex_unlock(&self->super.lock);
+
   if (!qdisk_deserialize_msg(self->qdisk, read_serialized, msg))
     {
       msg_error("Cannot read correct message from disk-queue file",
@@ -262,6 +264,8 @@ _pop_disk(LogQueueDisk *self, LogMessage **msg)
       log_msg_unref(*msg);
       *msg = NULL;
     }
+
+  g_static_mutex_lock(&self->super.lock);
 
   scratch_buffers_reclaim_marked(marker);
 
