@@ -323,6 +323,21 @@ _push_head (LogQueueDisk *s, LogMessage *msg, const LogPathOptions *path_options
   log_queue_memory_usage_add(&self->super.super, log_msg_get_size(msg));
 }
 
+static inline gboolean
+_ensure_serialized_msg(LogQueueDiskNonReliable *self, LogMessage *msg, GString *serialized)
+{
+  if (serialized->len > 0)
+    return TRUE;
+
+  return qdisk_serialize_msg(self->super.qdisk, msg, serialized);
+}
+
+static inline gboolean
+_write_to_qdisk(LogQueueDiskNonReliable *self, LogMessage *msg, GString *serialized)
+{
+  return _ensure_serialized_msg(self, msg, serialized) && log_queue_disk_write_message(&self->super, serialized);
+}
+
 static gboolean
 _push_tail(LogQueueDisk *s, LogMessage *msg, GString *serialized, LogPathOptions *local_options,
            const LogPathOptions *path_options)
@@ -342,7 +357,7 @@ _push_tail(LogQueueDisk *s, LogMessage *msg, GString *serialized, LogPathOptions
     }
   else
     {
-      if (self->qoverflow->length != 0 || !log_queue_disk_write_message(s, serialized))
+      if (self->qoverflow->length != 0 || !_write_to_qdisk(self, msg, serialized))
         {
           if (HAS_SPACE_IN_QUEUE(self->qoverflow))
             {
@@ -364,6 +379,20 @@ _push_tail(LogQueueDisk *s, LogMessage *msg, GString *serialized, LogPathOptions
             }
         }
     }
+  return TRUE;
+}
+
+static gboolean
+_hint_need_serialized(LogQueueDisk *s)
+{
+  LogQueueDiskNonReliable *self = (LogQueueDiskNonReliable *)s;
+
+  if (HAS_SPACE_IN_QUEUE(self->qout) && qdisk_get_length (self->super.qdisk) == 0)
+    return FALSE;
+
+  if (self->qoverflow->length != 0)
+    return FALSE;
+
   return TRUE;
 }
 
@@ -434,6 +463,7 @@ _set_virtual_functions (LogQueueDisk *self)
   self->pop_head = _pop_head;
   self->push_head = _push_head;
   self->push_tail = _push_tail;
+  self->hint_need_serialized = _hint_need_serialized;
   self->start = _start;
   self->free_fn = _freefn;
   self->load_queue = _load_queue;
