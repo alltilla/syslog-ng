@@ -78,8 +78,8 @@ stats_cluster_deinit(void)
   stats_types = NULL;
 }
 
-static StatsClusterKey *
-_clone_stats_cluster_key(StatsClusterKey *dst, const StatsClusterKey *src)
+StatsClusterKey *
+stats_cluster_key_clone(StatsClusterKey *dst, const StatsClusterKey *src)
 {
   dst->component = src->component;
   dst->id = g_strdup(src->id ? : "");
@@ -288,7 +288,7 @@ stats_cluster_new(const StatsClusterKey *key)
 {
   StatsCluster *self = g_new0(StatsCluster, 1);
 
-  _clone_stats_cluster_key(&self->key, key);
+  stats_cluster_key_clone(&self->key, key);
   self->use_count = 0;
   self->query_key = _stats_build_query_key(self);
   key->counter_group_init.init(&self->key.counter_group_init, &self->counter_group);
