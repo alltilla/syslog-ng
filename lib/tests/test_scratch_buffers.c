@@ -184,6 +184,7 @@ setup(void)
 {
   g_thread_init(NULL);
   main_loop_thread_resource_init();
+  iv_init();
   stats_init();
   scratch_buffers_global_init();
   scratch_buffers_allocator_init();
