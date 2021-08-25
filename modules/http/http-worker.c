@@ -672,6 +672,9 @@ _flush(LogThreadedDestWorker *s, LogThreadedFlushMode mode)
       retval = _flush_on_target(self, target);
       if (retval == LTR_SUCCESS)
         {
+          gsize msg_length = self->request_body->len;
+          log_threaded_dest_driver_insert_msg_length(self->super.owner, msg_length);
+
           http_load_balancer_set_target_successful(owner->load_balancer, target);
           break;
         }
@@ -757,6 +760,7 @@ _thread_init(LogThreadedDestWorker *s)
   _setup_static_options_in_curl(self);
   _reinit_request_headers(self);
   _reinit_request_body(self);
+  log_threaded_dest_driver_register_aggregated_stats(self->super.owner);
   return log_threaded_dest_worker_init_method(s);
 }
 
@@ -768,6 +772,7 @@ _thread_deinit(LogThreadedDestWorker *s)
   g_string_free(self->request_body, TRUE);
   list_free(self->request_headers);
   curl_easy_cleanup(self->curl);
+  log_threaded_dest_driver_unregister_aggregated_stats(self->super.owner);
   log_threaded_dest_worker_deinit_method(s);
 }
 
