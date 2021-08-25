@@ -184,17 +184,17 @@ _deinit_CPS_logics(StatsAggregatedCPS *self)
   stats_cluster_single_key_set_with_name(&sc_key, self->super.key.component, self->super.key.id, self->super.key.instance,
                                          self->hour.name);
   _deinit_CPS_logic(&self->hour, &sc_key, SC_TYPE_SINGLE_VALUE);
-  g_free(self->hour.name);
+  // g_free(self->hour.name);
 
   stats_cluster_single_key_set_with_name(&sc_key, self->super.key.component, self->super.key.id, self->super.key.instance,
                                          self->day.name);
   _deinit_CPS_logic(&self->day, &sc_key, SC_TYPE_SINGLE_VALUE);
-  g_free(self->day.name);
+  // g_free(self->day.name);
 
   stats_cluster_single_key_set_with_name(&sc_key, self->super.key.component, self->super.key.id, self->super.key.instance,
                                          self->start.name);
   _deinit_CPS_logic(&self->start, &sc_key, SC_TYPE_SINGLE_VALUE);
-  g_free(self->start.name);
+  // g_free(self->start.name);
 
   stats_unlock();
 }
