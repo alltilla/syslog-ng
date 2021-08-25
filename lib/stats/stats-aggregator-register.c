@@ -63,6 +63,8 @@ static void
 _update(void *cookie)
 {
   g_hash_table_foreach(stats_cluster_container.clusters, _update_func, NULL);
+
+  _start_timer();
 }
 
 static void
