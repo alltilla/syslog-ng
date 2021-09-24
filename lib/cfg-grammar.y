@@ -1080,7 +1080,7 @@ facility_string
 	    free($1);
 	    $$ = n;
 	  }
-        | KW_SYSLOG 				{ $$ = LOG_SYSLOG; }
+        /* | KW_SYSLOG 				{ $$ = LOG_SYSLOG; } */
         ;
 
 parser_opt
