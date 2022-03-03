@@ -127,20 +127,20 @@ jobs:
           path: ${{ env.PACKAGING_WORKSPACE_REL }}
 
       - name: Extract tarball
+        working-directory: ${{ env.PACKAGING_WORKSPACE_ABS }}
         run: |
-          cd ${PACKAGING_WORKSPACE_ABS}
           mkdir syslog-ng
           tar --strip-components=1 -xf syslog-ng*.tar.gz -C syslog-ng
           ls -lR
 
       - name: Image for ${{ env.DISTRIBUTION }}
+        working-directory: ${{ env.PACKAGING_WORKSPACE_ABS }}/syslog-ng
         run: |
-          cd ${PACKAGING_WORKSPACE_ABS}/syslog-ng
           ./dbld/rules image-${{ env.DISTRIBUTION }}
 
       - name: Binary for ${{ env.DISTRIBUTION }}
+        working-directory: ${{ env.PACKAGING_WORKSPACE_ABS }}/syslog-ng
         run: |
-          cd ${PACKAGING_WORKSPACE_ABS}/syslog-ng
           ./dbld/rules package-${{ env.DISTRIBUTION }}
 
       # Note: azure/CLI docker container mounts the GITHUB_WORKSPACE folder and changes the environment variable.
