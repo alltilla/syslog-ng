@@ -6,6 +6,9 @@ on:
       tarball_artifact_name:
         required: true
         type: string
+      pkg_type:
+        required: true
+        type: string
 
 jobs:
   create-and-upload-binaries:
@@ -60,12 +63,23 @@ jobs:
         run: |
           ./dbld/rules package-${{ env.DISTRIBUTION }}
 
+      - name: Calculate Azure path
+        if: env.UPLOAD == 'true' && github.repository_owner == 'syslog-ng'
+        run: |
+          if [ ${{ inputs.pkg_type }} = "stable" ]; then
+            AZURE_PATH="incoming/release/${{ github.run_id }}/${{ env.DISTRIBUTION }}"
+          elif [ ${{ inputs.pkg_type }} = "nightly" ]; then
+            AZURE_PATH="incoming/nightly/${{ env.DISTRIBUTION }}"
+          fi
+
+          echo "AZURE_PATH=${AZURE_PATH}" >> ${GITHUB_ENV}
+
       # Note: azure/CLI docker container mounts the GITHUB_WORKSPACE folder and changes the environment variable.
       - name: Upload the package
-        if: env.UPLOAD == 'true'
+        if: env.UPLOAD == 'true' && github.repository_owner == 'syslog-ng'
         uses: azure/CLI@v1
         env:
           SRC_PATH: ${{ env.PACKAGING_WORKSPACE_REL }}/syslog-ng/dbld/build/${{ env.DISTRIBUTION }}
-          DST_PATH: incoming/release/${{ github.run_id }}/${{ env.DISTRIBUTION }}
+          DST_PATH: ${{ env.AZURE_PATH }}
         with:
           inlineScript: az storage blob upload-batch --sas-token '${{ secrets.AZURE_SAS_TOKEN }}' --account-name 'syslogngose' --source ${GITHUB_WORKSPACE}/${SRC_PATH} --destination ${DST_PATH}
