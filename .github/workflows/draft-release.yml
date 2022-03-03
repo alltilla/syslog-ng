@@ -89,7 +89,7 @@ jobs:
             ${COMMENT_ENDPOINT} \
             --field body="${COMMENT}"
 
-  packages:
+  create-and-upload-packages:
     needs: draft-release
     uses: ./.github/workflows/create-and-upload-packages.yml
     with:

@@ -1,15 +1,37 @@
 name: Binary packages
 
 on:
+  workflow_dispatch:
+    inputs:
+      upload_as_nightly:
+        type: choice
+        description: Upload the created packages as "nightly"
+        options:
+          - "false"
+          - "true"
   pull_request:
+    paths:
+      - "dbld/**"
+      - "packaging/debian/control"
+      - "packaging/rhel/syslog-ng.spec"
+      - ".github/workflows/packages.yml"
   push:
+    paths:
+      - "dbld/**"
+      - "packaging/debian/control"
+      - "packaging/rhel/syslog-ng.spec"
+      - ".github/workflows/packages.yml"
   schedule:
-    - cron: '00 21 * * *'
+    - cron: '00 23 * * *'
 
 
 jobs:
-  tarball:
+  create-source-tarball:
     runs-on: ubuntu-latest
+
+    outputs:
+      UPLOAD_AS: ${{ steps.decide_upload.outputs.UPLOAD_AS }}
+      TARBALL_ARIFACT_NAME: source-tarball
 
     steps:
       - name: Checkout syslog-ng source
@@ -17,20 +39,33 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Docker image
+      - name: Prepare docker image
         run: ./dbld/rules cache-image-tarball
 
-      - name: Tarball
+      - name: Create source tarball
         run: ./dbld/rules pkg-tarball
 
-      - name: Store tarball as artifact
+      - name: Store source tarball as artifact
         uses: actions/upload-artifact@v2
         with:
-          name: tarball
+          name: source-tarball
           path: dbld/build/*.tar.gz
 
-  packages:
-    needs: tarball
+      - name: Decide to upload packages as "nightly" or not
+        id: decide_upload
+        run: |
+          . .github/workflows/gh-tools.sh
+
+          if [[ "${{ inputs.upload_as_nightly }}" = "true" || "${{ github.event_name }}" = "schedule" ]]; then
+            UPLOAD_AS="nightly"
+          fi
+
+          gh_output UPLOAD_AS
+
+
+  create-and-upload-packages:
+    needs: create-source-tarball
     uses: ./.github/workflows/create-and-upload-packages.yml
     with:
-      tarball_artifact_name: "tarball"
+      tarball_artifact_name: ${{ needs.create-source-tarball.outputs.TARBALL_ARIFACT_NAME }}
+      upload_as: ${{ needs.create-source-tarball.outputs.UPLOAD_AS }}
