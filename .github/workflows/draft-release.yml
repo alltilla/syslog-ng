@@ -95,21 +95,20 @@ jobs:
     strategy:
       matrix:
         dbld-builder-images:
-        - { distro: 'debian-stretch',  pkg: 'deb', upload: 'true' }
-        - { distro: 'debian-buster',   pkg: 'deb', upload: 'true' }
-        - { distro: 'debian-testing',  pkg: 'deb', upload: 'true' }
-        - { distro: 'debian-sid',      pkg: 'deb', upload: 'true' }
-        - { distro: 'ubuntu-xenial',   pkg: 'deb', upload: 'true' }
-        - { distro: 'ubuntu-bionic',   pkg: 'deb', upload: 'true' }
-        - { distro: 'debian-bullseye', pkg: 'deb', upload: 'true' }
-        - { distro: 'ubuntu-focal',    pkg: 'deb', upload: 'true' }
-        - { distro: 'ubuntu-impish',   pkg: 'deb', upload: 'true' }
-        - { distro: 'centos-7',        pkg: 'rpm', upload: 'false' }
-        - { distro: 'fedora-33',       pkg: 'rpm', upload: 'false' }
+        - { distro: 'debian-stretch',  upload: 'true' }
+        - { distro: 'debian-buster',   upload: 'true' }
+        - { distro: 'debian-testing',  upload: 'true' }
+        - { distro: 'debian-sid',      upload: 'true' }
+        - { distro: 'ubuntu-xenial',   upload: 'true' }
+        - { distro: 'ubuntu-bionic',   upload: 'true' }
+        - { distro: 'debian-bullseye', upload: 'true' }
+        - { distro: 'ubuntu-focal',    upload: 'true' }
+        - { distro: 'ubuntu-impish',   upload: 'true' }
+        - { distro: 'centos-7',        upload: 'false' }
+        - { distro: 'fedora-33',       upload: 'false' }
       fail-fast: false
     env:
       DISTRIBUTION: ${{ matrix.dbld-builder-images.distro }}
-      PACKAGE_FORMAT: ${{ matrix.dbld-builder-images.pkg }}
       UPLOAD: ${{ matrix.dbld-builder-images.upload }}
 
     steps:
