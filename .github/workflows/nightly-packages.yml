@@ -16,10 +16,10 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Docker image
+      - name: Prepare docker image
         run: ./dbld/rules cache-image-tarball
 
-      - name: Tarball
+      - name: Create tarball
         run: ./dbld/rules pkg-tarball
 
       - name: Store tarball as artifact
