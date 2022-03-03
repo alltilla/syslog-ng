@@ -90,64 +90,7 @@ jobs:
             --field body="${COMMENT}"
 
   packages:
-    runs-on: ubuntu-latest
     needs: draft-release
-    strategy:
-      matrix:
-        dbld-builder-images:
-        - { distro: 'debian-stretch',  upload: 'true' }
-        - { distro: 'debian-buster',   upload: 'true' }
-        - { distro: 'debian-testing',  upload: 'true' }
-        - { distro: 'debian-sid',      upload: 'true' }
-        - { distro: 'ubuntu-xenial',   upload: 'true' }
-        - { distro: 'ubuntu-bionic',   upload: 'true' }
-        - { distro: 'debian-bullseye', upload: 'true' }
-        - { distro: 'ubuntu-focal',    upload: 'true' }
-        - { distro: 'ubuntu-impish',   upload: 'true' }
-        - { distro: 'centos-7',        upload: 'false' }
-        - { distro: 'fedora-33',       upload: 'false' }
-      fail-fast: false
-    env:
-      DISTRIBUTION: ${{ matrix.dbld-builder-images.distro }}
-      UPLOAD: ${{ matrix.dbld-builder-images.upload }}
-
-    steps:
-      - name: Create a working directory
-        run: |
-          PACKAGING_WORKSPACE_ABS=$(mktemp --tmpdir=${GITHUB_WORKSPACE} -d tarball-XXXXX)
-          PACKAGING_WORKSPACE_REL=${PACKAGING_WORKSPACE_ABS##"${GITHUB_WORKSPACE}/"}
-
-          echo "PACKAGING_WORKSPACE_ABS=${PACKAGING_WORKSPACE_ABS}" >> ${GITHUB_ENV}
-          echo "PACKAGING_WORKSPACE_REL=${PACKAGING_WORKSPACE_REL}" >> ${GITHUB_ENV}
-
-      - name: Fetch tarball artifact
-        uses: actions/download-artifact@v2
-        with:
-          name: tarball
-          path: ${{ env.PACKAGING_WORKSPACE_REL }}
-
-      - name: Extract tarball
-        working-directory: ${{ env.PACKAGING_WORKSPACE_ABS }}
-        run: |
-          mkdir syslog-ng
-          tar --strip-components=1 -xvf syslog-ng*.tar.gz -C syslog-ng
-
-      - name: Create docker image
-        working-directory: ${{ env.PACKAGING_WORKSPACE_ABS }}/syslog-ng
-        run: |
-          ./dbld/rules image-${{ env.DISTRIBUTION }}
-
-      - name: Create package
-        working-directory: ${{ env.PACKAGING_WORKSPACE_ABS }}/syslog-ng
-        run: |
-          ./dbld/rules package-${{ env.DISTRIBUTION }}
-
-      # Note: azure/CLI docker container mounts the GITHUB_WORKSPACE folder and changes the environment variable.
-      - name: Upload the package
-        if: env.UPLOAD == 'true'
-        uses: azure/CLI@v1
-        env:
-          SRC_PATH: ${{ env.PACKAGING_WORKSPACE_REL }}/syslog-ng/dbld/build/${{ env.DISTRIBUTION }}
-          DST_PATH: incoming/release/${{ github.run_id }}/${{ env.DISTRIBUTION }}
-        with:
-          inlineScript: az storage blob upload-batch --sas-token '${{ secrets.AZURE_SAS_TOKEN }}' --account-name 'syslogngose' --source ${GITHUB_WORKSPACE}/${SRC_PATH} --destination ${DST_PATH}
+    uses: ./.github/workflows/create-and-upload-packages.yml
+    with:
+      tarball_artifact_name: "tarball"
