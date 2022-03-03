@@ -116,6 +116,8 @@ jobs:
         run: |
           PACKAGING_WORKSPACE_ABS=$(mktemp --tmpdir=${GITHUB_WORKSPACE} -d tarball-XXXXX)
           PACKAGING_WORKSPACE_REL=${PACKAGING_WORKSPACE_ABS##"${GITHUB_WORKSPACE}/"}
+
+          echo "PACKAGING_WORKSPACE_ABS=${PACKAGING_WORKSPACE_ABS}" >> ${GITHUB_ENV}
           echo "PACKAGING_WORKSPACE_REL=${PACKAGING_WORKSPACE_REL}" >> ${GITHUB_ENV}
 
       - name: Fetch tarball artifact
@@ -126,19 +128,19 @@ jobs:
 
       - name: Extract tarball
         run: |
-          cd ${GITHUB_WORKSPACE}/${PACKAGING_WORKSPACE_REL}
+          cd ${PACKAGING_WORKSPACE_ABS}
           mkdir syslog-ng
           tar --strip-components=1 -xf syslog-ng*.tar.gz -C syslog-ng
           ls -lR
 
       - name: Image for ${{ env.DISTRIBUTION }}
         run: |
-          cd ${GITHUB_WORKSPACE}/${PACKAGING_WORKSPACE_REL}/syslog-ng
+          cd ${PACKAGING_WORKSPACE_ABS}/syslog-ng
           ./dbld/rules image-${{ env.DISTRIBUTION }}
 
       - name: Binary for ${{ env.DISTRIBUTION }}
         run: |
-          cd ${GITHUB_WORKSPACE}/${PACKAGING_WORKSPACE_REL}/syslog-ng
+          cd ${PACKAGING_WORKSPACE_ABS}/syslog-ng
           ./dbld/rules package-${{ env.DISTRIBUTION }}
 
       # Note: azure/CLI docker container mounts the GITHUB_WORKSPACE folder and changes the environment variable.
