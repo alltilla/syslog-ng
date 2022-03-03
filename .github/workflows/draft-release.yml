@@ -130,8 +130,7 @@ jobs:
         working-directory: ${{ env.PACKAGING_WORKSPACE_ABS }}
         run: |
           mkdir syslog-ng
-          tar --strip-components=1 -xf syslog-ng*.tar.gz -C syslog-ng
-          ls -lR
+          tar --strip-components=1 -xvf syslog-ng*.tar.gz -C syslog-ng
 
       - name: Image for ${{ env.DISTRIBUTION }}
         working-directory: ${{ env.PACKAGING_WORKSPACE_ABS }}/syslog-ng
