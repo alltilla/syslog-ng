@@ -114,31 +114,31 @@ jobs:
     steps:
       - name: Create a working directory
         run: |
-          MY_WORKSPACE=$(mktemp --tmpdir=${GITHUB_WORKSPACE} -d tarball-XXXXX)
-          MY_WORKSPACE_NAME=${MY_WORKSPACE##"${GITHUB_WORKSPACE}/"}
-          echo "MY_WORKSPACE_NAME=${MY_WORKSPACE_NAME}" >> ${GITHUB_ENV}
+          PACKAGING_WORKSPACE_ABS=$(mktemp --tmpdir=${GITHUB_WORKSPACE} -d tarball-XXXXX)
+          PACKAGING_WORKSPACE_REL=${PACKAGING_WORKSPACE_ABS##"${GITHUB_WORKSPACE}/"}
+          echo "PACKAGING_WORKSPACE_REL=${PACKAGING_WORKSPACE_REL}" >> ${GITHUB_ENV}
 
       - name: Fetch tarball artifact
         uses: actions/download-artifact@v2
         with:
           name: tarball
-          path: ${{ env.MY_WORKSPACE_NAME }}
+          path: ${{ env.PACKAGING_WORKSPACE_REL }}
 
       - name: Extract tarball
         run: |
-          cd ${GITHUB_WORKSPACE}/${MY_WORKSPACE_NAME}
+          cd ${GITHUB_WORKSPACE}/${PACKAGING_WORKSPACE_REL}
           mkdir syslog-ng
           tar --strip-components=1 -xf syslog-ng*.tar.gz -C syslog-ng
           ls -lR
 
       - name: Image for ${{ env.DISTRIBUTION }}
         run: |
-          cd ${GITHUB_WORKSPACE}/${MY_WORKSPACE_NAME}/syslog-ng
+          cd ${GITHUB_WORKSPACE}/${PACKAGING_WORKSPACE_REL}/syslog-ng
           ./dbld/rules image-${{ env.DISTRIBUTION }}
 
       - name: Binary for ${{ env.DISTRIBUTION }}
         run: |
-          cd ${GITHUB_WORKSPACE}/${MY_WORKSPACE_NAME}/syslog-ng
+          cd ${GITHUB_WORKSPACE}/${PACKAGING_WORKSPACE_REL}/syslog-ng
           ./dbld/rules package-${{ env.DISTRIBUTION }}
 
       # Note: azure/CLI docker container mounts the GITHUB_WORKSPACE folder and changes the environment variable.
@@ -146,7 +146,7 @@ jobs:
         if: env.UPLOAD == 'true'
         uses: azure/CLI@v1
         env:
-          SRC_PATH: ${{ env.MY_WORKSPACE_NAME }}/syslog-ng/dbld/build/${{ env.DISTRIBUTION }}
+          SRC_PATH: ${{ env.PACKAGING_WORKSPACE_REL }}/syslog-ng/dbld/build/${{ env.DISTRIBUTION }}
           DST_PATH: incoming/release/${{ github.run_id }}/${{ env.DISTRIBUTION }}
         with:
           inlineScript: az storage blob upload-batch --sas-token '${{ secrets.AZURE_SAS_TOKEN }}' --account-name 'syslogngose' --source ${GITHUB_WORKSPACE}/${SRC_PATH} --destination ${DST_PATH}
