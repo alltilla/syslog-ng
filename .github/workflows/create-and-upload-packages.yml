@@ -6,8 +6,8 @@ on:
       tarball_artifact_name:
         required: true
         type: string
-      pkg_type:
-        required: true
+      upload_as:
+        required: false
         type: string
 
 jobs:
@@ -64,19 +64,22 @@ jobs:
           ./dbld/rules package-${{ env.DISTRIBUTION }}
 
       - name: Calculate Azure path
-        if: env.UPLOAD == 'true' && github.repository_owner == 'syslog-ng'
+        if: inputs.upload_as != '' && env.UPLOAD == 'true' && github.repository_owner == 'syslog-ng'
         run: |
-          if [ ${{ inputs.pkg_type }} = "stable" ]; then
+          if [ ${{ inputs.upload_as }} = "stable" ]; then
             AZURE_PATH="incoming/release/${{ github.run_id }}/${{ env.DISTRIBUTION }}"
-          elif [ ${{ inputs.pkg_type }} = "nightly" ]; then
+          elif [ ${{ inputs.upload_as }} = "nightly" ]; then
             AZURE_PATH="incoming/nightly/${{ env.DISTRIBUTION }}"
+          else
+            echo Unexpected input: upload_as=${{ inputs.upload_as }}
+            false
           fi
 
           echo "AZURE_PATH=${AZURE_PATH}" >> ${GITHUB_ENV}
 
       # Note: azure/CLI docker container mounts the GITHUB_WORKSPACE folder and changes the environment variable.
       - name: Upload the package
-        if: env.UPLOAD == 'true' && github.repository_owner == 'syslog-ng'
+        if: env.AZURE_PATH != ''
         uses: azure/CLI@v1
         env:
           SRC_PATH: ${{ env.PACKAGING_WORKSPACE_REL }}/syslog-ng/dbld/build/${{ env.DISTRIBUTION }}

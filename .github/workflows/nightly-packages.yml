@@ -33,4 +33,4 @@ jobs:
     uses: ./.github/workflows/create-and-upload-packages.yml
     with:
       tarball_artifact_name: "tarball"
-      pkg_type: "nightly"
+      upload_as: "nightly"
