@@ -125,13 +125,21 @@ jobs:
           path: ${{ env.MY_WORKSPACE_NAME }}
 
       - name: Extract tarball
-        run: cd ${GITHUB_WORKSPACE}/${MY_WORKSPACE_NAME} && mkdir syslog-ng && tar --strip-components=1 -xf syslog-ng*.tar.gz -C syslog-ng && ls -lR
+        run: |
+          cd ${GITHUB_WORKSPACE}/${MY_WORKSPACE_NAME}
+          mkdir syslog-ng
+          tar --strip-components=1 -xf syslog-ng*.tar.gz -C syslog-ng
+          ls -lR
 
       - name: Image for ${{ env.DISTRIBUTION }}
-        run: cd ${GITHUB_WORKSPACE}/${MY_WORKSPACE_NAME}/syslog-ng && ./dbld/rules image-${{ env.DISTRIBUTION }}
+        run: |
+          cd ${GITHUB_WORKSPACE}/${MY_WORKSPACE_NAME}/syslog-ng
+          ./dbld/rules image-${{ env.DISTRIBUTION }}
 
       - name: Binary for ${{ env.DISTRIBUTION }}
-        run: cd ${GITHUB_WORKSPACE}/${MY_WORKSPACE_NAME}/syslog-ng && ./dbld/rules package-${{ env.DISTRIBUTION }}
+        run: |
+          cd ${GITHUB_WORKSPACE}/${MY_WORKSPACE_NAME}/syslog-ng
+          ./dbld/rules package-${{ env.DISTRIBUTION }}
 
       # Note: azure/CLI docker container mounts the GITHUB_WORKSPACE folder and changes the environment variable.
       - name: Upload the package
