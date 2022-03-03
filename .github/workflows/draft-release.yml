@@ -132,12 +132,12 @@ jobs:
           mkdir syslog-ng
           tar --strip-components=1 -xvf syslog-ng*.tar.gz -C syslog-ng
 
-      - name: Image for ${{ env.DISTRIBUTION }}
+      - name: Create docker image
         working-directory: ${{ env.PACKAGING_WORKSPACE_ABS }}/syslog-ng
         run: |
           ./dbld/rules image-${{ env.DISTRIBUTION }}
 
-      - name: Binary for ${{ env.DISTRIBUTION }}
+      - name: Create package
         working-directory: ${{ env.PACKAGING_WORKSPACE_ABS }}/syslog-ng
         run: |
           ./dbld/rules package-${{ env.DISTRIBUTION }}
