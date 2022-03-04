@@ -1,0 +1,80 @@
+name: Create package from source tarball
+
+
+on:
+  workflow_call:
+    inputs:
+      source_tarball_artifact_name:
+        required: true
+        type: string
+      dbld_image_mode:
+        required: true
+        type: string  # cache / build
+      distros:
+        required: false
+        type: string
+        default: '[
+          "debian-stretch",
+          "debian-buster",
+          "debian-testing",
+          "debian-sid",
+          "ubuntu-xenial",
+          "ubuntu-bionic",
+          "debian-bullseye",
+          "ubuntu-focal",
+          "ubuntu-impish",
+          "centos-7",
+          "fedora-33"
+        ]'
+
+
+jobs:
+  create-packages:
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        distro: ${{ fromJson(inputs.distros) }}
+      fail-fast: false
+
+    steps:
+      - name: Download source tarball artifact
+        uses: actions/download-artifact@v2
+        with:
+          name: ${{ inputs.source_tarball_artifact_name }}
+
+      - name: Extract source tarball
+        run: |
+          mkdir syslog-ng
+          tar --strip-components=1 -xvf syslog-ng*.tar.gz -C syslog-ng
+
+      - name: Prepare docker image
+        working-directory: syslog-ng
+        run: |
+          if [[ "${{ inputs.dbld_image_mode }}" = "build" ]]
+          then
+            ./dbld/rules image-${{ matrix.distro }}
+          elif [[ "${{ inputs.dbld_image_mode }}" = "cache" ]]
+          then
+            echo "::warning ::`dbld/rules cache-image-...` does not work with source tarball, using `dbld/rules/ image-...` instead."
+            ./dbld/rules image-${{ matrix.distro }}
+          else
+            echo Unexpected input: dbld_image_mode=${{ inputs.dbld_image_mode }}
+            false
+          fi
+
+      - name: Create package
+        working-directory: syslog-ng
+        run: |
+          ./dbld/rules package-${{ matrix.distro }}
+
+      - name: Prepare package for artifact
+        run: |
+          mkdir package
+          cp -r syslog-ng/dbld/build/${{ matrix.distro }} package/
+
+      - name: Store packages as artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: package-${{ matrix.distro }}
+          path: package/*

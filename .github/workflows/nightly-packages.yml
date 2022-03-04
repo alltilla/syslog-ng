@@ -1,9 +1,9 @@
-name: Packages (PR / push)
-
+name: Nightly packages
 
 on:
-  pull_request:
-  push:
+  workflow_dispatch:
+  schedule:
+    - cron: '00 23 * * *'
 
 
 jobs:
@@ -22,7 +22,7 @@ jobs:
         run: ./dbld/rules pkg-tarball
 
       - name: Store source tarball as artifact
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v2
         with:
           name: source-tarball
           path: dbld/build/*.tar.gz
@@ -33,10 +33,9 @@ jobs:
     with:
       source_tarball_artifact_name: source-tarball
       dbld_image_mode: cache
-      distros: '[
-        "centos-7",
-        "debian-bullseye",
-        "debian-testing",
-        "fedora-33",
-        "ubuntu-focal"
-      ]'
+
+  upload-packages:
+    needs: create-packages
+    uses: ./.github/workflows/upload-packages.yml
+    with:
+      pkg_type: nightly
