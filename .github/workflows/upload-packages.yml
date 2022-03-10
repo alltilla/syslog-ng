@@ -27,7 +27,7 @@ jobs:
   upload-packages:
     runs-on: ubuntu-latest
 
-    if: github.repository_owner == 'syslog-ng'
+    if: github.repository_owner == 'alltilla'
 
     strategy:
       matrix:
@@ -43,9 +43,9 @@ jobs:
       - name: Calculate Azure path
         run: |
           if [[ "${{ inputs.pkg-type }}" = "stable" ]]; then
-            AZURE_PATH="incoming/release/${{ github.run_id }}/"
+            AZURE_PATH="alltilla-test/incoming/release/${{ github.run_id }}/"
           elif [[ "${{ inputs.pkg-type }}" = "nightly" ]]; then
-            AZURE_PATH="incoming/nightly/"
+            AZURE_PATH="alltilla-test/incoming/nightly/"
           else
             echo Unexpected input: pkg-type=${{ inputs.pkg-type }}
             false
