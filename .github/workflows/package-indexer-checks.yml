@@ -5,10 +5,10 @@ on:
     paths:
       - "packaging/package-indexer/**"
       - ".github/workflows/package-indexer-checks.yml"
-  push:
-    paths:
-      - "packaging/package-indexer/**"
-      - ".github/workflows/package-indexer-checks.yml"
+  # push:
+  #   paths:
+  #     - "packaging/package-indexer/**"
+  #     - ".github/workflows/package-indexer-checks.yml"
 
 defaults:
   run:
