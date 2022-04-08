@@ -48,6 +48,10 @@ jobs:
             ${COMMENT_ENDPOINT} \
             --field body="${COMMENT}"
 
+      - name: MAKE IT FAIL
+        run: |
+          false
+
       - name: Checkout syslog-ng source
         uses: actions/checkout@v2
 
