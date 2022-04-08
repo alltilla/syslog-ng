@@ -19,7 +19,7 @@ applications or forwarded by systemd) and writes everything to a single
 file:
 
 ```
-@version: 3.36
+@version: 3.99
 @include "scl.conf"
 
 log {
@@ -31,7 +31,7 @@ log {
 This one additionally processes logs from the network (TCP/514 by default):
 
 ```
-@version: 3.36
+@version: 3.99
 @include "scl.conf"
 
 log {
@@ -45,7 +45,7 @@ log {
 This config is designed for structured/application logging, using local submission via JSON, and outputting in key=value format:
 
 ```
-@version: 3.36
+@version: 3.99
 @include "scl.conf"
 
 log {
