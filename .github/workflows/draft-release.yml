@@ -91,9 +91,18 @@ jobs:
     secrets:
       azure-sas-token: ${{ secrets.AZURE_SAS_TOKEN }}
 
+  index-packages:
+    needs: upload-packages
+    uses: ./.github/workflows/index-packages.yml
+    with:
+      pkg-type: stable
+    secrets:
+      config-base64: ${{ secrets.PACKAGE_INDEXER_CONFIG_BASE64 }}
+      gpg-key-base64: ${{ secrets.PACKAGE_INDEXER_GPG_KEY_BASE64 }}
+
   create-draft-release:
     runs-on: ubuntu-latest
-    needs: [create-release-tarball, upload-packages]
+    needs: [create-release-tarball, index-packages]
     steps:
       - name: Checkout syslog-ng source
         uses: actions/checkout@v2
