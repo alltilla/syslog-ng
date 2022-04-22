@@ -41,7 +41,7 @@ jobs:
       RUN_ID: ${{ inputs.run-id }}
       PKG_TYPE: ${{ inputs.pkg-type }}
 
-    if: github.repository_owner == 'syslog-ng'
+    if: github.repository_owner == 'alltilla'
 
     steps:
       - name: Checkout source code
