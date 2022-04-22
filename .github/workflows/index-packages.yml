@@ -37,7 +37,7 @@ jobs:
       CONFIG_PATH: index-packages-config.yml
       GPG_KEY_PATH: syslog_ng_ose_signing_key.priv.asc
 
-    if: github.repository_owner == 'syslog-ng'
+    if: github.repository_owner == 'alltilla'
 
     steps:
       - name: Checkout source code
