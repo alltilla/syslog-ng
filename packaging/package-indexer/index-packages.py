@@ -30,23 +30,31 @@ from indexer import Indexer, NightlyDebIndexer, ReleaseDebIndexer
 from config import Config
 
 
-def add_common_required_arguments(required_argument_group: _ArgumentGroup) -> None:
+def add_required_arguments(parser: ArgumentParser) -> None:
+    required_argument_group = parser.add_argument_group("required arguments")
     required_argument_group.add_argument(
         "--config",
         type=str,
         required=True,
         help="The path of the config file in yaml format.",
     )
-
     required_argument_group.add_argument(
         "--run-id",
         type=str,
         required=True,
         help='The "run-id" of the "draft-release" or "nightly-packages" GitHub Actions job.',
     )
+    required_argument_group.add_argument(
+        "--suite",
+        type=str,
+        required=True,
+        metavar="SUITE",
+        choices=["stable", "nightly"],
+        help='"stable" or "nightly".',
+    )
 
 
-def add_common_optional_arguments(parser: ArgumentParser) -> None:
+def add_optional_arguments(parser: ArgumentParser) -> None:
     parser.add_argument(
         "--log-file",
         type=str,
@@ -54,23 +62,10 @@ def add_common_optional_arguments(parser: ArgumentParser) -> None:
     )
 
 
-def prepare_suite_subparser(subparsers: _SubParsersAction, suite_name: str) -> None:
-    parser = subparsers.add_parser(
-        suite_name,
-        help="Index {} packages.".format(suite_name),
-    )
-    add_common_optional_arguments(parser)
-
-    required_argument_group = parser.add_argument_group("required arguments")
-    add_common_required_arguments(required_argument_group)
-
-
 def parse_args() -> dict:
     parser = ArgumentParser()
-    subparsers = parser.add_subparsers(metavar="suite", dest="suite", required=True)
-
-    prepare_suite_subparser(subparsers, "nightly")
-    prepare_suite_subparser(subparsers, "stable")
+    add_required_arguments(parser)
+    add_optional_arguments(parser)
 
     return vars(parser.parse_args())
 
