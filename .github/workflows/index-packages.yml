@@ -14,7 +14,7 @@ on:
       config-base64:
         required: true
       gpg-key-base64:
-        required: false
+        required: true
 
 
 defaults:
