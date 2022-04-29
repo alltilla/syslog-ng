@@ -104,6 +104,7 @@ def construct_indexers(cfg: Config, args: dict) -> List[Indexer]:
                 indexed_remote_storage_synchronizer=indexed_remote_storage_synchronizer,
                 cdn=cdn,
                 run_id=args["run_id"],
+                gpg_key_path=Path(cfg.get_gpg_key_path()),
             )
         )
     elif suite == "stable":
