@@ -103,7 +103,7 @@ class DebIndexer(Indexer):
         self.__create_release_file(indexed_dir)
 
 
-class ReleaseDebIndexer(DebIndexer):
+class StableDebIndexer(DebIndexer):
     def __init__(
         self,
         incoming_remote_storage_synchronizer: RemoteStorageSynchronizer,
