@@ -1,6 +1,9 @@
 name: Packages (PR / push)
 
 
+permissions: {}
+
+
 on:
   pull_request:
   #push:
