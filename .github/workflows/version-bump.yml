@@ -23,6 +23,9 @@
 
 name: Version bump
 
+permissions:
+  pull-requests: write
+
 on:
   workflow_dispatch:
     inputs:
@@ -85,12 +88,8 @@ jobs:
 
       - name: Open Pull Request
         run: |
-          TITLE="Version: ${RELEASE_VERSION}"
-          DESCRIPTION="Tarball is available at: ${CURRENT_RUN_URL}"
-          echo -e "${TITLE}\n\n${DESCRIPTION}" > /tmp/message
-
-          git push --force origin ${VERSION_BUMP_BRANCH}
-          hub pull-request \
+          gh pr create \
             --base ${GITHUB_REF} \
-            --file /tmp/message \
-            --labels "version-bump"
+            --title "Version: ${RELEASE_VERSION}" \
+            --body "Tarball is available at: ${CURRENT_RUN_URL}" \
+            --label "version-bump"
