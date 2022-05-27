@@ -1,5 +1,7 @@
 name: macOS
 
+permissions: {}
+
 on:
   pull_request:
   #push:
