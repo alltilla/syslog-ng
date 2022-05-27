@@ -1,5 +1,8 @@
 name: Compile dbld-images
 
+permissions:
+  packages: write
+
 on:
   pull_request:
     paths:
@@ -18,12 +21,15 @@ on:
   workflow_dispatch:
     inputs:
       testing_image_upload:
-        description: Should we upload the images into GitHub Packages? (true/false)
-        required: false
+        description: Should we upload the images into GitHub Packages?
+        required: true
+        type: choice
+        options:
+          - "true"
+          - "false"
         default: "false"
 
 jobs:
-
   build:
     runs-on: ubuntu-latest
     strategy:
@@ -44,6 +50,8 @@ jobs:
           - kira
           - tarball
       fail-fast: false
+    env:
+      IMAGE: ${{ matrix.image }}
     steps:
       - name: Checkout source code
         uses: actions/checkout@v2
@@ -57,7 +65,8 @@ jobs:
           gh_export CONTAINER_REGISTRY
 
       - name: Build the images
-        run: dbld/rules image-${{ matrix.image }}
+        run: |
+          dbld/rules "image-${IMAGE}"
 
       - name: Should we upload the images?
         run: |
@@ -87,4 +96,4 @@ jobs:
       - name: Push the images
         if: env.UPLOAD_IMAGES_INTERNAL == 'true'
         run: |
-          dbld/rules push-image-${{ matrix.image }}
+          dbld/rules "push-image-${IMAGE}"
