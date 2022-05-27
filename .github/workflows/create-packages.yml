@@ -1,6 +1,10 @@
 name: Create package from source tarball
 
 
+permissions:
+  actions: read
+
+
 on:
   workflow_call:
     inputs:
@@ -39,6 +43,10 @@ jobs:
         distro: ${{ fromJson(inputs.distros) }}
       fail-fast: false
 
+    env:
+      DISTRO: ${{ matrix.distro }}
+      DBLD_IMAGE_MODE: ${{ inputs.dbld-image-mode }}
+
     steps:
       - name: Download source tarball artifact
         uses: actions/download-artifact@v2
@@ -53,33 +61,33 @@ jobs:
       - name: Prepare docker image
         working-directory: syslog-ng
         run: |
-          if [[ "${{ inputs.dbld-image-mode }}" = "build" ]]
+          if [[ "${DBLD_IMAGE_MODE}" = "build" ]]
           then
-            ./dbld/rules image-${{ matrix.distro }}
-          elif [[ "${{ inputs.dbld-image-mode }}" = "cache" ]]
+            ./dbld/rules "image-${DISTRO}"
+          elif [[ "${DBLD_IMAGE_MODE}" = "cache" ]]
           then
-            ./dbld/rules cache-image-${{ matrix.distro }}
+            ./dbld/rules "cache-image-${DISTRO}"
           else
-            echo Unexpected input: dbld-image-mode=${{ inputs.dbld-image-mode }}
+            echo "Unexpected input: dbld-image-mode=${DBLD_IMAGE_MODE}"
             false
           fi
 
       - name: Create package
         working-directory: syslog-ng
         run: |
-          ./dbld/rules package-${{ matrix.distro }}
+          ./dbld/rules "package-${DISTRO}"
 
       - name: Prepare package for artifact
-        # We want to keep the directory structure starting with ${{ matrix.distro }},
+        # We want to keep the directory structure starting with ${DISTRO},
         # but it can only be done, if we give its parent directory as `path` to upload-artifact.
         # There are other directories in dbld/build which we do not want to upload,
-        # so let's make a temporary directory and move the ${{ matrix.distro }} directory there.
+        # so let's make a temporary directory and move the ${DISTRO} directory there.
         run: |
           mkdir package
-          cp -r syslog-ng/dbld/build/${{ matrix.distro }} package/
+          cp -r "syslog-ng/dbld/build/${DISTRO}" package/
 
       - name: Store package as artifact
         uses: actions/upload-artifact@v3
         with:
-          name: package-${{ matrix.distro }}
+          name: package-${{ env.DISTRO }}
           path: package/*
