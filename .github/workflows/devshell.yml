@@ -1,5 +1,7 @@
 name: CI @ devshell
 
+permissions: {}
+
 on:
   pull_request:
   #push:
@@ -19,6 +21,10 @@ jobs:
         cc: [gcc, clang]
       fail-fast: false
 
+    env:
+      BUILD_TOOL: ${{ matrix.build-tool }}
+      CC: ${{ matrix.cc }}
+
     steps:
       - name: Checkout syslog-ng source
         uses: actions/checkout@v2
@@ -35,7 +41,6 @@ jobs:
 
           # Setup build time environment variables
           PYTHONUSERBASE="${HOME}/python_packages"
-          CC="${{ matrix.cc }}"
           SYSLOG_NG_INSTALL_DIR=${HOME}/install/syslog-ng
           CONFIGURE_FLAGS="
             --prefix=${SYSLOG_NG_INSTALL_DIR}
@@ -52,7 +57,7 @@ jobs:
             -DCMAKE_INSTALL_PREFIX=${HOME}/install/syslog-ng
             -DPYTHON_VERSION=3
           "
-          gh_export COREFILES_DIR PYTHONUSERBASE CC SYSLOG_NG_INSTALL_DIR CONFIGURE_FLAGS CMAKE_FLAGS
+          gh_export COREFILES_DIR PYTHONUSERBASE SYSLOG_NG_INSTALL_DIR CONFIGURE_FLAGS CMAKE_FLAGS
           gh_path "${PYTHONUSERBASE}"
 
       - name: autogen.sh
@@ -101,21 +106,21 @@ jobs:
         uses: actions/upload-artifact@v2
         if: always() && steps.make_check.outcome == 'failure'
         with:
-          name: test-suite-${{ matrix.build-tool }}-${{ matrix.cc }}
+          name: test-suite-${{ env.BUILD_TOOL }}-${{ env.CC }}
           path: ${{ github.workspace }}/build/test-suite.log
 
       - name: "Prepare artifact: light-reports"
         id: prepare-light-reports
         if: always() && steps.light.outcome == 'failure'
         run: |
-          if [ ${{ matrix.build-tool }} = 'autotools' ]
+          if [ ${BUILD_TOOL} = 'autotools' ]
           then
             REPORTS_DIR=build/reports
-          elif [ ${{ matrix.build-tool }} = 'cmake' ]
+          elif [ ${BUILD_TOOL} = 'cmake' ]
           then
             REPORTS_DIR=build/tests/light/reports
           else
-            echo Unrecognized build tool: ${{ matrix.build-tool }}.
+            echo "Unrecognized build tool: ${BUILD_TOOL}."
             exit 1
           fi
 
@@ -126,7 +131,7 @@ jobs:
         uses: actions/upload-artifact@v2
         if: always() && steps.prepare-light-reports.outcome == 'success'
         with:
-          name: light-reports-${{ matrix.build-tool }}-${{ matrix.cc }}
+          name: light-reports-${{ env.BUILD_TOOL }}-${{ env.CC }}
           path: /tmp/light-reports
 
       - name: Dump corefile backtrace
@@ -140,7 +145,7 @@ jobs:
         uses: actions/upload-artifact@v2
         if: failure()
         with:
-          name: corefiles-${{ matrix.build-tool }}-${{ matrix.cc }}
+          name: corefiles-${{ env.BUILD_TOOL }}-${{ env.CC }}
           path: ${{ env.COREFILES_DIR }}
 
   distcheck:
