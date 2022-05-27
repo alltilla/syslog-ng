@@ -1,5 +1,7 @@
 name: Trigger index-packages
 
+permissions: {}
+
 on:
   workflow_dispatch:
     inputs:
