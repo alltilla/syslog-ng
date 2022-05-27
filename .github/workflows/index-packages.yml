@@ -1,6 +1,9 @@
 name: Index packages in Azure/incoming
 
 
+permissions: {}
+
+
 on:
   workflow_call:
     inputs:
@@ -35,6 +38,8 @@ jobs:
       DOCKER_CONTAINER_NAME: package_indexer_container
       VERBOSE_LOG_PATH: index-packages-verbose.log
       GPG_KEY_PATH: syslog_ng_ose_signing_key.sub.priv.asc
+      RUN_ID: ${{ inputs.run-id }}
+      PKG_TYPE: ${{ inputs.pkg-type }}
 
     if: github.repository_owner == 'syslog-ng'
 
@@ -46,12 +51,10 @@ jobs:
         run: |
           . "${GITHUB_WORKSPACE}/.github/workflows/gh-tools.sh"
 
-          if [[ -n "${{ inputs.run-id }}" ]]; then
-            RUN_ID="${{ inputs.run-id }}"
-          else
+          if [[ -z "${RUN_ID}" ]]; then
             RUN_ID="${{ github.run_id }}"
+            gh_export RUN_ID
           fi
-          gh_export RUN_ID
 
           echo "${{ secrets.gpg-key-base64 }}" | base64 --decode > "${GPG_KEY_PATH}"
 
@@ -70,7 +73,7 @@ jobs:
             --interactive \
             ${DOCKER_CONTAINER_NAME} \
             ./index-packages.py \
-              --suite "${{ inputs.pkg-type }}" \
+              --suite "${PKG_TYPE}" \
               --config-content "$(echo '${{ secrets.config-base64 }}' | base64 --decode)" \
               --run-id "${RUN_ID}" \
               --gpg-key-passphrase-from-stdin \
@@ -78,7 +81,7 @@ jobs:
 
       - name: Cleanup
         if: always()
-        run:
+        run: |
           rm -f "${GPG_KEY_PATH}"
 
       - name: "Artifact: verbose run log"
