@@ -1,5 +1,7 @@
 name: Trigger tests for stable APT packages
 
+permissions: {}
+
 on:
   workflow_dispatch:
   push:

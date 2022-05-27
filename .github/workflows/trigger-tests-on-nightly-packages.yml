@@ -1,5 +1,7 @@
 name: Trigger tests for nightly APT packages
 
+permissions: {}
+
 on:
   workflow_dispatch:
   schedule:
