@@ -1,5 +1,9 @@
 name: Package indexer checks
 
+
+permissions: {}
+
+
 on:
   pull_request:
     paths:
@@ -10,9 +14,11 @@ on:
       - "packaging/package-indexer/**"
       - ".github/workflows/package-indexer-checks.yml"
 
+
 defaults:
   run:
     working-directory: packaging/package-indexer
+
 
 jobs:
   package-indexer-checks:
