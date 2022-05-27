@@ -1,6 +1,9 @@
 # When started manually, a syslog-ng-* tag has to be selected
 name: Publish Docker image
 
+permissions:
+  packages: write
+
 on:
   workflow_dispatch:
   push:
