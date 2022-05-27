@@ -1,5 +1,9 @@
 name: Nightly packages
 
+
+permissions: {}
+
+
 on:
   workflow_dispatch:
   schedule:
