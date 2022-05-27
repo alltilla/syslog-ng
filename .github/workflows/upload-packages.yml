@@ -1,6 +1,9 @@
 name: Upload package to Azure/incoming
 
 
+permissions: {}
+
+
 on:
   workflow_call:
     inputs:
@@ -39,6 +42,9 @@ jobs:
         distro: ${{ fromJson(inputs.distros) }}
       fail-fast: false
 
+    env:
+      PKG_TYPE: ${{ inputs.pkg-type }}
+
     steps:
       - name: Download package artifact
         uses: actions/download-artifact@v2
@@ -48,12 +54,12 @@ jobs:
 
       - name: Calculate Azure path
         run: |
-          if [[ ! "${{ inputs.pkg-type }}" =~ ^(stable|nightly)$ ]]; then
-            echo Unexpected input: pkg-type=${{ inputs.pkg-type }}
+          if [[ ! "${PKG_TYPE}" =~ ^(stable|nightly)$ ]]; then
+            echo "Unexpected input: pkg-type=${PKG_TYPE}"
             false
           fi
 
-          AZURE_PATH="incoming/${{ inputs.pkg-type }}/${{ github.run_id }}"
+          AZURE_PATH="incoming/${PKG_TYPE}/${{ github.run_id }}"
 
           echo "AZURE_PATH=${AZURE_PATH}" >> ${GITHUB_ENV}
 
