@@ -1,0 +1,25 @@
+name: Stable release
+
+
+on:
+  workflow_dispatch:
+  push:
+    tags:
+      - 'syslog-ng-*'
+
+
+jobs:
+  index-packages:
+    uses: ./.github/workflows/index-packages.yml
+    with:
+      pkg-type: stable
+    secrets:
+      config-base64: ${{ secrets.PACKAGE_INDEXER_CONFIG_BASE64 }}
+      gpg-key-base64: ${{ secrets.PACKAGE_INDEXER_GPG_KEY_BASE64 }}
+      gpg-key-passphrase: ${{ secrets.PACKAGE_INDEXER_GPG_KEY_PASSPHRASE }}
+
+  test-packages:
+    needs: index-packages
+    uses: ./.github/workflows/test-apt-packages.yml
+    with:
+      pkg_type: stable
