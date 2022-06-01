@@ -3,17 +3,35 @@ name: Stable release
 
 on:
   workflow_dispatch:
-    # Make sure to select a syslog-ng-* tag
   push:
     tags:
       - 'syslog-ng-*'
 
 
 jobs:
+  find-draft-release-run:
+    runs-on: ubuntu-latest
+    env:
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    outputs:
+      DRAFT_RELEASE_RUN_ID: ${{ steps.find-and-export-run-id.outputs.DRAFT_RELEASE_RUN_ID }}
+    steps:
+      - name: Find and export run-id
+        id: find-and-export-run-id
+        run: |
+          DRAFT_RELEASE_RUN_ID=$(gh run list \
+            --repo "alltilla/syslog-ng" \
+            --workflow "Draft release" \
+            --json "status,conclusion,databaseId,updatedAt" \
+            --jq '[ .[] | select(.status=="completed") |select(.conclusion=="success") ] | max_by(.updatedAt) | .databaseId')
+          echo "::set-output name=DRAFT_RELEASE_RUN_ID::${DRAFT_RELEASE_RUN_ID}"
+
   index-packages:
+    needs: find-draft-release-run
     uses: ./.github/workflows/index-packages.yml
     with:
       pkg-type: stable
+      run-id: ${{ needs.find-draft-release-run.outputs.DRAFT_RELEASE_RUN_ID }}
     secrets:
       config-base64: ${{ secrets.PACKAGE_INDEXER_CONFIG_BASE64 }}
       gpg-key-base64: ${{ secrets.PACKAGE_INDEXER_GPG_KEY_BASE64 }}
