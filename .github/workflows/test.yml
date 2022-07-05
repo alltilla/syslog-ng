@@ -1,0 +1,15 @@
+on:
+  pull_request:
+    types: [opened]
+
+
+jobs:
+  test:
+    env:
+      GITHUB_TOKEN: ${{ secrets.PAT_FOR_ACTIONS }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: "Comment: job started"
+        if: github.event_name == 'pull_request'
+        run: |
+          gh --repo OverOrion/syslog-ng pr comment 25 --body "hello world"
