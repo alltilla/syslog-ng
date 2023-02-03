@@ -44,6 +44,8 @@ jobs:
             --with-python=3
           "
 
+          CONFIGURE_FLAGS="${CONFIGURE_FLAGS} --disable-amqp"
+
           gh_export PYTHONUSERBASE PKG_CONFIG_PATH THREADS CONFIGURE_FLAGS
           gh_path "${HOMEBREW_PREFIX}/opt/bison/bin:${HOMEBREW_PREFIX}/opt/libnet/bin:${PYTHONUSERBASE}/bin:${HOMEBREW_PREFIX}/opt/net-snmp/bin"
 
