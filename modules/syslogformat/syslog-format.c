@@ -188,7 +188,6 @@ log_msg_parse_seq(LogMessage *self, const guchar **data, gint *length)
   const guchar *src = *data;
   gint left = *length;
 
-
   while (left && *src != ':')
     {
       if (!isdigit(*src))
@@ -196,12 +195,16 @@ log_msg_parse_seq(LogMessage *self, const guchar **data, gint *length)
       src++;
       left--;
     }
+
+  if (!left)
+    return FALSE;
+
   src++;
   left--;
 
   /* if the next char is not space, then we may try to read a date */
 
-  if (*src != ' ')
+  if (!left || *src != ' ')
     return FALSE;
 
   log_msg_set_value(self, cisco_seqid, (gchar *) *data, *length - left - 1);
@@ -223,7 +226,7 @@ log_msg_parse_date(LogMessage *self, const guchar **data, gint *length, guint pa
 
   cached_g_current_time(&now);
 
-  if ((parse_flags & LP_SYSLOG_PROTOCOL) == 0)
+  if (left && (parse_flags & LP_SYSLOG_PROTOCOL) == 0)
     {
       /* Cisco timestamp extensions, the first '*' indicates that the clock is
        * unsynced, '.' if it is known to be synced */
@@ -275,7 +278,7 @@ log_msg_parse_date(LogMessage *self, const guchar **data, gint *length, guint pa
               src++;
               left--;
             }
-          while (isdigit(*src))
+          while (left && isdigit(*src))
             {
               src++;
               left--;
@@ -290,8 +293,8 @@ log_msg_parse_date(LogMessage *self, const guchar **data, gint *length, guint pa
           src++;
           left--;
         }
-      else if (left >= 5 && (*src == '+' || *src == '-') &&
-          isdigit(*(src+1)) && isdigit(*(src+2)) && *(src+3) == ':' && isdigit(*(src+4)) && isdigit(*(src+5)) && !isdigit(*(src+6)))
+      else if (left >= 6 && (*src == '+' || *src == '-') &&
+          isdigit(*(src+1)) && isdigit(*(src+2)) && *(src+3) == ':' && isdigit(*(src+4)) && isdigit(*(src+5)) && (left < 7 || !isdigit(*(src+6))))
         {
           /* timezone offset */
           gint sign = *src == '-' ? -1 : 1;
@@ -320,7 +323,7 @@ log_msg_parse_date(LogMessage *self, const guchar **data, gint *length, guint pa
           if (!scan_pix_timestamp((const gchar **) &src, &left, &tm))
             goto error;
 
-          if (*src == ':')
+          if (left && *src == ':')
             {
               src++;
               left--;
@@ -678,7 +681,7 @@ log_msg_parse_sd(LogMessage *self, const guchar **data, gint *length, const MsgF
       open_sd++;
       do
         {
-          if (!isascii(*src) || *src == '=' || *src == ' ' || *src == ']' || *src == '"')
+          if (!left || !isascii(*src) || *src == '=' || *src == ' ' || *src == ']' || *src == '"')
             goto error;
           /* read sd_id */
           pos = 0;
@@ -712,7 +715,7 @@ log_msg_parse_sd(LogMessage *self, const guchar **data, gint *length, const MsgF
           strcpy(sd_value_name, logmsg_sd_prefix);
           /* this strcat is safe, as sd_id_name is at most 32 chars */
           strncpy(sd_value_name + logmsg_sd_prefix_len, sd_id_name, sizeof(sd_value_name) - logmsg_sd_prefix_len);
-          if (*src == ']')
+          if (left && *src == ']')
             {
               /* Standalone sdata */
               handle = log_msg_get_value_handle(sd_value_name);
@@ -732,7 +735,7 @@ log_msg_parse_sd(LogMessage *self, const guchar **data, gint *length, const MsgF
               else
                 goto error;
 
-              if (!isascii(*src) || *src == '=' || *src == ' ' || *src == ']' || *src == '"')
+              if (!left || !isascii(*src) || *src == '=' || *src == ' ' || *src == ']' || *src == '"')
                 goto error;
 
               /* read sd-param */
