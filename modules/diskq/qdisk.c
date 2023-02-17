@@ -147,12 +147,11 @@ _correct_position_if_max_size_is_reached(QDisk *self, gint64 position)
   return position;
 }
 
-static gchar *
-_next_filename(QDisk *self)
+static gboolean
+_next_filename(QDisk *self, gchar *filename, gsize filename_len)
 {
   gint i = 0;
   gboolean success = FALSE;
-  gchar tmpfname[256];
   gchar qdir[256];
 
   g_snprintf(qdir, sizeof(qdir), "%s", self->options->dir);
@@ -163,18 +162,20 @@ _next_filename(QDisk *self)
       struct stat st;
 
       if (self->options->reliable)
-        g_snprintf(tmpfname, sizeof(tmpfname), "%s/syslog-ng-%05d.rqf", qdir, i);
+        g_snprintf(filename, filename_len, "%s/syslog-ng-%05d.rqf", qdir, i);
       else
-        g_snprintf(tmpfname, sizeof(tmpfname), "%s/syslog-ng-%05d.qf", qdir, i);
-      success = (stat(tmpfname, &st) < 0);
+        g_snprintf(filename, filename_len, "%s/syslog-ng-%05d.qf", qdir, i);
+      success = (stat(filename, &st) < 0);
       i++;
     }
+
   if (!success)
     {
       msg_error("Error generating unique queue filename, not using disk queue");
-      return NULL;
+      return FALSE;
     }
-  return g_strdup(tmpfname);
+
+  return TRUE;
 }
 
 gboolean
@@ -935,76 +936,6 @@ qdisk_header_is_inconsistent(QDisk *self)
           (self->hdr->read_head == self->hdr->write_head && self->hdr->length != 0));
 }
 
-
-static gboolean
-_load_state(QDisk *self, GQueue *qout, GQueue *qbacklog, GQueue *qoverflow)
-{
-  if (memcmp(self->hdr->magic, self->file_id, 4) != 0)
-    {
-      msg_error("Error reading disk-queue file header",
-                evt_tag_str("filename", self->filename));
-      return FALSE;
-    }
-
-  if (qdisk_header_is_inconsistent(self))
-    {
-      msg_error("Inconsistent header data in disk-queue file, ignoring",
-                evt_tag_str("filename", self->filename),
-                evt_tag_long("read_head", self->hdr->read_head),
-                evt_tag_long("write_head", self->hdr->write_head),
-                evt_tag_long("qdisk_length",  self->hdr->length));
-      return FALSE;
-    }
-
-  if (!self->options->reliable)
-    {
-      if (!_load_non_reliable_queues(self, qout, qbacklog, qoverflow))
-        return FALSE;
-
-      self->file_size = QDISK_RESERVED_SPACE;
-      if (!self->options->read_only)
-        {
-          _maybe_truncate_file_to_minimal(self);
-        }
-
-      msg_info("Disk-buffer state loaded",
-               evt_tag_str("filename", self->filename),
-               evt_tag_long("number_of_messages", _number_of_messages(self)));
-
-      msg_debug("Disk-buffer internal state",
-                evt_tag_str("filename", self->filename),
-                evt_tag_long("qout_length", self->hdr->qout_pos.count),
-                evt_tag_long("qbacklog_length", self->hdr->qbacklog_pos.count),
-                evt_tag_long("qoverflow_length", self->hdr->qoverflow_pos.count),
-                evt_tag_long("qdisk_length", self->hdr->length),
-                evt_tag_long("read_head", self->hdr->read_head),
-                evt_tag_long("write_head", self->hdr->write_head),
-                evt_tag_long("disk_buf_size", self->hdr->disk_buf_size));
-
-      _reset_queue_pointers(self);
-    }
-  else
-    {
-      struct stat st;
-      fstat(self->fd, &st);
-      self->file_size = st.st_size;
-      msg_info("Reliable disk-buffer state loaded",
-               evt_tag_str("filename", self->filename),
-               evt_tag_long("number_of_messages", _number_of_messages(self)));
-
-      msg_debug("Reliable disk-buffer internal state",
-                evt_tag_str("filename", self->filename),
-                evt_tag_long("queue_length", self->hdr->length),
-                evt_tag_long("backlog_len", self->hdr->backlog_len),
-                evt_tag_long("backlog_head", self->hdr->backlog_head),
-                evt_tag_long("read_head", self->hdr->read_head),
-                evt_tag_long("write_head", self->hdr->write_head),
-                evt_tag_long("disk_buf_size", self->hdr->disk_buf_size));
-    }
-
-  return TRUE;
-}
-
 #define STRING_BUFFER_MEMORY_LIMIT (8 * 1024)
 static inline gboolean
 string_reached_memory_limit(GString *string)
@@ -1090,39 +1021,33 @@ error:
 gboolean
 qdisk_save_state(QDisk *self, GQueue *qout, GQueue *qbacklog, GQueue *qoverflow)
 {
-  QDiskQueuePosition qout_pos = { 0 };
-  QDiskQueuePosition qbacklog_pos = { 0 };
-  QDiskQueuePosition qoverflow_pos = { 0 };
-
-  if (!self->options->reliable)
+  if (self->options->reliable)
     {
-      qout_pos.count = qout->length / 2;
-      qbacklog_pos.count = qbacklog->length / 2;
-      qoverflow_pos.count = qoverflow->length / 2;
-
-      if (!_save_queue(self, qout, &qout_pos) ||
-          !_save_queue(self, qbacklog, &qbacklog_pos) ||
-          !_save_queue(self, qoverflow, &qoverflow_pos))
-        return FALSE;
+      msg_info("Reliable disk-buffer state saved",
+               evt_tag_str("filename", self->filename),
+               evt_tag_long("qdisk_length", self->hdr->length));
+      return TRUE;
     }
 
-  memcpy(self->hdr->magic, self->file_id, 4);
+  QDiskQueuePosition qout_pos = { .count = qout->length / 2, .len = 0, .ofs = 0 };
+  QDiskQueuePosition qbacklog_pos = { .count = qbacklog->length / 2, .len = 0, .ofs = 0 };
+  QDiskQueuePosition qoverflow_pos = { .count = qoverflow->length / 2, .len = 0, .ofs = 0 };
+
+  if (!_save_queue(self, qout, &qout_pos) ||
+      !_save_queue(self, qbacklog, &qbacklog_pos) ||
+      !_save_queue(self, qoverflow, &qoverflow_pos))
+    return FALSE;
 
   self->hdr->qout_pos = qout_pos;
   self->hdr->qbacklog_pos = qbacklog_pos;
   self->hdr->qoverflow_pos= qoverflow_pos;
 
-  if (!self->options->reliable)
-    msg_info("Disk-buffer state saved",
-             evt_tag_str("filename", self->filename),
-             evt_tag_long("qout_length", qout_pos.count),
-             evt_tag_long("qbacklog_length", qbacklog_pos.count),
-             evt_tag_long("qoverflow_length", qoverflow_pos.count),
-             evt_tag_long("qdisk_length", self->hdr->length));
-  else
-    msg_info("Reliable disk-buffer state saved",
-             evt_tag_str("filename", self->filename),
-             evt_tag_long("qdisk_length", self->hdr->length));
+  msg_info("Disk-buffer state saved",
+            evt_tag_str("filename", self->filename),
+            evt_tag_long("qout_length", qout_pos.count),
+            evt_tag_long("qbacklog_length", qbacklog_pos.count),
+            evt_tag_long("qoverflow_length", qoverflow_pos.count),
+            evt_tag_long("qdisk_length", self->hdr->length));
 
   return TRUE;
 }
@@ -1133,36 +1058,6 @@ _create_path(const gchar *filename)
   FilePermOptions fpermoptions;
   file_perm_options_defaults(&fpermoptions);
   return file_perm_options_create_containing_directory(&fpermoptions, filename);
-}
-
-static inline gboolean
-_is_header_version_current(QDisk *self)
-{
-  return self->hdr->version == QDISK_HDR_VERSION_CURRENT;
-}
-
-static void
-_upgrade_header(QDisk *self)
-{
-  if (self->hdr->version == 0)
-    {
-      self->hdr->big_endian = TRUE;
-      qdisk_empty_backlog(self);
-    }
-
-  if (self->hdr->version < 2)
-    {
-      struct stat st;
-      gboolean file_was_overwritten = (fstat(self->fd, &st) != 0 || st.st_size > self->hdr->disk_buf_size);
-      self->hdr->use_v1_wrap_condition = file_was_overwritten;
-    }
-
-  if (self->hdr->version < 3)
-    {
-      self->hdr->disk_buf_size = self->options->disk_buf_size;
-    }
-
-  self->hdr->version = QDISK_HDR_VERSION_CURRENT;
 }
 
 gboolean
@@ -1206,194 +1101,251 @@ _autodetect_disk_buf_size(QDisk *self)
   return FALSE;
 }
 
-gboolean
-qdisk_start(QDisk *self, const gchar *filename, GQueue *qout, GQueue *qbacklog, GQueue *qoverflow)
+static gboolean
+_create_header(QDisk *self)
 {
-  gboolean new_file = FALSE;
-  gpointer p = NULL;
-  int openflags = 0;
+  self->hdr = (QDiskFileHeader *) mmap(0, sizeof(QDiskFileHeader), (PROT_READ | PROT_WRITE), MAP_SHARED, self->fd, 0);
 
-  /*
-   * If qdisk_start is called for already initialized qdisk file
-   * it can cause message loosing.
-   * We need this assert to detect programming error as soon as possible.
-   */
-  g_assert(!qdisk_started(self));
+  if (self->hdr == MAP_FAILED)
+    {
+      msg_error("Error returned by mmap", evt_tag_error("errno"));
+      return FALSE;
+    }
 
-  if (self->options->read_only && !filename)
+  madvise(self->hdr, sizeof(QDiskFileHeader), MADV_RANDOM);
+
+  QDiskFileHeader nulled_hdr;
+  memset(&nulled_hdr, 0, sizeof(nulled_hdr));
+  if (!pwrite_strict(self->fd, &nulled_hdr, sizeof(nulled_hdr), 0))
     return FALSE;
 
-  if (!filename)
+  memcpy(self->hdr->magic, self->file_id, 4);
+
+  self->hdr->version = QDISK_HDR_VERSION_CURRENT;
+  self->hdr->big_endian = (G_BYTE_ORDER == G_BIG_ENDIAN);
+
+  self->hdr->read_head = QDISK_RESERVED_SPACE;
+  self->hdr->write_head = QDISK_RESERVED_SPACE;
+  self->hdr->backlog_head = QDISK_RESERVED_SPACE;
+  self->hdr->backlog_len = 0;
+  self->hdr->length = 0;
+  self->hdr->use_v1_wrap_condition = FALSE;
+  self->hdr->disk_buf_size = self->options->disk_buf_size;
+
+  return TRUE;
+}
+
+static gboolean
+_set_defaults(QDisk *self)
+{
+  self->file_size = QDISK_RESERVED_SPACE;
+
+  return _create_header(self);
+}
+
+static void
+_close_file(QDisk *self)
+{
+  if (self->hdr)
     {
-      new_file = TRUE;
-      /* NOTE: this'd be a security problem if we were not in our private directory. But we are. */
-      filename = _next_filename(self);
+      if (self->options->read_only)
+        g_free(self->hdr);
+      else
+        munmap((void *) self->hdr, sizeof(QDiskFileHeader));
+
+      self->hdr = NULL;
     }
-  else
+
+  if (self->fd != -1)
     {
-      struct stat st;
-      if (stat(filename, &st) == -1)
-        {
-          new_file = TRUE;
-        }
+      close(self->fd);
+      self->fd = -1;
     }
-  if (!_create_path(filename))
+}
+
+static gboolean
+_open_file(QDisk *self, const gchar *filename)
+{
+  gint fd = open(filename, O_LARGEFILE | (self->options->read_only ? O_RDONLY : O_RDWR), 0600);
+  if (fd < 0)
     {
-      msg_error("Error creating dir for disk-queue file",
+      msg_error("Error opening disk-queue file",
                 evt_tag_str("filename", filename),
                 evt_tag_error("error"));
       return FALSE;
     }
 
+  self->fd = fd;
   self->filename = g_strdup(filename);
-  /* assumes self is zero initialized */
-  openflags = self->options->read_only ? (O_RDONLY | O_LARGEFILE) : (O_RDWR | O_LARGEFILE | (new_file ? O_CREAT : 0));
 
-  self->fd = open(filename, openflags, 0600);
-  if (self->fd < 0)
+  return TRUE;
+}
+
+static void
+_ensure_byte_order(QDiskFileHeader *hdr)
+{
+  if ((hdr->big_endian && G_BYTE_ORDER == G_LITTLE_ENDIAN) || (!hdr->big_endian && G_BYTE_ORDER == G_BIG_ENDIAN))
     {
-      msg_error("Error opening disk-queue file",
-                evt_tag_str("filename", self->filename),
-                evt_tag_error("error"));
+      hdr->read_head = GUINT64_SWAP_LE_BE(hdr->read_head);
+      hdr->write_head = GUINT64_SWAP_LE_BE(hdr->write_head);
+      hdr->length = GUINT64_SWAP_LE_BE(hdr->length);
+      hdr->qout_pos.ofs = GUINT64_SWAP_LE_BE(hdr->qout_pos.ofs);
+      hdr->qout_pos.len = GUINT32_SWAP_LE_BE(hdr->qout_pos.len);
+      hdr->qout_pos.count = GUINT32_SWAP_LE_BE(hdr->qout_pos.count);
+      hdr->qbacklog_pos.ofs = GUINT64_SWAP_LE_BE(hdr->qbacklog_pos.ofs);
+      hdr->qbacklog_pos.len = GUINT32_SWAP_LE_BE(hdr->qbacklog_pos.len);
+      hdr->qbacklog_pos.count = GUINT32_SWAP_LE_BE(hdr->qbacklog_pos.count);
+      hdr->qoverflow_pos.ofs = GUINT64_SWAP_LE_BE(hdr->qoverflow_pos.ofs);
+      hdr->qoverflow_pos.len = GUINT32_SWAP_LE_BE(hdr->qoverflow_pos.len);
+      hdr->qoverflow_pos.count = GUINT32_SWAP_LE_BE(hdr->qoverflow_pos.count);
+      hdr->backlog_head = GUINT64_SWAP_LE_BE(hdr->backlog_head);
+      hdr->backlog_len = GUINT64_SWAP_LE_BE(hdr->backlog_len);
+      hdr->disk_buf_size = GUINT64_SWAP_LE_BE(hdr->disk_buf_size);
+      hdr->big_endian = (G_BYTE_ORDER == G_BIG_ENDIAN);
+    }
+}
+
+static inline gboolean
+_is_header_version_current(QDisk *self)
+{
+  return self->hdr->version == QDISK_HDR_VERSION_CURRENT;
+}
+
+static void
+_upgrade_header(QDisk *self)
+{
+  if (self->hdr->version == 0)
+    {
+      self->hdr->big_endian = TRUE;
+      qdisk_empty_backlog(self);
+    }
+
+  if (self->hdr->version < 2)
+    {
+      struct stat st;
+      gboolean file_was_overwritten = (fstat(self->fd, &st) != 0 || st.st_size > self->hdr->disk_buf_size);
+      self->hdr->use_v1_wrap_condition = file_was_overwritten;
+    }
+
+  if (self->hdr->version < 3)
+    {
+      self->hdr->disk_buf_size = self->options->disk_buf_size;
+    }
+
+  self->hdr->version = QDISK_HDR_VERSION_CURRENT;
+}
+
+static gboolean
+_load_header(QDisk *self)
+{
+  QDiskFileHeader *hdr_mmapped = (QDiskFileHeader *) mmap(0, sizeof(QDiskFileHeader),
+                                                          self->options->read_only ? (PROT_READ) : (PROT_READ | PROT_WRITE),
+                                                          MAP_SHARED, self->fd, 0);
+  if (hdr_mmapped == MAP_FAILED)
+    {
+      msg_error("Error returned by mmap", evt_tag_error("errno"));
       return FALSE;
     }
 
-  p = mmap(0, sizeof(QDiskFileHeader),  self->options->read_only ? (PROT_READ) : (PROT_READ | PROT_WRITE), MAP_SHARED,
-           self->fd, 0);
-
-  if (p == MAP_FAILED)
-    {
-      msg_error("Error returned by mmap",
-                evt_tag_error("errno"),
-                evt_tag_str("filename", self->filename));
-      return FALSE;
-    }
-  else
-    {
-      madvise(p, sizeof(QDiskFileHeader), MADV_RANDOM);
-    }
+  madvise(hdr_mmapped, sizeof(QDiskFileHeader), MADV_RANDOM);
 
   if (self->options->read_only)
     {
-      self->hdr = g_malloc(sizeof(QDiskFileHeader));
-      memcpy(self->hdr, p, sizeof(QDiskFileHeader));
-      munmap(p, sizeof(QDiskFileHeader));
-      p = NULL;
+      QDiskFileHeader *hdr_allocated = g_malloc(sizeof(QDiskFileHeader));
+      memcpy(hdr_allocated, hdr_mmapped, sizeof(QDiskFileHeader));
+      munmap(hdr_mmapped, sizeof(QDiskFileHeader));
+      self->hdr = hdr_allocated;
     }
   else
     {
-      self->hdr = p;
+      self->hdr = hdr_mmapped;
     }
-  /* initialize new file */
 
-  if (new_file)
+  _ensure_byte_order(self->hdr);
+
+  if (memcmp(self->hdr->magic, self->file_id, 4) != 0)
     {
-      if (self->options->disk_buf_size == -1)
+      msg_error("Error reading disk-queue file header. Invalid magic",
+                evt_tag_str("filename", self->filename));
+      return FALSE;
+    }
+
+  if (!_is_header_version_current(self))
+    _upgrade_header(self);
+
+  if (qdisk_header_is_inconsistent(self))
+    {
+      msg_error("Inconsistent header data in disk-queue file, ignoring",
+                evt_tag_str("filename", self->filename),
+                evt_tag_long("read_head", self->hdr->read_head),
+                evt_tag_long("write_head", self->hdr->write_head),
+                evt_tag_long("qdisk_length",  self->hdr->length));
+      return FALSE;
+    }
+
+  return TRUE;
+}
+
+static gboolean
+_load_state(QDisk *self, GQueue *qout, GQueue *qbacklog, GQueue *qoverflow)
+{
+  if (!_load_header(self))
+    return FALSE;
+
+  if (!self->options->reliable)
+    {
+      if (!_load_non_reliable_queues(self, qout, qbacklog, qoverflow))
+        return FALSE;
+
+      self->file_size = QDISK_RESERVED_SPACE;
+      if (!self->options->read_only)
         {
-          msg_error("disk-buf-size for new disk-queue files must be set");
-          return FALSE;
+          _maybe_truncate_file_to_minimal(self);
         }
 
-      if (self->options->prealloc && !_preallocate(self, self->options->disk_buf_size))
-        {
-          return FALSE;
-        }
+      msg_info("Disk-buffer state loaded",
+               evt_tag_str("filename", self->filename),
+               evt_tag_long("number_of_messages", _number_of_messages(self)));
 
-      QDiskFileHeader tmp;
-      memset(&tmp, 0, sizeof(tmp));
-      if (!pwrite_strict(self->fd, &tmp, sizeof(tmp), 0))
-        {
-          msg_error("Error occurred while initializing the new queue file",
-                    evt_tag_str("filename", self->filename),
-                    evt_tag_error("error"));
-          munmap((void *)self->hdr, sizeof(QDiskFileHeader));
-          self->hdr = NULL;
-          close(self->fd);
-          self->fd = -1;
-          return FALSE;
-        }
-      self->hdr->version = QDISK_HDR_VERSION_CURRENT;
-      self->hdr->big_endian = (G_BYTE_ORDER == G_BIG_ENDIAN);
+      msg_debug("Disk-buffer internal state",
+                evt_tag_str("filename", self->filename),
+                evt_tag_long("qout_length", self->hdr->qout_pos.count),
+                evt_tag_long("qbacklog_length", self->hdr->qbacklog_pos.count),
+                evt_tag_long("qoverflow_length", self->hdr->qoverflow_pos.count),
+                evt_tag_long("qdisk_length", self->hdr->length),
+                evt_tag_long("read_head", self->hdr->read_head),
+                evt_tag_long("write_head", self->hdr->write_head),
+                evt_tag_long("disk_buf_size", self->hdr->disk_buf_size));
 
-      self->hdr->read_head = QDISK_RESERVED_SPACE;
-      self->hdr->write_head = QDISK_RESERVED_SPACE;
-      self->hdr->backlog_head = self->hdr->read_head;
-      self->hdr->backlog_len = 0;
-      self->hdr->length = 0;
-      self->hdr->use_v1_wrap_condition = FALSE;
-      self->hdr->disk_buf_size = self->options->disk_buf_size;
-      self->file_size = self->hdr->write_head;
-
-      if (!qdisk_save_state(self, qout, qbacklog, qoverflow))
-        {
-          munmap((void *)self->hdr, sizeof(QDiskFileHeader));
-          self->hdr = NULL;
-          close(self->fd);
-          self->fd = -1;
-          return FALSE;
-        }
+      _reset_queue_pointers(self);
     }
   else
     {
       struct stat st;
+      fstat(self->fd, &st);
+      self->file_size = st.st_size;
+      msg_info("Reliable disk-buffer state loaded",
+               evt_tag_str("filename", self->filename),
+               evt_tag_long("number_of_messages", _number_of_messages(self)));
 
-      if (fstat(self->fd, &st) != 0 || st.st_size == 0)
-        {
-          msg_error("Error loading disk-queue file",
-                    evt_tag_str("filename", self->filename),
-                    evt_tag_error("fstat error"),
-                    evt_tag_int("size", st.st_size));
-          munmap((void *)self->hdr, sizeof(QDiskFileHeader));
-          self->hdr = NULL;
-          close(self->fd);
-          self->fd = -1;
-          return FALSE;
-        }
+      msg_debug("Reliable disk-buffer internal state",
+                evt_tag_str("filename", self->filename),
+                evt_tag_long("queue_length", self->hdr->length),
+                evt_tag_long("backlog_len", self->hdr->backlog_len),
+                evt_tag_long("backlog_head", self->hdr->backlog_head),
+                evt_tag_long("read_head", self->hdr->read_head),
+                evt_tag_long("write_head", self->hdr->write_head),
+                evt_tag_long("disk_buf_size", self->hdr->disk_buf_size));
+    }
 
-      if (!_is_header_version_current(self))
-        {
-          _upgrade_header(self);
-        }
+  return TRUE;
+}
 
-      if ((self->hdr->big_endian && G_BYTE_ORDER == G_LITTLE_ENDIAN) ||
-          (!self->hdr->big_endian && G_BYTE_ORDER == G_BIG_ENDIAN))
-        {
-          self->hdr->read_head = GUINT64_SWAP_LE_BE(self->hdr->read_head);
-          self->hdr->write_head = GUINT64_SWAP_LE_BE(self->hdr->write_head);
-          self->hdr->length = GUINT64_SWAP_LE_BE(self->hdr->length);
-          self->hdr->qout_pos.ofs = GUINT64_SWAP_LE_BE(self->hdr->qout_pos.ofs);
-          self->hdr->qout_pos.len = GUINT32_SWAP_LE_BE(self->hdr->qout_pos.len);
-          self->hdr->qout_pos.count = GUINT32_SWAP_LE_BE(self->hdr->qout_pos.count);
-          self->hdr->qbacklog_pos.ofs = GUINT64_SWAP_LE_BE(self->hdr->qbacklog_pos.ofs);
-          self->hdr->qbacklog_pos.len = GUINT32_SWAP_LE_BE(self->hdr->qbacklog_pos.len);
-          self->hdr->qbacklog_pos.count = GUINT32_SWAP_LE_BE(self->hdr->qbacklog_pos.count);
-          self->hdr->qoverflow_pos.ofs = GUINT64_SWAP_LE_BE(self->hdr->qoverflow_pos.ofs);
-          self->hdr->qoverflow_pos.len = GUINT32_SWAP_LE_BE(self->hdr->qoverflow_pos.len);
-          self->hdr->qoverflow_pos.count = GUINT32_SWAP_LE_BE(self->hdr->qoverflow_pos.count);
-          self->hdr->backlog_head = GUINT64_SWAP_LE_BE(self->hdr->backlog_head);
-          self->hdr->backlog_len = GUINT64_SWAP_LE_BE(self->hdr->backlog_len);
-          self->hdr->disk_buf_size = GUINT64_SWAP_LE_BE(self->hdr->disk_buf_size);
-          self->hdr->big_endian = (G_BYTE_ORDER == G_BIG_ENDIAN);
-        }
-      if (!_load_state(self, qout, qbacklog, qoverflow))
-        {
-          munmap((void *)self->hdr, sizeof(QDiskFileHeader));
-          self->hdr = NULL;
-          close(self->fd);
-          self->fd = -1;
-          return FALSE;
-        }
-
-      if (self->hdr->disk_buf_size == -1)
-        {
-          if (!_autodetect_disk_buf_size(self))
-            {
-              msg_error("Failed to load disk-buf-size from disk-queue, and it was not set explicitly",
-                        evt_tag_str("filename", self->filename));
-              return FALSE;
-            }
-        }
-
+static gboolean
+_handle_option_changes(QDisk *self)
+{
+  if (self->hdr->disk_buf_size != -1)
+    {
       if (self->options->disk_buf_size != -1 && self->hdr->disk_buf_size != self->options->disk_buf_size)
         {
           msg_warning("WARNING: disk-buf-size() has changed since the last syslog-ng run. syslog-ng currently does "
@@ -1402,9 +1354,117 @@ qdisk_start(QDisk *self, const gchar *filename, GQueue *qout, GQueue *qbacklog, 
                       evt_tag_long("active_old_disk_buf_size", self->hdr->disk_buf_size),
                       evt_tag_long("ignored_new_disk_buf_size", self->options->disk_buf_size));
         }
+      return TRUE;
+    }
+
+  if (self->options->disk_buf_size)
+    {
+      self->hdr->disk_buf_size = self->options->disk_buf_size;
+      return TRUE;
+    }
+
+  if (!_autodetect_disk_buf_size(self))
+    {
+      msg_error("Failed to load disk-buf-size from disk-queue, and it was not set explicitly",
+                evt_tag_str("filename", self->filename));
+      return FALSE;
     }
 
   return TRUE;
+}
+
+static gboolean
+_load_qdisk_file(QDisk *self, const gchar *filename, GQueue *qout, GQueue *qbacklog, GQueue *qoverflow)
+{
+  if (!_open_file(self, filename))
+    goto error;
+
+  if (!_load_state(self, qout, qbacklog, qoverflow))
+    goto error;
+
+  if (!_handle_option_changes(self))
+    goto error;
+
+  return TRUE;
+
+error:
+  _close_file(self);
+  return FALSE;
+}
+
+static gboolean
+_create_file(QDisk *self, const gchar *filename)
+{
+  if (self->options->read_only)
+    return FALSE;
+
+  if (self->options->disk_buf_size == -1)
+    {
+      msg_error("disk-buf-size for new disk-queue files must be set");
+      return FALSE;
+    }
+
+  if (!_create_path(filename))
+    {
+      msg_error("Error creating dir for disk-queue file",
+                evt_tag_str("filename", filename),
+                evt_tag_error("error"));
+      return FALSE;
+    }
+
+  gint fd = open(filename, O_RDWR | O_LARGEFILE | O_CREAT, 0600);
+  if (fd < 0)
+    {
+      msg_error("Error creating disk-queue file",
+                evt_tag_str("filename", filename),
+                evt_tag_error("error"));
+      return FALSE;
+    }
+
+  self->fd = fd;
+  self->filename = g_strdup(filename);
+
+  if (self->options->prealloc)
+    return _preallocate(self, self->options->disk_buf_size);
+
+  return TRUE;
+}
+
+static gboolean
+_create_qdisk_file(QDisk *self, const gchar *filename, GQueue *qout, GQueue *qbacklog, GQueue *qoverflow)
+{
+  if (!_create_file(self, filename))
+    goto error;
+
+  if (!_set_defaults(self))
+    goto error;
+
+  return TRUE;
+
+error:
+  _close_file(self);
+  return FALSE;
+}
+
+gboolean
+qdisk_start(QDisk *self, const gchar *filename, GQueue *qout, GQueue *qbacklog, GQueue *qoverflow)
+{
+  g_assert(!qdisk_started(self));
+
+  struct stat st;
+  gboolean file_exists = filename && stat(filename, &st) != -1;
+
+  if (file_exists)
+    return _load_qdisk_file(self, filename, qout, qbacklog, qoverflow);
+
+  if (filename)
+    return _create_qdisk_file(self, filename, qout, qbacklog, qoverflow);
+
+  gchar next_filename[256];
+  if (_next_filename(self, next_filename, sizeof(next_filename)))
+    return _create_qdisk_file(self, next_filename, qout, qbacklog, qoverflow);
+
+  return FALSE;
 }
 
 void
@@ -1420,26 +1480,10 @@ qdisk_init_instance(QDisk *self, DiskQueueOptions *options, const gchar *file_id
 void
 qdisk_stop(QDisk *self)
 {
-  if (self->filename)
-    {
-      g_free(self->filename);
-      self->filename = NULL;
-    }
+  g_free(self->filename);
+  self->filename = NULL;
 
-  if (self->hdr)
-    {
-      if (self->options->read_only)
-        g_free(self->hdr);
-      else
-        munmap((void *)self->hdr, sizeof(QDiskFileHeader));
-      self->hdr = NULL;
-    }
-
-  if (self->fd != -1)
-    {
-      close(self->fd);
-      self->fd = -1;
-    }
+  _close_file(self);
 }
 
 void
