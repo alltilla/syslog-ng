@@ -23,6 +23,7 @@
 #include "python-options.h"
 #include "python-types.h"
 #include "str-utils.h"
+#include "string-list.h"
 
 /* Python Option */
 
@@ -220,6 +221,49 @@ python_option_boolean_new(const gchar *name, gboolean value)
   self->super.create_value_py_object = _boolean_create_value_py_object;
   self->super.clone = _boolean_clone;
   self->value = value;
+
+  return &self->super;
+}
+
+/* String List */
+
+typedef struct _PythonOptionStringList
+{
+  PythonOption super;
+  GList *value;
+} PythonOptionStringList;
+
+static PyObject *
+_string_list_create_value_py_object(const PythonOption *s)
+{
+  PythonOptionStringList *self = (PythonOptionStringList *) s;
+  return py_string_list_from_string_list(self->value);
+}
+
+static PythonOption *
+_string_list_clone(const PythonOption *s)
+{
+  PythonOptionStringList *self = (PythonOptionStringList *) s;
+  return python_option_string_list_new(python_option_get_name(s), self->value);
+}
+
+static void
+_string_list_free_fn(PythonOption *s)
+{
+  PythonOptionStringList *self = (PythonOptionStringList *) s;
+  string_list_free(self->value);
+}
+
+PythonOption *
+python_option_string_list_new(const gchar *name, const GList *value)
+{
+  PythonOptionStringList *self = g_new0(PythonOptionStringList, 1);
+  python_option_init_instance(&self->super, name);
+
+  self->super.create_value_py_object = _string_list_create_value_py_object;
+  self->super.clone = _string_list_clone;
+  self->super.free_fn = _string_list_free_fn;
+  self->value = string_list_clone(value);
 
   return &self->super;
 }
