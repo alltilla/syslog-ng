@@ -118,3 +118,38 @@ python_option_string_new(const gchar *name, const gchar *value)
 
   return &self->super;
 }
+
+/* Long */
+
+typedef struct _PythonOptionLong
+{
+  PythonOption super;
+  gint64 value;
+} PythonOptionLong;
+
+static PyObject *
+_long_create_value_py_object(const PythonOption *s)
+{
+  PythonOptionLong *self = (PythonOptionLong *) s;
+  return py_long_from_long(self->value);
+}
+
+static PythonOption *
+_long_clone(const PythonOption *s)
+{
+  PythonOptionLong *self = (PythonOptionLong *) s;
+  return python_option_long_new(python_option_get_name(s), self->value);
+}
+
+PythonOption *
+python_option_long_new(const gchar *name, gint64 value)
+{
+  PythonOptionLong *self = g_new0(PythonOptionLong, 1);
+  python_option_init_instance(&self->super, name);
+
+  self->super.create_value_py_object = _long_create_value_py_object;
+  self->super.clone = _long_clone;
+  self->value = value;
+
+  return &self->super;
+}
