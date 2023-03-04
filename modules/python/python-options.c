@@ -188,3 +188,38 @@ python_option_double_new(const gchar *name, gdouble value)
 
   return &self->super;
 }
+
+/* Boolean */
+
+typedef struct _PythonOptionBoolean
+{
+  PythonOption super;
+  gboolean value;
+} PythonOptionBoolean;
+
+static PyObject *
+_boolean_create_value_py_object(const PythonOption *s)
+{
+  PythonOptionBoolean *self = (PythonOptionBoolean *) s;
+  return py_boolean_from_boolean(self->value);
+}
+
+static PythonOption *
+_boolean_clone(const PythonOption *s)
+{
+  PythonOptionBoolean *self = (PythonOptionBoolean *) s;
+  return python_option_boolean_new(python_option_get_name(s), self->value);
+}
+
+PythonOption *
+python_option_boolean_new(const gchar *name, gboolean value)
+{
+  PythonOptionBoolean *self = g_new0(PythonOptionBoolean, 1);
+  python_option_init_instance(&self->super, name);
+
+  self->super.create_value_py_object = _boolean_create_value_py_object;
+  self->super.clone = _boolean_clone;
+  self->value = value;
+
+  return &self->super;
+}
