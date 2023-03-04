@@ -397,6 +397,7 @@
 
 %type   <ptr> value_pair_option
 
+%type	<num> yesno_strict
 %type	<num> yesno
 %type	<num> yesnoauto
 %type   <num> dnsmode
@@ -1017,9 +1018,13 @@ string
 	| LL_STRING
 	;
 
-yesno
+yesno_strict
 	: KW_YES				{ $$ = 1; }
 	| KW_NO					{ $$ = 0; }
+	;
+
+yesno
+	: yesno_strict
 	| LL_NUMBER				{ $$ = $1; }
 	;
 
