@@ -39,4 +39,12 @@ PythonOption *python_option_clone(const PythonOption *s);
 
 void python_option_free(PythonOption *self);
 
+typedef struct _PythonOptions PythonOptions;
+
+PythonOptions *python_options_new(void);
+void python_options_add_option(PythonOptions *self, const PythonOption *option);
+PyObject *python_options_create_py_dict(const PythonOptions *self);
+PythonOptions *python_options_clone(const PythonOptions *self);
+void python_options_free(PythonOptions *self);
+
 #endif

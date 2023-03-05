@@ -267,3 +267,68 @@ python_option_string_list_new(const gchar *name, const GList *value)
 
   return &self->super;
 }
+
+/* Python Options */
+
+struct _PythonOptions
+{
+  GList *options;
+};
+
+PythonOptions *
+python_options_new(void)
+{
+  PythonOptions *self = g_new0(PythonOptions, 1);
+  return self;
+}
+
+void
+python_options_add_option(PythonOptions *self, const PythonOption *option)
+{
+  self->options = g_list_append(self->options, python_option_clone(option));
+}
+
+PyObject *
+python_options_create_py_dict(const PythonOptions *self)
+{
+  PyObject *py_dict;
+
+  PyGILState_STATE gstate = PyGILState_Ensure();
+  {
+    py_dict = PyDict_New();
+    for (GList *elem = self->options; elem; elem = elem->next)
+      {
+        const PythonOption *option = (const PythonOption *) elem->data;
+        PyDict_SetItemString(py_dict,
+                             python_option_get_name(option),
+                             python_option_create_value_py_object(option));
+      }
+  }
+  PyGILState_Release(gstate);
+
+  return py_dict;
+}
+
+PythonOptions *
+python_options_clone(const PythonOptions *self)
+{
+  PythonOptions *cloned = python_options_new();
+
+  for (GList *elem = self->options; elem; elem = elem->next)
+    {
+      const PythonOption *option = (const PythonOption *) elem->data;
+      python_options_add_option(cloned, option);
+    }
+
+  return cloned;
+}
+
+void
+python_options_free(PythonOptions *self)
+{
+  if (!self)
+    return;
+
+  g_list_free_full(self->options, (GDestroyNotify) python_option_free);
+  g_free(self);
+}
