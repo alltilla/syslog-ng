@@ -1760,6 +1760,21 @@ if test "x$enable_systemd" = "xyes"; then
         fi
 fi
 
+AC_PATH_PROG(BPFTOOL, bpftool)
+AC_SUBST(BPFTOOL)
+AC_PATH_PROG(BPF_CC, [clang])
+AC_SUBST(BPF_CC)
+
+if test "x$enable_ebpf" = "xyes"; then
+	PKG_CHECK_MODULES(LIBBPF, libbpf >= "1.1.0")
+
+	# we are using a distinct C compiler for compiling BPF code and
+	# pkg-config removes builtin paths from its output.  Reference it
+	# directly.
+
+	LIBBPF_INCLUDE=`$PKG_CONFIG --variable includedir libbpf`
+fi
+
 dnl ***************************************************************************
 dnl check if we have timezone variable in <time.h>
 dnl ***************************************************************************
@@ -2042,6 +2057,7 @@ AC_SUBST(JSON_CFLAGS)
 AC_SUBST(JSON_DEPENDENCY)
 AC_SUBST(IVYKIS_SUBDIRS)
 AC_SUBST(RESOLV_LIBS)
+AC_SUBST(LIBBPF_INCLUDE)
 
 AC_SUBST(CURRDATE)
 AC_SUBST(RELEASE_TAG)
