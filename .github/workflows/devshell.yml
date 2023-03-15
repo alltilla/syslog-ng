@@ -59,6 +59,10 @@ jobs:
           gh_export COREFILES_DIR PYTHONUSERBASE CC SYSLOG_NG_INSTALL_DIR CONFIGURE_FLAGS CMAKE_FLAGS
           gh_path "${PYTHONUSERBASE}"
 
+      - name: Install BPF tools
+        run: |
+          apt-get install libbpf-dev bpftool clang
+
       - name: autogen.sh
         if: matrix.build-tool == 'autotools'
         run: ./autogen.sh
