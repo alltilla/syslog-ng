@@ -14,7 +14,7 @@ add_custom_command(OUTPUT vmlinux.h
 
 add_custom_command(OUTPUT random.skel.c
                    COMMAND ${BPFTOOL} gen skeleton random.kern.o > random.skel.c
-		   DEPENDS random.kern.o)
+                   DEPENDS random.kern.o)
 
 add_custom_command(OUTPUT random.kern.o
                    COMMAND ${BPF_CC} ${BPF_CFLAGS} -c ${CMAKE_CURRENT_SOURCE_DIR}/random.kern.c -o random.kern.o
@@ -27,7 +27,7 @@ set(EBPF_SOURCES
     ebpf-reuseport.c
     ebpf-plugin.c
     ebpf-parser.c
-     random.skel.c
+    random.skel.c
 )
 
 add_module(
