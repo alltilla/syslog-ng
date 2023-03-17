@@ -1764,12 +1764,19 @@ if test "x$enable_systemd" = "xyes"; then
         fi
 fi
 
-AC_PATH_PROG(BPFTOOL, bpftool)
-AC_SUBST(BPFTOOL)
-AC_PATH_PROG(BPF_CC, [clang])
-AC_SUBST(BPF_CC)
-
 if test "x$enable_ebpf" = "xyes"; then
+	AC_PATH_PROG(BPFTOOL, bpftool)
+	AC_SUBST(BPFTOOL)
+
+	AC_PATH_PROG(BPF_CC, [clang])
+	AC_SUBST(BPF_CC)
+
+	if test "x$BPFTOOL" = "x"; then
+		AC_MSG_ERROR([Detecting bpftool for eBPF support failed])
+	elif test "x$BPF_CC" = "x"; then
+		AC_MSG_ERROR([Detecting clang for eBPF support failed])
+	fi
+
 	PKG_CHECK_MODULES(LIBBPF, libbpf >= "1.1.0")
 
 	# we are using a distinct C compiler for compiling BPF code and
