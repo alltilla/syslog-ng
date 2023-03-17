@@ -17,6 +17,7 @@ add_custom_command(OUTPUT random.kern.o
                    COMMAND ${BPF_CC} ${BPF_CFLAGS} -c ${CMAKE_CURRENT_SOURCE_DIR}/random.kern.c -o random.kern.o
                    DEPENDS random.kern.c vmlinux.h)
 
+set_source_files_properties(${CMAKE_CURRENT_BINARY_DIR}/random.skel.c PROPERTIES COMPILE_FLAGS "${CMAKE_C_FLAGS} -Wno-unused-function")
 
 set(EBPF_SOURCES
     ebpf-parser.h
