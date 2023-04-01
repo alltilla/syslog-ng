@@ -63,6 +63,7 @@ PythonOptions *last_python_options;
 %token KW_IMPORTS
 %token KW_LOADERS
 %token KW_MARK_ERRORS_AS_CRITICAL
+%token KW_LOG_TEMPLATE
 
 %type <ptr> python_options_block
 
@@ -290,6 +291,12 @@ python_option
               python_options_add_option(last_python_options, option);
               free($1);
               string_list_free($4);
+            }
+          | string optional_arrow KW_LOG_TEMPLATE '(' string ')'
+            {
+              PythonOption *option = python_option_template_new($1, $5);
+              python_options_add_option(last_python_options, option);
+              free($1);
             }
           ;
 
