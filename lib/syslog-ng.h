@@ -45,6 +45,7 @@
 #define PATH_PERSIST_CONFIG     SYSLOG_NG_PATH_LOCALSTATEDIR "/syslog-ng.persist"
 
 typedef struct _LogPipe LogPipe;
+typedef struct _LogPipeOptions LogPipeOptions;
 typedef struct _LogMessage LogMessage;
 typedef struct _GlobalConfig GlobalConfig;
 typedef struct _CfgLexer CfgLexer;

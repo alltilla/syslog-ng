@@ -252,6 +252,11 @@ log_path_options_pop_junction(LogPathOptions *local_path_options)
     local_path_options->parent = local_path_options->parent->parent;
 }
 
+struct _LogPipeOptions
+{
+  gboolean internal;
+};
+
 struct _LogPipe
 {
   GAtomicCounter ref_cnt;
@@ -266,6 +271,7 @@ struct _LogPipe
   const gchar *persist_name;
   gchar *plugin_name;
   SignalSlotConnector *signal_slot_connector;
+  LogPipeOptions options;
 
   gboolean (*pre_init)(LogPipe *self);
   gboolean (*init)(LogPipe *self);
@@ -309,6 +315,7 @@ LogPipe *log_pipe_ref(LogPipe *self);
 gboolean log_pipe_unref(LogPipe *self);
 LogPipe *log_pipe_new(GlobalConfig *cfg);
 void log_pipe_init_instance(LogPipe *self, GlobalConfig *cfg);
+void log_pipe_set_options(LogPipe *self, const LogPipeOptions *options);
 void log_pipe_forward_notify(LogPipe *self, gint notify_code, gpointer user_data);
 EVTTAG *log_pipe_location_tag(LogPipe *pipe);
 void log_pipe_attach_expr_node(LogPipe *self, LogExprNode *expr_node);
@@ -336,6 +343,8 @@ log_pipe_reset_config(LogPipe *s)
 static inline gboolean
 log_pipe_init(LogPipe *s)
 {
+  printf("log_pipe_init; self=%p, persist_name=%s, plugin_name=%s, info=%s, internal=%d\n", s, s->persist_name, s->plugin_name, s->info ? s->info->data : "", s->options.internal);
+
   if (!(s->flags & PIF_INITIALIZED))
     {
       if (s->pre_init && !s->pre_init(s))

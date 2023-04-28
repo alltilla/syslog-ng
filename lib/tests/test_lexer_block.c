@@ -64,7 +64,7 @@ Test(test_block, mandatory_arguments)
   CfgBlockGenerator *generator = cfg_block_new(cfg_lexer_lookup_context_type_by_name("block"),
                                                "block_with_mandatory_options",
                                                "`mandatory_param`",
-                                               arg_defs, &yyloc);
+                                               FALSE, arg_defs, &yyloc);
 
   CfgArgs *args = cfg_args_new();
   cr_assert_not(generator->generate(generator, configuration, args, result, ""), "mandatory parameter missing");
@@ -83,7 +83,7 @@ Test(test_block, varargs)
   CfgBlockGenerator *generator = cfg_block_new(cfg_lexer_lookup_context_type_by_name("block"),
                                                "block_to_test_varargs",
                                                "`varargs_param`",
-                                               arg_defs, &yyloc);
+                                               FALSE, arg_defs, &yyloc);
 
   CfgArgs *args = cfg_args_new();
   cfg_args_set(args, "varargs_param", "value");

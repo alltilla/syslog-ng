@@ -145,6 +145,12 @@ cfg_lexer_get_context_description(CfgLexer *self)
   return "configuration";
 }
 
+void
+cfg_lexer_set_internal_definitions(CfgLexer *self, gboolean internal_definitions)
+{
+  self->internal_definitions = internal_definitions;
+}
+
 const gchar *
 cfg_lexer_format_location(CfgLexer *self, const CFG_LTYPE *yylloc, gchar *buf, gsize buf_len)
 {

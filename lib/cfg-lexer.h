@@ -180,6 +180,7 @@ struct _CfgLexer
   gint preprocess_suppress_tokens;
   GString *token_pretext;
   GString *token_text;
+  gboolean internal_definitions;
   GlobalConfig *cfg;
   gboolean ignore_pragma:1;
 };
@@ -212,6 +213,7 @@ void cfg_lexer_push_context(CfgLexer *self, gint context, CfgLexerKeyword *keywo
 void cfg_lexer_pop_context(CfgLexer *self);
 const gchar *cfg_lexer_get_context_description(CfgLexer *self);
 gint cfg_lexer_get_context_type(CfgLexer *self);
+void cfg_lexer_set_internal_definitions(CfgLexer *self, gboolean internal_definitions);
 
 /* token blocks */
 void cfg_lexer_inject_token_block(CfgLexer *self, CfgTokenBlock *block);

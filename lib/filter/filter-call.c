@@ -90,6 +90,7 @@ filter_call_init(FilterExprNode *s, GlobalConfig *cfg)
         return FALSE;
       self->super.modify = self->filter_expr->modify;
 
+      // TODO: only register if filter_pipe is non-internal
       stats_lock();
       StatsClusterKey sc_key;
       StatsClusterLabel labels[] = { stats_cluster_label("id", self->rule) };

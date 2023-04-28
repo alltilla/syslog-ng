@@ -86,6 +86,7 @@ LogProtoClient *log_writer_steal_proto(LogWriter *self);
 void log_writer_set_queue(LogWriter *self, LogQueue *queue);
 LogQueue *log_writer_get_queue(LogWriter *s);
 LogWriter *log_writer_new(guint32 flags, GlobalConfig *cfg);
+LogPipe *log_writer_get_log_pipe(LogWriter *self);
 void log_writer_msg_rewind(LogWriter *self);
 
 void log_writer_init_driver_sck_builder(LogWriter *self, StatsClusterKeyBuilder *builder);

@@ -58,8 +58,16 @@ _arcs(LogPipe *self)
 }
 
 void
+log_pipe_set_options(LogPipe *self, const LogPipeOptions *options)
+{
+  self->options = *options;
+}
+
+void
 log_pipe_init_instance(LogPipe *self, GlobalConfig *cfg)
 {
+  printf("log_pipe_init_instance; self=%p\n", self);
+
   g_atomic_counter_set(&self->ref_cnt, 1);
   self->cfg = cfg;
   self->pipe_next = NULL;

@@ -74,6 +74,8 @@ static CfgLexerKeyword pragma_keywords[] =
   { "requires",           KW_REQUIRES, },
   { "line",               KW_LINE },
   { "config_id",          KW_CONFIG_ID },
+  { "internal_definitions_start",   KW_INTERNAL_DEFINITIONS_START },
+  { "internal_definitions_end",     KW_INTERNAL_DEFINITIONS_END },
   { CFG_KEYWORD_STOP },
 };
 

@@ -71,6 +71,8 @@ parser_expr
             CHECK_ERROR(p, @1, "%s plugin %s not found", cfg_lexer_lookup_context_name_by_type(context), $1);
 
             last_parser = (LogParser *) cfg_parse_plugin(configuration, p, &@1, NULL);
+            LogPipeOptions options = { .internal = lexer->internal_definitions };
+            log_pipe_set_options(&last_parser->super, &options);
             free($1);
             if (!last_parser)
               {

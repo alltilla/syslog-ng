@@ -190,6 +190,7 @@ affile_dw_init(LogPipe *s)
   if (!self->writer)
     {
       self->writer = log_writer_new(self->owner->writer_flags, cfg);
+      log_pipe_set_options((LogPipe *) self->writer, &self->super.options);
     }
 
   log_writer_set_options(self->writer,
@@ -633,6 +634,7 @@ affile_dd_open_writer(gpointer args[])
         {
           next = affile_dw_new(log_template_get_literal_value(self->filename_template, NULL),
                                log_pipe_get_config(&self->super.super.super));
+          log_pipe_set_options(&next->super, &self->super.super.super.options);
           affile_dw_set_owner(next, self);
           if (next && log_pipe_init(&next->super))
             {
@@ -670,6 +672,7 @@ affile_dd_open_writer(gpointer args[])
       if (!next)
         {
           next = affile_dw_new(filename->str, log_pipe_get_config(&self->super.super.super));
+          log_pipe_set_options(&next->super, &self->super.super.super.options);
           affile_dw_set_owner(next, self);
           if (!log_pipe_init(&next->super))
             {

@@ -187,6 +187,12 @@ log_writer_get_flags(LogWriter *self)
   return self->flags;
 }
 
+LogPipe *
+log_writer_get_log_pipe(LogWriter *self)
+{
+  return &self->super;
+}
+
 /* returns a reference */
 LogQueue *
 log_writer_get_queue(LogWriter *s)

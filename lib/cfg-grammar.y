@@ -398,6 +398,8 @@
 %type   <ptr> log_forks
 %type   <ptr> log_fork
 
+%type   <num> optional_internal_block_flag
+
 %type	<num> log_flags
 %type   <num> log_flags_items
 
@@ -572,6 +574,8 @@ source_plugin
             CHECK_ERROR(p, @1, "%s plugin %s not found", cfg_lexer_lookup_context_name_by_type(context), $1);
 
             last_driver = (LogDriver *) cfg_parse_plugin(configuration, p, &@1, NULL);
+            LogPipeOptions options = { .internal = lexer->internal_definitions };
+            log_pipe_set_options(&last_driver->super, &options);
             free($1);
             if (!last_driver)
               {
@@ -588,6 +592,8 @@ source_afinter
 source_afinter_params
         : {
             last_driver = afinter_sd_new(configuration);
+            LogPipeOptions options = { .internal = lexer->internal_definitions };
+            log_pipe_set_options(&last_driver->super, &options);
             last_source_options = &((AFInterSourceDriver *) last_driver)->source_options.super;
           }
           source_afinter_options { $$ = last_driver; }
@@ -609,8 +615,10 @@ filter_content
             FilterExprNode *filter_expr = NULL;
 
 	    CHECK_ERROR_WITHOUT_MESSAGE(cfg_parser_parse(&filter_expr_parser, lexer, (gpointer *) &filter_expr, NULL), @$);
-
-            $$ = log_expr_node_new_pipe(log_filter_pipe_new(filter_expr, configuration), &@$);
+            LogPipe *filter_pipe = log_filter_pipe_new(filter_expr, configuration);
+            LogPipeOptions options = { .internal = lexer->internal_definitions };
+            log_pipe_set_options(filter_pipe, &options);
+            $$ = log_expr_node_new_pipe(filter_pipe, &@$);
 	  }
 	;
 
@@ -660,6 +668,8 @@ dest_plugin
             CHECK_ERROR(p, @1, "%s plugin %s not found", cfg_lexer_lookup_context_name_by_type(context), $1);
 
             last_driver = (LogDriver *) cfg_parse_plugin(configuration, p, &@1, NULL);
+            LogPipeOptions options = { .internal = lexer->internal_definitions };
+            log_pipe_set_options(&last_driver->super, &options);
             free($1);
             if (!last_driver)
               {
@@ -892,6 +902,9 @@ block_stmt
           _block_def_context_push
           LL_IDENTIFIER LL_IDENTIFIER
           '(' { last_block_args = cfg_args_new(); } block_definition ')'
+          _block_def_context_pop
+          optional_internal_block_flag
+          _block_def_context_push
           _block_content_context_push
           LL_BLOCK
           _block_content_context_pop
@@ -902,13 +915,18 @@ block_stmt
             gint context_type = cfg_lexer_lookup_context_type_by_name($3);
             CHECK_ERROR(context_type, @3, "unknown context \"%s\"", $3);
 
-            block = cfg_block_new(context_type, $4, $10, last_block_args, &@1);
+            block = cfg_block_new(context_type, $4, $13, $10, last_block_args, &@1);
             cfg_lexer_register_generator_plugin(&configuration->plugin_context, block);
             free($3);
             free($4);
-            free($10);
+            free($13);
             last_block_args = NULL;
           }
+        ;
+
+optional_internal_block_flag
+        : KW_INTERNAL { $$ = 1; }
+        | { $$ = 0; }
         ;
 
 block_definition

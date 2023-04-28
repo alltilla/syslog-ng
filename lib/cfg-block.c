@@ -45,6 +45,7 @@ struct _CfgBlock
   gchar *filename;
   gint line, column;
   gchar *content;
+  gboolean internal;
   CfgArgs *arg_defs;
 };
 
@@ -177,9 +178,17 @@ cfg_block_generate(CfgBlockGenerator *s, GlobalConfig *cfg, gpointer args, GStri
       g_clear_error(&error);
       return FALSE;
     }
+
   if (cfg->lexer && !cfg->lexer->ignore_pragma)
     g_string_append_printf(result, "@line \"%s\" %d %d\n", self->filename, self->line, self->column);
+
+  if (cfg->lexer && !cfg->lexer->ignore_pragma && self->internal)
+    g_string_append(result, "\n@internal-definitions-start\n");
+
   g_string_append_len(result, value, length);
+
+  if (cfg->lexer && !cfg->lexer->ignore_pragma && self->internal)
+    g_string_append(result, "\n@internal-definitions-end\n");
 
   g_free(value);
   return TRUE;
@@ -204,7 +213,8 @@ cfg_block_free_instance(CfgBlockGenerator *s)
  * Construct a user defined block.
  */
 CfgBlockGenerator *
-cfg_block_new(gint context, const gchar *name, const gchar *content, CfgArgs *arg_defs, CFG_LTYPE *lloc)
+cfg_block_new(gint context, const gchar *name, const gchar *content, gboolean internal, CfgArgs *arg_defs,
+              CFG_LTYPE *lloc)
 {
   CfgBlock *self = g_new0(CfgBlock, 1);
 
@@ -215,6 +225,7 @@ cfg_block_new(gint context, const gchar *name, const gchar *content, CfgArgs *ar
   self->super.suppress_backticks = TRUE;
   self->content = g_strdup(content);
   self->filename = g_strdup(lloc->name);
+  self->internal = internal;
   self->line = lloc->first_line;
   self->column = lloc->first_column;
   self->arg_defs = arg_defs;
