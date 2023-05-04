@@ -360,7 +360,7 @@ def _hypr_config_generator(args):
     bearer_token = sanitize(args.get('bearer_token', ""))
     page_size = args.get('page_size', 100)
     initial_hours = args.get('initial_hours', 4)
-    sleep = args.get('sleep', 60)
+    fetch_no_data_delay = args.get('fetch_no_data_delay', 60)
     log_level = sanitize(args.get('log_level', "INFO"))
     application_skiplist = args.get('application_skiplist',
                                     ["HYPRDefaultApplication", "HYPRDefaultWorkstationApplication"])
@@ -372,7 +372,7 @@ def _hypr_config_generator(args):
     logger.debug("bearer_token : %s" % bearer_token)
     logger.debug("page_size : %d" % page_size)
     logger.debug("initial_hours : %d" % initial_hours)
-    logger.debug("sleep : %d" % sleep)
+    logger.debug("fetch_no_data_delay : %d" % fetch_no_data_delay)
     logger.debug("log_level : %s" % log_level)
     logger.debug("application_skiplist : %s" % application_skiplist)
     logger.debug("persist_name : %s" % persist_name)
@@ -436,7 +436,7 @@ def _hypr_config_generator(args):
         );
     """ % (url, application, args['bearer_token'], page_size,
            initial_hours, flags,
-           persist_name, application, sleep)
+           persist_name, application, fetch_no_data_delay)
 
     logger.debug("Final configuration is: %s" % sources)
 
