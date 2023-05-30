@@ -56,3 +56,5 @@ add_module(
   DEPENDS otel-cpp
   SOURCES ${OTEL_SOURCES}
 )
+
+add_test_subdirectory(tests)
