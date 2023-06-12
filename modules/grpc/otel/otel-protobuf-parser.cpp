@@ -25,6 +25,11 @@
 #include "otel-protobuf-parser.hpp"
 
 using namespace google::protobuf;
+using namespace opentelemetry::proto::logs::v1;
+using namespace opentelemetry::proto::metrics::v1;
+using namespace opentelemetry::proto::trace::v1;
+using namespace opentelemetry::proto::resource::v1;
+using namespace opentelemetry::proto::common::v1;
 
 static void
 _set_value(LogMessage *msg, const char *key, const char *value, LogMessageValueType type)
@@ -135,9 +140,10 @@ _extract_hostname(const grpc::string &peer)
 }
 
 LogMessage *
-create_log_msg_with_metadata(const grpc::string &peer,
-                             const Resource &resource, const std::string &resource_schema_url,
-                             const InstrumentationScope &scope, const std::string &scope_schema_url)
+otel::protobuf::parser::create_log_msg_with_metadata(const grpc::string &peer,
+                                                     const Resource &resource, const std::string &resource_schema_url,
+                                                     const InstrumentationScope &scope,
+                                                     const std::string &scope_schema_url)
 {
   LogMessage *msg = log_msg_new_empty();
   char number_buf[G_ASCII_DTOSTR_BUF_SIZE];
@@ -177,7 +183,7 @@ create_log_msg_with_metadata(const grpc::string &peer,
 }
 
 void
-parse_LogRecord(LogMessage *msg, const LogRecord &log_record)
+otel::protobuf::parser::parse(LogMessage *msg, const LogRecord &log_record)
 {
   char number_buf[G_ASCII_DTOSTR_BUF_SIZE];
 
@@ -696,7 +702,7 @@ _add_metric_data_fields(LogMessage *msg, const Metric &metric)
 }
 
 void
-parse_Metric(LogMessage *msg, const Metric &metric)
+otel::protobuf::parser::parse(LogMessage *msg, const Metric &metric)
 {
   /* .otel.type */
   log_msg_set_value_by_name_with_type(msg, ".otel.type", "metric", -1, LM_VT_STRING);
@@ -714,7 +720,7 @@ parse_Metric(LogMessage *msg, const Metric &metric)
 }
 
 void
-parse_Span(LogMessage *msg, const Span &span)
+otel::protobuf::parser::parse(LogMessage *msg, const Span &span)
 {
   /* .otel.type */
   log_msg_set_value_by_name_with_type(msg, ".otel.type", "span", -1, LM_VT_STRING);

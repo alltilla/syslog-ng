@@ -28,6 +28,15 @@
 #include "apphook.h"
 #include "compat/cpp-end.h"
 
+using namespace otel::protobuf::parser;
+
+using namespace google::protobuf;
+using namespace opentelemetry::proto::logs::v1;
+using namespace opentelemetry::proto::metrics::v1;
+using namespace opentelemetry::proto::trace::v1;
+using namespace opentelemetry::proto::resource::v1;
+using namespace opentelemetry::proto::common::v1;
+
 static void
 _assert_log_msg_double_value(LogMessage *msg, const gchar *name, double expected_value)
 {
@@ -158,7 +167,7 @@ Test(otel_protobuf_parser, log_record)
   log_record.set_trace_id({0, 1, 2, 3, 4, 5, 6, 7, 0, 1, 2, 3, 4, 5, 6, 7});
   log_record.set_span_id({0, 1, 2, 3, 4, 5, 6, 7});
 
-  parse_LogRecord(msg, log_record);
+  parse(msg, log_record);
 
   _assert_log_msg_value(msg, ".otel.type", "log", -1, LM_VT_STRING);
   _assert_log_msg_value(msg, ".otel.log.time_unix_nano", "123", -1, LM_VT_INTEGER);
@@ -185,25 +194,25 @@ Test(otel_protobuf_parser, log_record_body_types)
   LogRecord log_record;
 
   log_record.mutable_body()->set_string_value("string");
-  parse_LogRecord(msg, log_record);
+  parse(msg, log_record);
   _assert_log_msg_value(msg, ".otel.log.body", "string", -1, LM_VT_STRING);
 
   log_record.mutable_body()->set_bool_value(true);
-  parse_LogRecord(msg, log_record);
+  parse(msg, log_record);
   _assert_log_msg_value(msg, ".otel.log.body", "true", -1, LM_VT_BOOLEAN);
 
   log_record.mutable_body()->set_int_value(42);
-  parse_LogRecord(msg, log_record);
+  parse(msg, log_record);
   _assert_log_msg_value(msg, ".otel.log.body", "42", -1, LM_VT_INTEGER);
 
   log_record.mutable_body()->set_double_value(13.37);
-  parse_LogRecord(msg, log_record);
+  parse(msg, log_record);
   _assert_log_msg_double_value(msg, ".otel.log.body", 13.37);
 
   ArrayValue *array_value = log_record.mutable_body()->mutable_array_value();
   array_value->add_values()->set_string_value("array_value_1");
   array_value->add_values()->set_string_value("array_value_2");
-  parse_LogRecord(msg, log_record);
+  parse(msg, log_record);
   std::string serialized_array_value = log_record.body().SerializeAsString();
   _assert_log_msg_value(msg, ".otel.log.body", serialized_array_value.c_str(), serialized_array_value.length(),
                         LM_VT_PROTOBUF);
@@ -215,13 +224,13 @@ Test(otel_protobuf_parser, log_record_body_types)
   KeyValue *inner_kvlist_kv_2 = kvlist_value->add_values();
   inner_kvlist_kv_2->set_key("inner_kvlist_key_2");
   inner_kvlist_kv_2->mutable_value()->set_string_value("inner_kvlist_value_2");
-  parse_LogRecord(msg, log_record);
+  parse(msg, log_record);
   std::string serialized_kvlist_value = log_record.body().SerializeAsString();
   _assert_log_msg_value(msg, ".otel.log.body", serialized_kvlist_value.c_str(), serialized_kvlist_value.length(),
                         LM_VT_PROTOBUF);
 
   log_record.mutable_body()->set_bytes_value({0, 1, 2});
-  parse_LogRecord(msg, log_record);
+  parse(msg, log_record);
   _assert_log_msg_value(msg, ".otel.log.body", "\0\1\2", 3, LM_VT_BYTES);
 
   log_msg_unref(msg);
@@ -236,7 +245,7 @@ Test(otel_protobuf_parser, metric_common)
   metric.set_description("My metric description");
   metric.set_unit("my_unit");
 
-  parse_Metric(msg, metric);
+  parse(msg, metric);
 
   _assert_log_msg_value(msg, ".otel.type", "metric", -1, LM_VT_STRING);
   _assert_log_msg_value(msg, ".otel.metric.name", "my_metric_name", -1, LM_VT_STRING);
@@ -286,7 +295,7 @@ Test(otel_protobuf_parser, metric_gauge)
   data_point_1->set_as_int(1337);
   data_point_1->set_flags(999);
 
-  parse_Metric(msg, metric);
+  parse(msg, metric);
 
   _assert_log_msg_value(msg, ".otel.metric.data.type", "gauge", -1, LM_VT_STRING);
   _assert_log_msg_value(msg, ".otel.metric.data.gauge.data_points.0.attributes.attr_0_0_key", "attr_0_0_value", -1,
@@ -338,7 +347,7 @@ Test(otel_protobuf_parser, metric_sum)
   sum->set_aggregation_temporality(AGGREGATION_TEMPORALITY_DELTA);
   sum->set_is_monotonic(true);
 
-  parse_Metric(msg, metric);
+  parse(msg, metric);
 
   _assert_log_msg_value(msg, ".otel.metric.data.type", "sum", -1, LM_VT_STRING);
   _assert_log_msg_value(msg, ".otel.metric.data.sum.data_points.0.start_time_unix_nano", "777", -1, LM_VT_INTEGER);
@@ -391,7 +400,7 @@ Test(otel_protobuf_parser, metric_histogram)
   data_point_1->set_min(1.1);
   data_point_1->set_max(1.2);
 
-  parse_Metric(msg, metric);
+  parse(msg, metric);
 
   _assert_log_msg_value(msg, ".otel.metric.data.type", "histogram", -1, LM_VT_STRING);
   _assert_log_msg_value(msg, ".otel.metric.data.histogram.data_points.0.attributes.attr_0_key", "attr_0_value", -1,
@@ -475,7 +484,7 @@ Test(otel_protobuf_parser, metric_exponential_histogram)
 
   exponential_histogram->set_aggregation_temporality(AGGREGATION_TEMPORALITY_CUMULATIVE);
 
-  parse_Metric(msg, metric);
+  parse(msg, metric);
 
   _assert_log_msg_value(msg, ".otel.metric.data.type", "exponential_histogram", -1, LM_VT_STRING);
   _assert_log_msg_value(msg, ".otel.metric.data.exponential_histogram.data_points.0.attributes.attr_0_0_key",
@@ -569,7 +578,7 @@ Test(otel_protobuf_parser, metric_summary)
   value_at_quantile_1_0->set_value(0.7);
   data_point_1->set_flags(444);
 
-  parse_Metric(msg, metric);
+  parse(msg, metric);
 
   _assert_log_msg_value(msg, ".otel.metric.data.type", "summary", -1, LM_VT_STRING);
   _assert_log_msg_value(msg, ".otel.metric.data.summary.data_points.0.attributes.attr_0_0_key", "attr_0_0_value", -1,
@@ -657,7 +666,7 @@ Test(otel_protobuf_parser, span)
   span.mutable_status()->set_message("my_status");
   span.mutable_status()->set_code(Status::StatusCode::Status_StatusCode_STATUS_CODE_ERROR);
 
-  parse_Span(msg, span);
+  parse(msg, span);
 
   _assert_log_msg_value(msg, ".otel.type", "span", -1, LM_VT_STRING);
   _assert_log_msg_value(msg, ".otel.span.trace_id", "\0\1\2\3\4\5\6\7\0\1\2\3\4\5\6\7", 16, LM_VT_BYTES);

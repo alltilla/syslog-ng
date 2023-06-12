@@ -37,6 +37,15 @@
 namespace otel
 {
 
+using protobuf::parser::create_log_msg_with_metadata;
+using protobuf::parser::parse;
+
+using opentelemetry::proto::logs::v1::ResourceLogs;
+using opentelemetry::proto::logs::v1::ScopeLogs;
+using opentelemetry::proto::metrics::v1::ResourceMetrics;
+using opentelemetry::proto::metrics::v1::ScopeMetrics;
+using opentelemetry::proto::trace::v1::ResourceSpans;
+using opentelemetry::proto::trace::v1::ScopeSpans;
 
 class AsyncServiceCall
 {
@@ -98,7 +107,7 @@ otel::OtelTraceServiceCall::Proceed(bool ok)
             {
               LogMessage *msg = create_log_msg_with_metadata(ctx.peer(), resource,
                                                              resource_logs_schema_url, scope, scope_logs_schema_url);
-              parse_Span(msg, span);
+              parse(msg, span);
               if (!driver.post(msg)) ; // TODO: respond with "try-again-later"
             }
         }
@@ -133,7 +142,7 @@ otel::OtelLogsServiceCall::Proceed(bool ok)
             {
               LogMessage *msg = create_log_msg_with_metadata(ctx.peer(), resource, resource_logs_schema_url,
                                                              scope, scope_logs_schema_url);
-              parse_LogRecord(msg, log_record);
+              parse(msg, log_record);
               if (!driver.post(msg)) ; // TODO: respond with "try-again-later"
             }
         }
@@ -168,7 +177,7 @@ otel::OtelMetricsServiceCall::Proceed(bool ok)
             {
               LogMessage *msg = create_log_msg_with_metadata(ctx.peer(), resource,
                                                              resource_logs_schema_url, scope, scope_logs_schema_url);
-              parse_Metric(msg, metric);
+              parse(msg, metric);
               if (!driver.post(msg)) ; // TODO: respond with "try-again-later"
             }
         }

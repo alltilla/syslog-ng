@@ -35,19 +35,30 @@
 #include "opentelemetry/proto/resource/v1/resource.pb.h"
 #include "opentelemetry/proto/common/v1/common.pb.h"
 
-using namespace opentelemetry::proto;
-using namespace logs::v1;
-using namespace metrics::v1;
-using namespace trace::v1;
-using namespace resource::v1;
-using namespace common::v1;
+namespace otel
+{
+
+using opentelemetry::proto::logs::v1::LogRecord;
+using opentelemetry::proto::metrics::v1::Metric;
+using opentelemetry::proto::trace::v1::Span;
+using opentelemetry::proto::resource::v1::Resource;
+using opentelemetry::proto::common::v1::InstrumentationScope;
+
+namespace protobuf
+{
+namespace parser
+{
 
 LogMessage *create_log_msg_with_metadata(const grpc::string &peer,
                                          const Resource &resource, const std::string &resource_schema_url,
                                          const InstrumentationScope &scope, const std::string &scope_schema_url);
 
-void parse_LogRecord(LogMessage *msg, const LogRecord &log_record);
-void parse_Metric(LogMessage *msg, const Metric &metric);
-void parse_Span(LogMessage *msg, const Span &span);
+void parse(LogMessage *msg, const LogRecord &log_record);
+void parse(LogMessage *msg, const Metric &metric);
+void parse(LogMessage *msg, const Span &span);
+
+}
+}
+}
 
 #endif
