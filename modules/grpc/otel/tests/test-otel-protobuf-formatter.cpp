@@ -28,4 +28,29 @@
 #include "apphook.h"
 #include "compat/cpp-end.h"
 
+using namespace otel;
+
+Test(otel_protobuf_formatter, get_message_type)
+{
+  LogMessage *msg = log_msg_new_empty();
+  cr_assert_eq(get_message_type(msg), MessageType::UNKNOWN);
+
+  log_msg_set_value_by_name_with_type(msg, ".otel.type", "log", -1, LM_VT_BYTES);
+  cr_assert_eq(get_message_type(msg), MessageType::UNKNOWN);
+
+  log_msg_set_value_by_name_with_type(msg, ".otel.type", "log", -1, LM_VT_STRING);
+  cr_assert_eq(get_message_type(msg), MessageType::LOG);
+
+  log_msg_set_value_by_name_with_type(msg, ".otel.type", "metric", -1, LM_VT_STRING);
+  cr_assert_eq(get_message_type(msg), MessageType::METRIC);
+
+  log_msg_set_value_by_name_with_type(msg, ".otel.type", "span", -1, LM_VT_STRING);
+  cr_assert_eq(get_message_type(msg), MessageType::SPAN);
+
+  log_msg_set_value_by_name_with_type(msg, ".otel.type", "almafa", -1, LM_VT_STRING);
+  cr_assert_eq(get_message_type(msg), MessageType::UNKNOWN);
+
+  log_msg_unref(msg);
+}
+
 TestSuite(otel_protobuf_formatter, .init = app_startup, .fini = app_shutdown);

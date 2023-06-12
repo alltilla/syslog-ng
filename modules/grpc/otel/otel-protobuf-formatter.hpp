@@ -34,6 +34,16 @@
 namespace otel
 {
 
+enum MessageType : int
+{
+  UNKNOWN,
+  LOG,
+  METRIC,
+  SPAN,
+};
+
+MessageType get_message_type(LogMessage *msg);
+
 }
 
 #endif
