@@ -33,6 +33,8 @@ set(OTEL_CPP_SOURCES
   otel-servicecall.hpp
   otel-protobuf-parser.hpp
   otel-protobuf-parser.cpp
+  otel-protobuf-formatter.hpp
+  otel-protobuf-formatter.cpp
   ${OTEL_PROTO_GENERATED_SOURCES}
   ${OTEL_PROTO_GENERATED_GRPC_SOURCES})
 

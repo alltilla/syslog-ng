@@ -48,7 +48,9 @@ modules_grpc_otel_libotel_cpp_la_SOURCES = \
   modules/grpc/otel/otel-servicecall.hpp \
   modules/grpc/otel/otel-source-services.hpp \
   modules/grpc/otel/otel-protobuf-parser.hpp \
-  modules/grpc/otel/otel-protobuf-parser.cpp
+  modules/grpc/otel/otel-protobuf-parser.cpp \
+  modules/grpc/otel/otel-protobuf-formatter.hpp \
+  modules/grpc/otel/otel-protobuf-formatter.cpp
 
 modules_grpc_otel_libotel_cpp_la_CXXFLAGS = \
   $(AM_CXXFLAGS) \
