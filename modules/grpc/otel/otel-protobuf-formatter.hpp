@@ -44,6 +44,17 @@ enum MessageType : int
 
 MessageType get_message_type(LogMessage *msg);
 
+namespace protobuf
+{
+namespace formatter
+{
+
+using opentelemetry::proto::collector::logs::v1::ExportLogsServiceRequest;
+
+bool add_to_request(ExportLogsServiceRequest &request, LogMessage *msg, GlobalConfig *cfg);
+
+}
+}
 }
 
 #endif
