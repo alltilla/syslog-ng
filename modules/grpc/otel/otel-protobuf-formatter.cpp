@@ -34,8 +34,10 @@ using namespace opentelemetry::proto::common::v1;
 using namespace opentelemetry::proto::resource::v1;
 using namespace opentelemetry::proto::collector::logs::v1;
 using namespace opentelemetry::proto::collector::metrics::v1;
+using namespace opentelemetry::proto::collector::trace::v1;
 using namespace opentelemetry::proto::logs::v1;
 using namespace opentelemetry::proto::metrics::v1;
+using namespace opentelemetry::proto::trace::v1;
 
 otel::MessageType
 otel::get_message_type(LogMessage *msg)
@@ -1082,3 +1084,191 @@ error:
   return false;
 }
 
+static Span *
+_create_span(ExportTraceServiceRequest &request, LogMessage *msg, GlobalConfig *cfg)
+{
+  const gchar *msg_resource_schema_url;
+  gssize msg_resource_schema_url_len;
+  Resource msg_resource = _get_resource_and_schema_url(msg, &msg_resource_schema_url, &msg_resource_schema_url_len,
+                                                       cfg);
+
+  const gchar *msg_scope_schema_url;
+  gssize msg_scope_schema_url_len;
+  InstrumentationScope msg_scope = _get_scope_and_schema_url(msg, &msg_scope_schema_url, &msg_scope_schema_url_len,
+                                                             cfg);
+
+  ResourceSpans *resource_spans = nullptr;
+  for (int i = 0; i < request.resource_spans_size(); i++)
+    {
+      ResourceSpans &possible_resource_spans = request.mutable_resource_spans()->at(i);
+      if (_is_message_from_resource(msg_resource, msg_resource_schema_url, msg_resource_schema_url_len,
+                                    possible_resource_spans.resource(), possible_resource_spans.schema_url()))
+        {
+          resource_spans = std::addressof(possible_resource_spans);
+          break;
+        }
+    }
+  if (resource_spans == nullptr)
+    {
+      resource_spans = request.add_resource_spans();
+      resource_spans->mutable_resource()->CopyFrom(msg_resource);
+      resource_spans->set_schema_url(msg_resource_schema_url);
+    }
+
+  ScopeSpans *scope_spans = nullptr;
+  for (int i = 0; i < resource_spans->scope_spans_size(); i++)
+    {
+      ScopeSpans &possible_scope_spans = resource_spans->mutable_scope_spans()->at(i);
+      if (_is_message_from_scope(msg_scope, msg_scope_schema_url, msg_scope_schema_url_len,
+                                 possible_scope_spans.scope(), possible_scope_spans.schema_url()))
+        {
+          scope_spans = std::addressof(possible_scope_spans);
+          break;
+        }
+    }
+  if (scope_spans == nullptr)
+    {
+      scope_spans = resource_spans->add_scope_spans();
+      scope_spans->mutable_scope()->CopyFrom(msg_scope);
+      scope_spans->set_schema_url(msg_scope_schema_url);
+    }
+
+  return scope_spans->add_spans();
+}
+
+bool
+otel::protobuf::formatter::add_to_request(ExportTraceServiceRequest &request, LogMessage *msg, GlobalConfig *cfg)
+{
+  Span *span = _create_span(request, msg, cfg);
+  if (!span)
+    {
+      msg_error("OpenTelemetry: Failed to create span");
+      return false;
+    }
+
+  char number_buf[G_ASCII_DTOSTR_BUF_SIZE];
+  std::string key_buffer;
+  NVHandle handle;
+  const gchar *value;
+  gssize len;
+  LogMessageValueType type;
+
+  value = _get_bytes(msg, ".otel.span.trace_id", &len);
+  span->set_trace_id(value, len);
+
+  value = _get_bytes(msg, ".otel.span.span_id", &len);
+  span->set_span_id(value, len);
+
+  value = _get_string(msg, ".otel.span.trace_state", &len);
+  span->set_trace_state(value, len);
+
+  value = _get_bytes(msg, ".otel.span.parent_span_id", &len);
+  span->set_parent_span_id(value, len);
+
+  value = _get_string(msg, ".otel.span.name", &len);
+  span->set_name(value, len);
+
+  int32_t kind_int = _get_int32(msg, ".otel.span.kind");
+  Span_SpanKind kind = Span_SpanKind_IsValid(kind_int) ? (Span_SpanKind) kind_int : Span_SpanKind_SPAN_KIND_UNSPECIFIED;
+  span->set_kind(kind);
+
+  span->set_start_time_unix_nano(_get_uint64(msg, ".otel.span.start_time_unix_nano"));
+  span->set_end_time_unix_nano(_get_uint64(msg, ".otel.span.end_time_unix_nano"));
+  _get_and_set_repeated_KeyValues(msg, ".otel.span.attributes.", span->mutable_attributes(), cfg);
+  span->set_dropped_attributes_count(_get_uint32(msg, ".otel.span.dropped_attributes_count"));
+
+  key_buffer = ".otel.span.events.";
+  size_t len_with_events = key_buffer.length();
+  uint64_t event_idx = 0;
+  while (true)
+    {
+      key_buffer.resize(len_with_events);
+      std::snprintf(number_buf, G_N_ELEMENTS(number_buf), "%" PRIu64, event_idx);
+      key_buffer.append(number_buf);
+      key_buffer.append(".");
+      size_t len_with_idx = key_buffer.length();
+
+      key_buffer.append("time_unix_nano");
+      handle = log_msg_get_value_handle(key_buffer.c_str());
+      value = log_msg_get_value_if_set_with_type(msg, handle, &len, &type);
+      if (!value)
+        break;
+
+      Span_Event *event = span->add_events();
+
+      event->set_time_unix_nano(_get_uint64(msg, key_buffer.c_str()));
+
+      key_buffer.resize(len_with_idx);
+      key_buffer.append("name");
+      value = _get_string(msg, key_buffer.c_str(), &len);
+      event->set_name(value, len);
+
+      key_buffer.resize(len_with_idx);
+      key_buffer.append("attributes.");
+      _get_and_set_repeated_KeyValues(msg, key_buffer.c_str(), event->mutable_attributes(), cfg);
+
+      key_buffer.resize(len_with_idx);
+      key_buffer.append("dropped_attributes_count");
+      event->set_dropped_attributes_count(_get_uint32(msg, key_buffer.c_str()));
+
+      event_idx++;
+    }
+
+  span->set_dropped_events_count(_get_uint32(msg, ".otel.span.dropped_events_count"));
+
+  key_buffer = ".otel.span.links.";
+  size_t len_with_links = key_buffer.length();
+  uint64_t link_idx = 0;
+  while (true)
+    {
+      key_buffer.resize(len_with_links);
+      std::snprintf(number_buf, G_N_ELEMENTS(number_buf), "%" PRIu64, link_idx);
+      key_buffer.append(number_buf);
+      key_buffer.append(".");
+      size_t len_with_idx = key_buffer.length();
+
+      key_buffer.append("trace_id");
+      handle = log_msg_get_value_handle(key_buffer.c_str());
+      value = log_msg_get_value_if_set_with_type(msg, handle, &len, &type);
+      if (!value)
+        break;
+
+      Span_Link *link = span->add_links();
+
+      value = _get_bytes(msg, key_buffer.c_str(), &len);
+      link->set_trace_id(value, len);
+
+      key_buffer.resize(len_with_idx);
+      key_buffer.append("span_id");
+      value = _get_bytes(msg, key_buffer.c_str(), &len);
+      link->set_span_id(value, len);
+
+      key_buffer.resize(len_with_idx);
+      key_buffer.append("trace_state");
+      value = _get_string(msg, key_buffer.c_str(), &len);
+      link->set_trace_state(value, len);
+
+      key_buffer.resize(len_with_idx);
+      key_buffer.append("attributes.");
+      _get_and_set_repeated_KeyValues(msg, key_buffer.c_str(), link->mutable_attributes(), cfg);
+
+      key_buffer.resize(len_with_idx);
+      key_buffer.append("dropped_attributes_count");
+      link->set_dropped_attributes_count(_get_uint32(msg, key_buffer.c_str()));
+
+      link_idx++;
+    }
+
+  span->set_dropped_links_count(_get_uint32(msg, ".otel.span.dropped_links_count"));
+
+  Status *status = span->mutable_status();
+  value = _get_string(msg, ".otel.span.status.message", &len);
+  status->set_message(value, len);
+
+  int32_t code_int = _get_int32(msg, ".otel.span.status.code");
+  Status_StatusCode code = Status_StatusCode_IsValid(code_int) ? (Status_StatusCode) code_int
+                           : Status_StatusCode_STATUS_CODE_UNSET;
+  status->set_code(code);
+
+  return true;
+}

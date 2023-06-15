@@ -51,9 +51,11 @@ namespace formatter
 
 using opentelemetry::proto::collector::logs::v1::ExportLogsServiceRequest;
 using opentelemetry::proto::collector::metrics::v1::ExportMetricsServiceRequest;
+using opentelemetry::proto::collector::trace::v1::ExportTraceServiceRequest;
 
 bool add_to_request(ExportLogsServiceRequest &request, LogMessage *msg, GlobalConfig *cfg);
 bool add_to_request(ExportMetricsServiceRequest &request, LogMessage *msg, GlobalConfig *cfg);
+bool add_to_request(ExportTraceServiceRequest &request, LogMessage *msg, GlobalConfig *cfg);
 
 }
 }
