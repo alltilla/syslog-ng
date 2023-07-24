@@ -44,6 +44,11 @@ static Plugin otel_plugins[] =
     .name = "opentelemetry",
     .parser = &otel_parser,
   },
+  {
+    .type = LL_CONTEXT_REWRITE,
+    .name = "syslog-ng-otel",
+    .parser = &otel_parser,
+  },
 };
 
 gboolean

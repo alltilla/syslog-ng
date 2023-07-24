@@ -44,6 +44,9 @@ set(OTEL_CPP_SOURCES
   otel-dest.h
   otel-dest-worker.hpp
   otel-dest-worker.cpp
+  syslog-ng-otel-rewrite.hpp
+  syslog-ng-otel-rewrite.cpp
+  syslog-ng-otel-rewrite.h
   ${OTEL_PROTO_GENERATED_SOURCES}
   ${OTEL_PROTO_GENERATED_GRPC_SOURCES})
 
