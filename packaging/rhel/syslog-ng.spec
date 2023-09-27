@@ -25,6 +25,7 @@ Source4: syslog-ng.logrotate7
 %bcond_without kafka
 %bcond_without afsnmp
 %bcond_without mqtt
+%bcond_without cloud_auth
 
 
 %if 0%{?rhel} == 8
@@ -202,6 +203,14 @@ Requires: %{name}%{?_isa} = %{version}-%{release}
 %description mqtt
 This module supports sending logs to mqtt through MQTT.
 
+%package cloud_auth
+Summary: cloud auth support for %{name}
+Group: Development/Libraries
+Requires: %{name}%{?_isa} = %{version}-%{release}
+
+%description cloud_auth
+This module supports authentication to cloud providers.
+
 %package java
 Summary:        Java destination support for syslog-ng
 Group:          System/Libraries
@@ -324,6 +333,7 @@ ryslog is not on the system.
     --with-python=%{py_ver} \
     %{?with_kafka:--enable-kafka} \
     %{?with_mqtt:--enable-mqtt} \
+    %{?with_cloud_auth:--enable-cloud-auth} \
     %{?with_afsnmp:--enable-afsnmp} %{!?with_afsnmp:--disable-afsnmp} \
     %{?with_java:--enable-java} %{!?with_java:--disable-java} \
     %{?with_maxminddb:--enable-geoip2} %{!?with_maxminddb:--disable-geoip2} \
@@ -512,6 +522,11 @@ fi
 %if %{with mqtt}
 %files mqtt
 %{_libdir}/%{name}/libmqtt.so
+%endif
+
+%if %{with cloud_auth}
+%files cloud_auth
+%{_libdir}/%{name}/libcloud-auth.so
 %endif
 
 %files smtp
