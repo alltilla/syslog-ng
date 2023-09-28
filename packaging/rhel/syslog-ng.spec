@@ -526,7 +526,7 @@ fi
 
 %if %{with cloud_auth}
 %files cloud_auth
-%{_libdir}/%{name}/libcloud-auth.so
+%{_libdir}/%{name}/libcloud_auth.so
 %endif
 
 %files smtp
