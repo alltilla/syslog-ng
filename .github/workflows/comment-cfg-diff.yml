@@ -1,0 +1,15 @@
+name: Comment CFG diff on PR
+
+on:
+  pull_request:
+
+jobs:
+  comment-cfg-diff:
+    runs-on: ubuntu-latest
+    env:
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+      - uses: alltilla/syslog-ng-cfg-diff-pr@v0.0.0
+        with:
+          repository-owner: alltilla
+          pr-id: ${{ github.event.number }}
