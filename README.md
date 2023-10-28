@@ -20,7 +20,7 @@ file:
 ```
 @version: 4.4
 @include "scl.conf"
-
+ 
 log {
 	source { system(); };
 	destination { file("/var/log/syslog"); };
