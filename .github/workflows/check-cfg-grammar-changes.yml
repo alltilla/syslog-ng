@@ -9,5 +9,5 @@ jobs:
     env:
       GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     steps:
-      - uses: syslog-ng/syslog-ng-cfg-diff-pr@v2
+      - uses: alltilla/syslog-ng-cfg-diff-pr@v2
         continue-on-error: true
