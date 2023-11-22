@@ -75,24 +75,24 @@ jobs:
           path: ${{ env.TARBALL_PATH }}
           if-no-files-found: error
 
-  create-packages:
-    needs: create-release-tarball
-    uses: ./.github/workflows/create-packages.yml
-    with:
-      source-tarball-artifact-name: release-tarball
-      dbld-image-mode: build
+  # create-packages:
+  #   needs: create-release-tarball
+  #   uses: ./.github/workflows/create-packages.yml
+  #   with:
+  #     source-tarball-artifact-name: release-tarball
+  #     dbld-image-mode: build
 
-  upload-packages:
-    needs: create-packages
-    uses: ./.github/workflows/upload-packages.yml
-    with:
-      pkg-type: stable
-    secrets:
-      azure-sas-token: ${{ secrets.AZURE_SAS_TOKEN }}
+  # upload-packages:
+  #   needs: create-packages
+  #   uses: ./.github/workflows/upload-packages.yml
+  #   with:
+  #     pkg-type: stable
+  #   secrets:
+  #     azure-sas-token: ${{ secrets.AZURE_SAS_TOKEN }}
 
   create-draft-release:
     runs-on: ubuntu-latest
-    needs: [create-release-tarball, upload-packages]
+    needs: [create-release-tarball]
     steps:
       - name: Checkout syslog-ng source
         uses: actions/checkout@v3
