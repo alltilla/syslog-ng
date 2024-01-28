@@ -730,9 +730,7 @@ main(int argc, char *argv[])
   scratch_buffers_allocator_init();
   log_template_global_init();
   log_msg_registry_init();
-  log_tags_global_init();
   modes[mode].main(argc, argv);
-  log_tags_global_deinit();
   scratch_buffers_allocator_deinit();
   scratch_buffers_global_deinit();
   stats_destroy();
