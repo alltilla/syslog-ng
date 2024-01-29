@@ -90,7 +90,7 @@ tf_tags_head_prepare(LogTemplateFunction *self, gpointer s, LogTemplate *parent,
   if (argc < 2)
     {
       g_set_error(error, LOG_TEMPLATE_ERROR, LOG_TEMPLATE_ERROR_COMPILE,
-                  "At least one tag is required. Example: $(first-tag tag1 tag2 ... ).\n");
+                  "At least one tag is required. Example: $(tags-head tag1 tag2 ... ).\n");
       return FALSE;
     }
 
