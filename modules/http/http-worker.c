@@ -602,6 +602,27 @@ _map_http_status_code(HTTPDestinationWorker *self, const gchar *url, glong http_
   return default_map_http_status_to_worker_status(self, url, http_code);
 }
 
+static void
+_update_status_code_metrics(HTTPDestinationWorker *self, const gchar *url, glong http_code)
+{
+  gint level = log_pipe_is_internal(&self->super.owner->super.super.super) ? STATS_LEVEL3 : STATS_LEVEL1;
+
+  self->metrics.status_code_labels[0].value = url;
+  g_snprintf(self->metrics.status_code_str_buffer, sizeof(self->metrics.status_code_str_buffer), "%ld", http_code);
+
+  StatsClusterKey key;
+  stats_cluster_single_key_set(&key, "output_http_request_status_codes_total",
+                               self->metrics.status_code_labels, G_N_ELEMENTS(self->metrics.status_code_labels));
+
+  StatsCounterItem *counter;
+
+  stats_lock();
+  StatsCluster *sc = stats_register_dynamic_counter(level, &key, SC_TYPE_SINGLE_VALUE, &counter);
+  stats_counter_inc(counter);
+  stats_unregister_dynamic_counter(sc, SC_TYPE_SINGLE_VALUE, &counter);
+  stats_unlock();
+}
+
 static LogThreadedResult
 _flush_on_target(HTTPDestinationWorker *self, const gchar *url)
 {
@@ -617,6 +638,8 @@ _flush_on_target(HTTPDestinationWorker *self, const gchar *url)
 
   if (debug_flag)
     _debug_response_info(self, url, http_code);
+
+  _update_status_code_metrics(self, url, http_code);
 
   HttpResponseReceivedSignalData signal_data =
   {
@@ -894,6 +917,10 @@ http_dw_new(LogThreadedDestDriver *o, gint worker_index)
     self->super.insert = _insert_batched;
   else
     self->super.insert = _insert_single;
+
+  self->metrics.status_code_labels[0].name = "url";
+  self->metrics.status_code_labels[1].name = "status_code";
+  self->metrics.status_code_labels[1].value = self->metrics.status_code_str_buffer;
 
   http_lb_client_init(&self->lbc, owner->load_balancer);
   return &self->super;
