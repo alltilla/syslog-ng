@@ -97,6 +97,7 @@ struct _LogThreadedDestWorker
   gboolean enable_batching;
   gboolean suspended;
   time_t time_reopen;
+  gboolean first_connect;
 
   struct
   {
@@ -135,10 +136,12 @@ struct _LogThreadedDestDriver
   {
     StatsClusterKey *output_events_sc_key;
     StatsClusterKey *processed_sc_key;
+    StatsClusterKey *output_event_retries_sc_key;
 
     StatsCounterItem *dropped_messages;
     StatsCounterItem *processed_messages;
     StatsCounterItem *written_messages;
+    StatsCounterItem *output_event_retries;
 
     gboolean raw_bytes_enabled;
 

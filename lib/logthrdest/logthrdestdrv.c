@@ -226,7 +226,13 @@ _connect(LogThreadedDestWorker *self)
                 evt_tag_int("worker_index", self->worker_index),
                 log_expr_node_location_tag(self->owner->super.super.super.expr_node));
       _suspend(self);
+      return;
     }
+
+  if (!self->first_connect)
+    stats_counter_inc(self->owner->metrics.output_event_retries);
+
+  self->first_connect = FALSE;
 }
 
 /* NOTE: runs in the worker thread */
@@ -342,9 +348,14 @@ _process_result_retry(LogThreadedDestWorker *self)
 {
   self->retries_counter++;
   if (self->retries_counter >= self->owner->retries_max)
-    _process_result_not_connected(self);
+    {
+      _process_result_not_connected(self);
+    }
   else
-    _rewind_batch(self);
+    {
+      _rewind_batch(self);
+      stats_counter_inc(self->owner->metrics.output_event_retries);
+    }
 }
 
 static void
@@ -983,6 +994,7 @@ log_threaded_dest_worker_init_instance(LogThreadedDestWorker *self, LogThreadedD
   self->time_reopen = -1;
 
   self->partitioning.last_key = NULL;
+  self->first_connect = TRUE;
 
   _init_watches(self);
 
@@ -1247,6 +1259,15 @@ _register_driver_stats(LogThreadedDestDriver *self, StatsClusterKeyBuilder *driv
 
   stats_cluster_key_builder_push(driver_sck_builder);
   {
+    stats_cluster_key_builder_set_name(driver_sck_builder, "output_event_retries_total");
+    stats_cluster_key_builder_set_legacy_alias(driver_sck_builder, -1, "", "");
+    stats_cluster_key_builder_set_legacy_alias_name(driver_sck_builder, "");
+    self->metrics.output_event_retries_sc_key = stats_cluster_key_builder_build_single(driver_sck_builder);
+  }
+  stats_cluster_key_builder_pop(driver_sck_builder);
+
+  stats_cluster_key_builder_push(driver_sck_builder);
+  {
     stats_cluster_key_builder_set_legacy_alias(driver_sck_builder, self->stats_source | SCS_DESTINATION,
                                                self->super.super.id,
                                                _format_legacy_stats_instance(self, driver_sck_builder));
@@ -1261,6 +1282,8 @@ _register_driver_stats(LogThreadedDestDriver *self, StatsClusterKeyBuilder *driv
     stats_register_counter(level, self->metrics.output_events_sc_key, SC_TYPE_WRITTEN, &self->metrics.written_messages);
     stats_register_counter(level, self->metrics.processed_sc_key, SC_TYPE_SINGLE_VALUE,
                            &self->metrics.processed_messages);
+    stats_register_counter(level, self->metrics.output_event_retries_sc_key, SC_TYPE_SINGLE_VALUE,
+                           &self->metrics.output_event_retries);
   }
   stats_unlock();
 }
