@@ -134,4 +134,5 @@ tf_tags_head_free_state(gpointer s)
   g_free(state->tags);
 }
 
-TEMPLATE_FUNCTION(TFTagsHeadState, tf_tags_head, tf_tags_head_prepare, NULL, tf_tags_head_call, tf_tags_head_free_state, NULL);
+TEMPLATE_FUNCTION(TFTagsHeadState, tf_tags_head, tf_tags_head_prepare, NULL, tf_tags_head_call, tf_tags_head_free_state,
+                  NULL);

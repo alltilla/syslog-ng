@@ -43,7 +43,8 @@ static GMutex log_tags_lock;
 static guint
 _register_tag(const gchar *name, guint id)
 {
-  LogTag new_tag = {
+  LogTag new_tag =
+  {
     .id = id,
     .name = g_strdup(name),
     0,
