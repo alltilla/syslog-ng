@@ -381,6 +381,11 @@
 %token KW_RETRIES                     10521
 
 %token KW_FETCH_NO_DATA_DELAY         10522
+
+%token KW_EXPONENTIAL_BACKOFF         10600
+%token KW_INITIAL_SECONDS             10601
+%token KW_MAXIMUM_SECONDS             10602
+%token KW_MULTIPLIER                  10603
 /* END_DECLS */
 
 %type   <ptr> expr_stmt
@@ -1363,6 +1368,7 @@ threaded_dest_driver_general_option_noflags
           log_threaded_dest_driver_set_max_retries_on_error(last_driver, $3);
         }
         | KW_TIME_REOPEN '(' positive_integer ')' { log_threaded_dest_driver_set_time_reopen(last_driver, $3); }
+        | KW_EXPONENTIAL_BACKOFF '(' threaded_dest_driver_exponential_backoff_options ')'
         | dest_driver_option
         ;
 
@@ -1373,6 +1379,17 @@ threaded_dest_driver_flags_option
 threaded_dest_driver_flags
         : string threaded_dest_driver_flags     { CHECK_ERROR(log_threaded_dest_driver_process_flag(last_driver, $1), @1, "Unknown flag \"%s\"", $1); free($1); }
         |
+        ;
+
+threaded_dest_driver_exponential_backoff_options
+        : threaded_dest_driver_exponential_backoff_option threaded_dest_driver_exponential_backoff_options
+        |
+        ;
+
+threaded_dest_driver_exponential_backoff_option
+        : KW_INITIAL_SECONDS '(' nonnegative_float ')' { log_threaded_dest_driver_set_exponential_backoff_initial_seconds(last_driver, $3); }
+        | KW_MAXIMUM_SECONDS '(' nonnegative_float ')' { log_threaded_dest_driver_set_exponential_backoff_maximum_seconds(last_driver, $3); }
+        | KW_MULTIPLIER '(' positive_float ')' { log_threaded_dest_driver_set_exponential_backoff_multiplier(last_driver, $3); }
         ;
 
 /* implies source_driver_option and source_option */

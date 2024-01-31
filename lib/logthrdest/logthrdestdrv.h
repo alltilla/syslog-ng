@@ -36,6 +36,7 @@
 #include "mainloop-threaded-worker.h"
 #include "timeutils/misc.h"
 #include "template/templates.h"
+#include "logthrdest/exponential-backoff.h"
 
 #include <iv.h>
 #include <iv_event.h>
@@ -98,6 +99,7 @@ struct _LogThreadedDestWorker
   gboolean enable_batching;
   gboolean suspended;
   time_t time_reopen;
+  ExponentialBackoff *exponential_backoff;
 
   struct
   {
@@ -192,6 +194,13 @@ struct _LogThreadedDestDriver
 
   gint32 shared_seq_num;
   guint32 flags;
+
+  struct
+  {
+    gdouble initial_seconds;
+    gdouble maximum_seconds;
+    gdouble multiplier;
+  } exponential_backoff;
 
   const gchar *(*format_stats_key)(LogThreadedDestDriver *s, StatsClusterKeyBuilder *kb);
 };
@@ -316,6 +325,9 @@ void log_threaded_dest_driver_set_flush_on_worker_key_change(LogDriver *s, gbool
 void log_threaded_dest_driver_set_batch_lines(LogDriver *s, gint batch_lines);
 void log_threaded_dest_driver_set_batch_timeout(LogDriver *s, gint batch_timeout);
 void log_threaded_dest_driver_set_time_reopen(LogDriver *s, time_t time_reopen);
+void log_threaded_dest_driver_set_exponential_backoff_initial_seconds(LogDriver *s, gdouble initial_seconds);
+void log_threaded_dest_driver_set_exponential_backoff_maximum_seconds(LogDriver *s, gdouble maximum_seconds);
+void log_threaded_dest_driver_set_exponential_backoff_multiplier(LogDriver *s, gdouble multiplier);
 gboolean log_threaded_dest_driver_process_flag(LogDriver *driver, const gchar *flag);
 
 #endif
