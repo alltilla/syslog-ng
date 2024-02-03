@@ -1510,7 +1510,8 @@ dest_writer_option
             log_writer_options_set_mark_mode(last_writer_options, $3);
             free($3);
           }
-	| KW_TIME_REOPEN '(' positive_integer ')' { last_writer_options->time_reopen = $3; }
+	| KW_TIME_REOPEN '(' positive_integer ')' { log_writer_options_set_time_reopen(last_writer_options, $3, configuration); }
+        | KW_REOPEN { last_exponential_backoff_options = &last_writer_options->exponential_backoff_options; } '(' exponential_backoff_options ')'
         | { last_template_options = &last_writer_options->template_options; } template_option
 	;
 

@@ -104,6 +104,7 @@ struct _LogWriter
   guint32 last_msg_count;
   time_t last_delay_update;
   GString *line_buffer;
+  ExponentialBackoff *exponential_backoff;
 
   gchar *stats_id;
 
@@ -212,6 +213,24 @@ log_writer_set_queue(LogWriter *self, LogQueue *queue)
   self->queue = log_queue_ref(queue);
 }
 
+static gdouble
+_get_next_reopen_seconds(LogWriter *self)
+{
+  if (self->options->time_reopen != -1)
+    return self->options->time_reopen;
+
+  return exponential_backoff_get_next_wait_seconds(self->exponential_backoff);
+}
+
+static gdouble
+_peek_next_reopen_seconds(LogWriter *self)
+{
+  if (self->options->time_reopen != -1)
+    return self->options->time_reopen;
+
+  return exponential_backoff_peek_next_wait_seconds(self->exponential_backoff);
+}
+
 static void
 log_writer_work_perform(gpointer s, gpointer arg)
 {
@@ -260,10 +279,12 @@ log_writer_work_finished(gpointer s, gpointer arg)
           log_writer_suspend(self);
           msg_notice("Suspending write operation because of an I/O error",
                      evt_tag_int("fd", log_proto_client_get_fd(self->proto)),
-                     evt_tag_int("time_reopen", self->options->time_reopen));
+                     evt_tag_printf("reopen", "%.2f", _peek_next_reopen_seconds(self)));
         }
       return;
     }
+
+  exponential_backoff_reset(self->exponential_backoff);
 
   if ((self->super.flags & PIF_INITIALIZED) && self->proto)
     {
@@ -457,9 +478,9 @@ static void
 log_writer_suspend(LogWriter *self)
 {
   /* flush code indicates that we need to suspend our writing activities
-   * until time_reopen elapses */
+   * until reopen seconds elapses */
 
-  log_writer_arm_suspend_timer(self, log_writer_error_suspend_elapsed, self->options->time_reopen * 1000L);
+  log_writer_arm_suspend_timer(self, log_writer_error_suspend_elapsed, _get_next_reopen_seconds(self) * 1000L);
   self->suspended = TRUE;
 }
 
@@ -1649,6 +1670,8 @@ log_writer_free(LogPipe *s)
 
   log_writer_free_proto(self);
 
+  exponential_backoff_free(self->exponential_backoff);
+
   if (self->line_buffer)
     g_string_free(self->line_buffer, TRUE);
 
@@ -1756,7 +1779,7 @@ log_writer_reopen_deferred(gpointer s)
       iv_validate_now();
 
       self->reopen_timer.expires = iv_now;
-      self->reopen_timer.expires.tv_sec += self->options->time_reopen;
+      timespec_add_usec(&self->reopen_timer.expires, _get_next_reopen_seconds(self) * USEC_PER_SEC);
 
       if (iv_timer_registered(&self->reopen_timer))
         iv_timer_unregister(&self->reopen_timer);
@@ -1906,6 +1929,10 @@ log_writer_set_options(LogWriter *self, LogPipe *control, LogWriterOptions *opti
     self->super.expr_node = control->expr_node;
 
   _set_metric_options(self, stats_id, kb);
+
+  if (self->exponential_backoff)
+    exponential_backoff_free(self->exponential_backoff);
+  self->exponential_backoff = exponential_backoff_new(options->exponential_backoff_options);
 }
 
 LogWriter *
@@ -1955,6 +1982,18 @@ log_writer_options_set_mark_mode(LogWriterOptions *options, const gchar *mark_mo
   options->mark_mode = cfg_lookup_mark_mode(mark_mode);
 }
 
+void
+log_writer_options_set_time_reopen(LogWriterOptions *options, time_t time_reopen, GlobalConfig *cfg)
+{
+  if (cfg_is_config_version_older(cfg, VERSION_VALUE_4_7))
+    {
+      options->time_reopen = time_reopen;
+      return;
+    }
+
+  exponential_backoff_options_set_maximum_seconds(&options->exponential_backoff_options, time_reopen);
+}
+
 /*
  * NOTE: _init needs to be idempotent when called multiple times w/o invoking _destroy
  *
@@ -1994,8 +2033,11 @@ log_writer_options_init(LogWriterOptions *options, GlobalConfig *cfg, guint32 op
     options->flush_lines = cfg->flush_lines;
   if (options->suppress == -1)
     options->suppress = cfg->suppress;
-  if (options->time_reopen == -1)
-    options->time_reopen = cfg->time_reopen;
+  if (cfg_is_config_version_older(cfg, VERSION_VALUE_4_7))
+    {
+      if (options->time_reopen == -1)
+        options->time_reopen = cfg->time_reopen;
+    }
   options->file_template = log_template_ref(cfg->file_template);
   options->proto_template = log_template_ref(cfg->proto_template);
   if (cfg->threaded)

@@ -30,6 +30,7 @@
 #include "logqueue.h"
 #include "logproto/logproto-client.h"
 #include "stats/stats-cluster-key-builder.h"
+#include "exponential-backoff/exponential-backoff.h"
 
 /* writer constructor flags */
 #define LW_DETECT_EOF        0x0001
@@ -64,6 +65,7 @@ typedef struct _LogWriterOptions
   LogTemplateOptions template_options;
   HostResolveOptions host_resolve_options;
   LogProtoClientOptionsStorage proto_options;
+  ExponentialBackoffOptions exponential_backoff_options;
 
   gint time_reopen;
   gint suppress;
@@ -96,6 +98,7 @@ void log_writer_options_defaults(LogWriterOptions *options);
 void log_writer_options_init(LogWriterOptions *options, GlobalConfig *cfg, guint32 option_flags);
 void log_writer_options_destroy(LogWriterOptions *options);
 void log_writer_options_set_mark_mode(LogWriterOptions *options, const gchar *mark_mode);
+void log_writer_options_set_time_reopen(LogWriterOptions *options, time_t time_reopen, GlobalConfig *cfg);
 gboolean log_writer_options_process_flag(LogWriterOptions *options, const gchar *flag);
 
 #endif
