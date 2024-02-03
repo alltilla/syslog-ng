@@ -39,7 +39,23 @@ void
 log_threaded_fetcher_driver_set_time_reopen(LogDriver *s, time_t time_reopen)
 {
   LogThreadedFetcherDriver *self = (LogThreadedFetcherDriver *) s;
-  self->time_reopen = time_reopen;
+
+  if (cfg_is_config_version_older(log_pipe_get_config(&self->super.super.super.super), VERSION_VALUE_4_7))
+    {
+      self->time_reopen = time_reopen;
+      return;
+    }
+
+  exponential_backoff_options_set_maximum_seconds(exponential_backoff_get_options(self->exponential_backoff),
+                                                  time_reopen);
+}
+
+ExponentialBackoffOptions *
+log_threaded_fetcher_driver_get_exponential_backoff_options(LogDriver *s)
+{
+  LogThreadedFetcherDriver *self = (LogThreadedFetcherDriver *) s;
+
+  return exponential_backoff_get_options(self->exponential_backoff);
 }
 
 static EVTTAG *
@@ -73,12 +89,21 @@ _disconnect(LogThreadedFetcherDriver *self)
     self->disconnect(self);
 }
 
+static gdouble
+_get_next_reconnect_seconds(LogThreadedFetcherDriver *self)
+{
+  if (self->time_reopen != -1)
+    return self->time_reopen;
+
+  return exponential_backoff_get_next_wait_seconds(self->exponential_backoff);
+}
+
 static void
 _start_reconnect_timer(LogThreadedFetcherDriver *self)
 {
   iv_validate_now();
   self->reconnect_timer.expires  = iv_now;
-  self->reconnect_timer.expires.tv_sec += self->time_reopen;
+  timespec_add_usec(&self->reconnect_timer.expires, _get_next_reconnect_seconds(self) * USEC_PER_SEC);
   iv_timer_register(&self->reconnect_timer);
 }
 
@@ -201,6 +226,7 @@ _on_fetch_success(LogThreadedFetcherDriver *self, LogMessage *msg)
 {
   log_threaded_source_worker_post(self->super.workers[0], msg);
   _schedule_next_fetch_if_free_to_send(self);
+  exponential_backoff_reset(self->exponential_backoff);
 }
 
 static void
@@ -349,8 +375,14 @@ log_threaded_fetcher_driver_init_method(LogPipe *s)
 
   g_assert(self->fetch);
 
-  if (self->time_reopen == -1)
-    self->time_reopen = cfg->time_reopen;
+  if (cfg_is_config_version_older(cfg, VERSION_VALUE_4_7))
+    {
+      if (self->time_reopen == -1)
+        self->time_reopen = cfg->time_reopen;
+    }
+
+  if (!exponential_backoff_validate_options(self->exponential_backoff))
+    return FALSE;
 
   if (self->no_data_delay == -1)
     log_threaded_fetcher_driver_set_fetch_no_data_delay(&self->super.super.super, cfg->time_reopen);
@@ -367,6 +399,9 @@ log_threaded_fetcher_driver_deinit_method(LogPipe *s)
 void
 log_threaded_fetcher_driver_free_method(LogPipe *s)
 {
+  LogThreadedFetcherDriver *self = (LogThreadedFetcherDriver *) s;
+
+  exponential_backoff_free(self->exponential_backoff);
   log_threaded_source_driver_free_method(s);
 }
 
@@ -377,6 +412,7 @@ log_threaded_fetcher_driver_init_instance(LogThreadedFetcherDriver *self, Global
 
   self->time_reopen = -1;
   self->no_data_delay = -1;
+  self->exponential_backoff = exponential_backoff_new_default();
 
   _init_watches(self);
 

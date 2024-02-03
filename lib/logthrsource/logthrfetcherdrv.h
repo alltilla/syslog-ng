@@ -29,6 +29,7 @@
 #include "logthrsourcedrv.h"
 #include "logmsg/logmsg.h"
 #include "compat/time.h"
+#include "exponential-backoff/exponential-backoff.h"
 
 #include <iv.h>
 #include <iv_event.h>
@@ -62,6 +63,7 @@ struct _LogThreadedFetcherDriver
   struct iv_timer no_data_timer;
   gboolean suspended;
   gboolean under_termination;
+  ExponentialBackoff *exponential_backoff;
 
   void (*thread_init)(LogThreadedFetcherDriver *self);
   void (*thread_deinit)(LogThreadedFetcherDriver *self);
@@ -79,5 +81,6 @@ void log_threaded_fetcher_driver_free_method(LogPipe *s);
 
 void log_threaded_fetcher_driver_set_fetch_no_data_delay(LogDriver *self, gdouble no_data_delay);
 void log_threaded_fetcher_driver_set_time_reopen(LogDriver *s, time_t time_reopen);
+ExponentialBackoffOptions *log_threaded_fetcher_driver_get_exponential_backoff_options(LogDriver *s);
 
 #endif

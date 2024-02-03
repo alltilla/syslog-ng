@@ -1399,6 +1399,7 @@ threaded_source_driver_workers_option
 threaded_fetcher_driver_option
         : KW_FETCH_NO_DATA_DELAY '(' nonnegative_float ')' { log_threaded_fetcher_driver_set_fetch_no_data_delay(last_driver, $3); }
         | KW_TIME_REOPEN '(' positive_integer ')' { log_threaded_fetcher_driver_set_time_reopen(last_driver, $3); }
+        | KW_REOPEN { last_exponential_backoff_options = log_threaded_fetcher_driver_get_exponential_backoff_options(last_driver); } '(' exponential_backoff_options ')'
         ;
 
 threaded_source_driver_option_flags
