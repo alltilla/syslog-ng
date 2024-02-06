@@ -155,10 +155,7 @@ syslogng::grpc::otel::SourceWorker::request_exit()
 bool
 SourceWorker::post(LogMessage *msg)
 {
-  if (!log_threaded_source_worker_free_to_send(&super->super))
-    return false;
-
-  log_threaded_source_worker_post(&super->super, msg);
+  log_threaded_source_worker_blocking_post(&super->super, msg);
   return true;
 }
 
