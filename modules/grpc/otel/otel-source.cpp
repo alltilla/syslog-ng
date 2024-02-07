@@ -94,6 +94,9 @@ syslogng::grpc::otel::SourceDriver::init()
   ::grpc::ServerBuilder builder;
   builder.AddListeningPort(address, credentials_builder.build());
 
+  resource_quota.SetMaxThreads(32);
+  builder.SetResourceQuota(resource_quota);
+
   for (auto nv : int_extra_channel_args)
     builder.AddChannelArgument(nv.first, nv.second);
   for (auto nv : string_extra_channel_args)
@@ -154,6 +157,7 @@ SourceWorker::SourceWorker(OtelSourceWorker *s, SourceDriver &d)
   driver.cqs.pop_front();
 }
 
+#include <chrono>
 void
 syslogng::grpc::otel::SourceWorker::run()
 {
@@ -171,8 +175,16 @@ syslogng::grpc::otel::SourceWorker::run()
 
   void *tag;
   bool ok;
+
+  auto last_next_returned_at = std::chrono::high_resolution_clock::now();
+
   while (cq->Next(&tag, &ok))
     {
+      auto now = std::chrono::high_resolution_clock::now();
+      msg_error("SourceWorker::run: Next() returned", evt_tag_int("worker_index", this->super->super.worker_index),
+        evt_tag_int("was_blocked_for_ms", std::chrono::duration_cast<std::chrono::milliseconds>(now - last_next_returned_at).count()));
+      last_next_returned_at = now;
+
       static_cast<AsyncServiceCallInterface *>(tag)->Proceed(ok);
     }
 }

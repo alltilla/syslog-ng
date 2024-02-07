@@ -77,6 +77,7 @@ private:
   GrpcServerCredentialsBuilderW credentials_builder_wrapper;
   std::unique_ptr<::grpc::Server> server;
   std::list<std::unique_ptr<::grpc::ServerCompletionQueue>> cqs;
+  ::grpc::ResourceQuota resource_quota;
 };
 
 class SourceWorker

@@ -393,13 +393,23 @@ permanent_error:
   return LTR_DROP;
 }
 
+#include <chrono>
 LogThreadedResult
 DestWorker::flush_log_records()
 {
   ::grpc::ClientContext client_context;
   logs_service_response.Clear();
+
+  msg_error("DestWorker::flush_log_records: Export() starts now", evt_tag_int("worker_index", this->super->super.worker_index));
+  auto start = std::chrono::high_resolution_clock::now();
+
   ::grpc::Status status = logs_service_stub->Export(&client_context, logs_service_request,
                                                     &logs_service_response);
+
+  auto end = std::chrono::high_resolution_clock::now();
+  msg_error("DestWorker::flush_log_records: Export() finished", evt_tag_int("worker_index", this->super->super.worker_index),
+    evt_tag_int("ms", std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count()));
+
   owner.metrics.insert_grpc_request_stats(status);
   LogThreadedResult result = _map_grpc_status_to_log_threaded_result(status);
 
