@@ -157,6 +157,8 @@ syslogng::grpc::otel::LogsServiceCall::Proceed(bool ok)
       return;
     }
 
+  msg_error("LogsServiceCall::Proceed", evt_tag_int("num_msg", request.resource_logs(0).scope_logs(0).log_records_size()));
+
   if (!worker.super->super.under_termination)
     new LogsServiceCall(worker, service, cq);
 
