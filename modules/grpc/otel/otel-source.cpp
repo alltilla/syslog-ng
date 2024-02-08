@@ -92,6 +92,9 @@ syslogng::grpc::otel::SourceDriver::init()
 
   ::grpc::EnableDefaultHealthCheckService(true);
 
+  if (enable_channelz)
+    ::grpc::channelz::experimental::InitChannelzService();
+
   ::grpc::ServerBuilder builder;
   builder.AddListeningPort(address, credentials_builder.build());
 
@@ -102,9 +105,6 @@ syslogng::grpc::otel::SourceDriver::init()
     builder.AddChannelArgument(nv.first, nv.second);
   for (auto nv : string_extra_channel_args)
     builder.AddChannelArgument(nv.first, nv.second);
-
-  if (enable_channelz)
-    ::grpc::channelz::experimental::InitChannelzService();
 
   builder.RegisterService(&trace_service);
   builder.RegisterService(&logs_service);
