@@ -32,6 +32,7 @@
 
 #include <grpcpp/grpcpp.h>
 #include <grpcpp/server_builder.h>
+#include <grpcpp/ext/channelz_service_plugin.h>
 
 #define get_SourceDriver(s) (((OtelSourceDriver *) s)->cpp)
 #define get_SourceWorker(s) (((OtelSourceWorker *) s)->cpp)
@@ -101,6 +102,9 @@ syslogng::grpc::otel::SourceDriver::init()
     builder.AddChannelArgument(nv.first, nv.second);
   for (auto nv : string_extra_channel_args)
     builder.AddChannelArgument(nv.first, nv.second);
+
+  if (enable_channelz)
+    ::grpc::channelz::experimental::InitChannelzService();
 
   builder.RegisterService(&trace_service);
   builder.RegisterService(&logs_service);
@@ -233,6 +237,12 @@ void
 otel_sd_add_string_channel_arg(LogDriver *s, const gchar *name, const gchar *value)
 {
   get_SourceDriver(s)->add_extra_channel_arg(name, value);
+}
+
+void
+otel_sd_set_enable_channelz(LogDriver *s, gboolean enable)
+{
+  get_SourceDriver(s)->enable_channelz = enable;
 }
 
 GrpcServerCredentialsBuilderW *

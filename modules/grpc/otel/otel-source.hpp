@@ -68,6 +68,7 @@ public:
   guint64 port = 4317;
   int fetch_limit = -1;
   int concurrent_requests = 2;
+  bool enable_channelz = false;
   syslogng::grpc::ServerCredentialsBuilder credentials_builder;
   std::list<std::pair<std::string, long>> int_extra_channel_args;
   std::list<std::pair<std::string, std::string>> string_extra_channel_args;
