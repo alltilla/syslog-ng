@@ -93,7 +93,8 @@ syslogng::grpc::otel::SourceDriver::init()
   ::grpc::EnableDefaultHealthCheckService(true);
 
   if (enable_channelz)
-    ::grpc::channelz::experimental::InitChannelzService();
+    msg_error("NO CHANNELZ IN THIS BUILD!!!");
+    // ::grpc::channelz::experimental::InitChannelzService();
 
   ::grpc::ServerBuilder builder;
   builder.AddListeningPort(address, credentials_builder.build());
