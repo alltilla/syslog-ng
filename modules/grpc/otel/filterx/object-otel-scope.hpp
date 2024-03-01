@@ -48,6 +48,7 @@ public:
   Scope(FilterXOtelScope *s, FilterXObject *protobuf_object);
   Scope(Scope &o) = delete;
   Scope(Scope &&o) = delete;
+  ~Scope();
 
   std::string marshal();
   bool set_field(const gchar *attribute, FilterXObject *value);
@@ -57,10 +58,12 @@ public:
 private:
   Scope(const Scope &o, FilterXOtelScope *s);
   friend FilterXObject *::_filterx_otel_scope_clone(FilterXObject *s);
+  bool set_schema_url(FilterXObject *value);
 
 private:
   FilterXOtelScope *super;
   opentelemetry::proto::common::v1::InstrumentationScope scope;
+  FilterXObject *schema_url;
 };
 
 }

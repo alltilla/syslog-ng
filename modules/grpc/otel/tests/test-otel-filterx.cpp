@@ -586,6 +586,30 @@ Test(otel_filterx, scope_set_field)
   filterx_object_unref(filterx_otel_scope);
 }
 
+Test(otel_filterx, scope_schema_url)
+{
+  FilterXObject *scope = (FilterXObject *) otel_scope_new(NULL);
+  FilterXObject *foo = filterx_string_new("foo", -1);
+  FilterXObject *number = filterx_integer_new(42);
+
+  FilterXObject *schema_url;
+
+  schema_url = filterx_object_getattr(scope, "schema_url");
+  cr_assert_str_eq(filterx_string_get_value(schema_url, nullptr), "");
+  filterx_object_unref(schema_url);
+
+  cr_assert(filterx_object_setattr(scope, "schema_url", foo));
+  schema_url = filterx_object_getattr(scope, "schema_url");
+  cr_assert_str_eq(filterx_string_get_value(schema_url, nullptr), "foo");
+  filterx_object_unref(schema_url);
+
+  cr_assert_not(filterx_object_setattr(scope, "schema_url", number));
+
+  filterx_object_unref(number);
+  filterx_object_unref(foo);
+  filterx_object_unref(scope);
+}
+
 
 /* KVList */
 
@@ -846,6 +870,7 @@ Test(otel_filterx, kvlist_through_logrecord)
   filterx_object_unref(fx_kvlist);
   filterx_object_unref(fx_logrecord);
 }
+
 
 /* Array */
 
