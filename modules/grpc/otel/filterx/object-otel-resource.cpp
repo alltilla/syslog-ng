@@ -33,11 +33,15 @@ using namespace syslogng::grpc::otel::filterx;
 
 /* C++ Implementations */
 
-Resource::Resource(FilterXOtelResource *s) : super(s)
+Resource::Resource(FilterXOtelResource *s) :
+  super(s),
+  schema_url(filterx_string_new("", 0))
 {
 }
 
-Resource::Resource(FilterXOtelResource *s, FilterXObject *protobuf_object) : super(s)
+Resource::Resource(FilterXOtelResource *s, FilterXObject *protobuf_object) :
+  super(s),
+  schema_url(filterx_string_new("", 0))
 {
   gsize length;
   const gchar *value = filterx_protobuf_get_value(protobuf_object, &length);
@@ -49,8 +53,16 @@ Resource::Resource(FilterXOtelResource *s, FilterXObject *protobuf_object) : sup
     throw std::runtime_error("Failed to parse from protobuf object");
 }
 
-Resource::Resource(const Resource &o, FilterXOtelResource *s) : super(s), resource(o.resource)
+Resource::Resource(const Resource &o, FilterXOtelResource *s) :
+  super(s),
+  resource(o.resource),
+  schema_url(filterx_object_ref(o.schema_url))
 {
+}
+
+Resource::~Resource()
+{
+  filterx_object_unref(schema_url);
 }
 
 std::string
@@ -60,8 +72,28 @@ Resource::marshal(void)
 }
 
 bool
+Resource::set_schema_url(FilterXObject *value)
+{
+  if (!filterx_object_is_type(value, &FILTERX_TYPE_NAME(string)))
+    {
+      msg_error("FilterX: Failed to set OTel Resource field",
+                evt_tag_str("field_name", "schema_url"),
+                evt_tag_str("error", "Unexpected type"),
+                evt_tag_str("type", value->type->name));
+      return false;
+    }
+
+  filterx_object_unref(schema_url);
+  schema_url = filterx_object_ref(value);
+  return true;
+}
+
+bool
 Resource::set_field(const gchar *attribute, FilterXObject *value)
 {
+  if (strcmp(attribute, "schema_url") == 0)
+    return set_schema_url(value);
+
   try
     {
       ProtoReflectors reflectors(resource, attribute);
@@ -79,6 +111,9 @@ Resource::set_field(const gchar *attribute, FilterXObject *value)
 FilterXObject *
 Resource::get_field(const gchar *attribute)
 {
+  if (strcmp(attribute, "schema_url") == 0)
+    return filterx_object_ref(schema_url);
+
   try
     {
       ProtoReflectors reflectors(resource, attribute);

@@ -48,6 +48,7 @@ public:
   Resource(FilterXOtelResource *s, FilterXObject *protobuf_object);
   Resource(Resource &o) = delete;
   Resource(Resource &&o) = delete;
+  ~Resource();
 
   std::string marshal();
   bool set_field(const gchar *attribute, FilterXObject *value);
@@ -57,10 +58,12 @@ public:
 private:
   Resource(const Resource &o, FilterXOtelResource *s);
   friend FilterXObject *::_filterx_otel_resource_clone(FilterXObject *s);
+  bool set_schema_url(FilterXObject *value);
 
 private:
   FilterXOtelResource *super;
   opentelemetry::proto::resource::v1::Resource resource;
+  FilterXObject *schema_url;
 };
 
 }
