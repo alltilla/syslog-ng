@@ -91,6 +91,7 @@ construct_template_expr(LogTemplate *template)
 %type <node> expr_value
 %type <node> expr_generator
 %type <node> function_call
+%type <node> generator_function_call
 %type <ptr> arguments
 %type <ptr> argument
 %type <node> literal
@@ -167,11 +168,20 @@ expr_value
 expr_generator
 	: dict_expr
 	| list_expr
+	| generator_function_call
 	;
 
 function_call
 	: LL_IDENTIFIER '(' arguments ')'	{ 
 							FilterXExpr *res = filterx_function_lookup(configuration, $1, $3);
+							CHECK_ERROR(res, @1, "filterx function %s not found", $1);
+							$$ = res;
+						}
+	;
+
+generator_function_call
+	: LL_IDENTIFIER '(' arguments ')'	{
+							FilterXExpr *res = filterx_generator_function_lookup(configuration, $1, last_fillable, $3);
 							CHECK_ERROR(res, @1, "filterx function %s not found", $1);
 							$$ = res;
 						}
