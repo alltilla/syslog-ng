@@ -27,10 +27,15 @@
 #include "filterx/object-json.h"
 #include "filterx/object-datetime.h"
 #include "filterx/object-message-value.h"
+#include "filterx/object-list-interface.h"
+#include "filterx/object-dict-interface.h"
 
 void
 filterx_global_init(void)
 {
+  filterx_type_init(&FILTERX_TYPE_NAME(list));
+  filterx_type_init(&FILTERX_TYPE_NAME(dict));
+
   filterx_type_init(&FILTERX_TYPE_NAME(null));
   filterx_type_init(&FILTERX_TYPE_NAME(integer));
   filterx_type_init(&FILTERX_TYPE_NAME(boolean));
