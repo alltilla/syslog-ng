@@ -183,8 +183,8 @@ Test(filterx_datetime, test_filterx_datetime_repr)
 
   GString *repr = scratch_buffers_alloc();
 
-  cr_assert(filterx_object_repr(in, repr));
-  cr_assert_str_eq(test_time_str, repr->str);
+  cr_assert(filterx_object_repr(obj, repr));
+  cr_assert_str_eq("2024-03-18T12:34:13.000+01:00", repr->str);
 
   g_ptr_array_free(args, TRUE);
   filterx_object_unref(obj);
