@@ -51,25 +51,50 @@ Test(test_str_format, hex_string__two_bytes__perfect)
 
 Test(test_str_format, hex_string_with_delimiter__single_byte__perfect)
 {
-  gchar expected_output[3] = "40";
-  gchar output[3];
+  gchar expected_output[2] = "40";
+  gchar output[2];
   gchar input[1] = "@";
 
   format_hex_string_with_delimiter(input, sizeof(input), output, sizeof(output), ' ');
 
-  cr_expect_str_eq(output, expected_output, "format_hex_string_with_delimiter output does not match!");
+  cr_assert(memcmp(expected_output, output, G_N_ELEMENTS(expected_output)) == 0,
+            "format_hex_string_with_delimiter output does not match!");
 }
 
 Test(test_str_format, hex_string_with_delimiter__two_bytes__perfect)
 {
-  gchar expected_output[6] = "40 41";
-  gchar output[6];
+  gchar expected_output[5] = "40 41";
+  gchar output[5];
   gchar input[2] = "@A";
 
   format_hex_string_with_delimiter(input, sizeof(input), output, sizeof(output), ' ');
 
-  cr_expect_str_eq(output, expected_output,
-                   "format_hex_string_with_delimiter output does not match in case of two bytes!");
+  cr_assert(memcmp(expected_output, output, G_N_ELEMENTS(expected_output)) == 0,
+            "format_hex_string_with_delimiter output does not match in case of two bytes!");
+}
+
+Test(test_str_format, hex_string_with_delimiter__single_byte__perfect__no_delimiter)
+{
+  gchar expected_output[2] = "40";
+  gchar output[2];
+  gchar input[1] = "@";
+
+  format_hex_string_with_delimiter(input, sizeof(input), output, sizeof(output), 0);
+
+  cr_assert(memcmp(expected_output, output, G_N_ELEMENTS(expected_output)) == 0,
+            "format_hex_string_with_delimiter output does not match!");
+}
+
+Test(test_str_format, hex_string_with_delimiter__two_bytes__perfect__no_delimiter)
+{
+  gchar expected_output[4] = "4041";
+  gchar output[4];
+  gchar input[2] = "@A";
+
+  format_hex_string_with_delimiter(input, sizeof(input), output, sizeof(output), 0);
+
+  cr_assert(memcmp(expected_output, output, G_N_ELEMENTS(expected_output)) == 0,
+            "format_hex_string_with_delimiter output does not match in case of two bytes!");
 }
 
 static void

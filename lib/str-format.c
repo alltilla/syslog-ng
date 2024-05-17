@@ -268,15 +268,20 @@ format_hex_string_with_delimiter(gpointer data, gsize data_len, gchar *result, g
   gint pos = 0;
   guchar *str = (guchar *) data;
 
-  for (i = 0; i < data_len && result_len - pos >= 3; i++)
+  for (i = 0; i < data_len; i++)
     {
-      if ( (delimiter != 0) && (i < data_len - 1))
+      gboolean needs_delim = (delimiter != 0) && (i < data_len - 1);
+      if (needs_delim)
         {
+          if (result_len - pos < 3)
+            break;
           g_snprintf(result + pos, 4, "%02x%c", str[i], delimiter);
           pos += 3;
         }
       else
         {
+          if (result_len - pos < 2)
+            break;
           g_snprintf(result + pos, 3, "%02x", str[i]);
           pos += 2;
         }
